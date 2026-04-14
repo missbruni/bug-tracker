@@ -1,6 +1,22 @@
 import { Paperclip, Play, X } from 'lucide-react'
 
-export default function AttachmentCard({ att, onRemove, onImageClick }) {
+export interface Attachment {
+  id?: number
+  bug_id?: string
+  name: string
+  url: string
+  type: string
+  file?: File
+  note?: string
+}
+
+interface AttachmentCardProps {
+  att: Attachment
+  onRemove?: () => void
+  onImageClick?: (url: string, name: string, type: string) => void
+}
+
+export default function AttachmentCard({ att, onRemove, onImageClick }: AttachmentCardProps) {
   const isImage = att.type?.startsWith('image/') || att.name?.match(/\.(png|jpe?g|gif|webp|svg)$/i)
   const isVideo = att.type?.startsWith('video/') || att.name?.match(/\.(mp4|webm|mov|ogg)$/i)
   const hasPreview = (isImage || isVideo) && att.url

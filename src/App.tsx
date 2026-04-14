@@ -5,12 +5,27 @@ import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import CrawlingBugs from './CrawlingBugs'
 import Lightbox from './components/Lightbox'
 import { TesterBadge } from './components/TesterBadge'
-import BugCard from './components/BugCard'
+import BugCard, { type Bug } from './components/BugCard'
 import AddBugForm from './components/AddBugForm'
+import type { Severity } from './constants'
+import type { Attachment } from './components/AttachmentCard'
+
+interface Question {
+  id: string
+  text: string
+  tester: string
+  created_at?: string
+}
+
+interface LightboxState {
+  src: string
+  alt: string
+  type: string
+}
 
 export default function App() {
-  const [bugs, setBugs] = useState([])
-  const [questions, setQuestions] = useState([])
+  const [bugs, setBugs] = useState<Bug[]>([])
+  const [questions, setQuestions] = useState<Question[]>([])
   const [severityFilter, setSeverityFilter] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     return p.get('severity') || 'all'
@@ -44,7 +59,7 @@ export default function App() {
   }, [search, severityFilter, testerFilter, dateFilter, sortOrder])
   const [showAddForm, setShowAddForm] = useState(false)
   const [themeKey, setThemeKey] = useState(0)
-  const [lightbox, setLightbox] = useState(null)
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null)
   const [loading, setLoading] = useState(true)
   const [darkMode, setDarkMode] = useState(() => {
     const stored = localStorage.getItem('theme')
@@ -57,10 +72,10 @@ export default function App() {
   }, [darkMode])
 
   const sevStyles = darkMode ? SEVERITY_STYLES.dark : SEVERITY_STYLES.light
-  const searchRef = useRef(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         searchRef.current?.focus()
@@ -89,26 +104,26 @@ export default function App() {
           supabase.from('open_questions').select('*').order('id'),
         ])
 
-        const commentsMap = {}
-        ;(commentsRes.data || []).forEach((c) => {
+        const commentsMap: Record<string, Bug['comments']> = {}
+        ;((commentsRes.data || []) as Array<Bug['comments'][number] & { bug_id: string }>).forEach((c) => {
           if (!commentsMap[c.bug_id]) commentsMap[c.bug_id] = []
           commentsMap[c.bug_id].push(c)
         })
 
-        const attachmentsMap = {}
-        ;(attachmentsRes.data || []).forEach((a) => {
+        const attachmentsMap: Record<string, Attachment[]> = {}
+        ;((attachmentsRes.data || []) as Array<Attachment & { bug_id: string }>).forEach((a) => {
           if (!attachmentsMap[a.bug_id]) attachmentsMap[a.bug_id] = []
           attachmentsMap[a.bug_id].push(a)
         })
 
-        const mergedBugs = (bugsRes.data || []).map((b) => ({
+        const mergedBugs = (bugsRes.data || []).map((b: Bug) => ({
           ...b,
           comments: commentsMap[b.id] || [],
           attachments: attachmentsMap[b.id] || [],
         }))
 
         setBugs(mergedBugs)
-        setQuestions(questionsRes.data || [])
+        setQuestions(questionsRes.data as Question[] || [])
       } catch (err) {
         console.error('Failed to load data:', err)
       }
@@ -117,15 +132,15 @@ export default function App() {
     load()
   }, [])
 
-  const updateBug = useCallback((updated) => {
+  const updateBug = useCallback((updated: Bug) => {
     setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
   }, [])
 
-  const deleteBug = useCallback((bugId) => {
+  const deleteBugFromState = useCallback((bugId: string) => {
     setBugs((prev) => prev.filter((b) => b.id !== bugId))
   }, [])
 
-  const addBug = async (newBug) => {
+  const addBug = async (newBug: { id: string; title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string | null; attachments: Attachment[] }) => {
     const filesToUpload = newBug.attachments.filter((a) => a.file)
     const bugData = {
       id: newBug.id,
@@ -145,23 +160,23 @@ export default function App() {
         return
       }
 
-      const uploadedAttachments = []
+      const uploadedAttachments: Attachment[] = []
       for (const att of filesToUpload) {
         const path = `${newBug.id}/${Date.now()}-${att.name}`
-        const { error: upErr } = await supabase.storage.from('attachments').upload(path, att.file)
+        const { error: upErr } = await supabase.storage.from('attachments').upload(path, att.file!)
         if (!upErr) {
           const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
           const { data: row } = await supabase
             .from('attachments')
             .insert({ bug_id: newBug.id, name: att.name, url: urlData.publicUrl, type: att.type })
             .select()
-          if (row?.[0]) uploadedAttachments.push(row[0])
+          if (row?.[0]) uploadedAttachments.push(row[0] as Attachment)
         }
       }
 
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: uploadedAttachments }])
+      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: uploadedAttachments } as Bug])
     } else {
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: newBug.attachments }])
+      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: newBug.attachments } as Bug])
     }
     setShowAddForm(false)
   }
@@ -205,21 +220,21 @@ export default function App() {
     }
     return true
   }).sort((a, b) => {
-    if (sortOrder === 'newest') return new Date(b.created_at || 0) - new Date(a.created_at || 0)
-    if (sortOrder === 'oldest') return new Date(a.created_at || 0) - new Date(b.created_at || 0)
+    if (sortOrder === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    if (sortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
     return 0
   })
 
-  const counts = { critical: 0, high: 0, low: 0 }
+  const counts: Record<Severity, number> = { critical: 0, high: 0, low: 0 }
   bugs.forEach((b) => counts[b.severity]++)
 
-  const nextIds = {
+  const nextIds: Record<Severity, number> = {
     critical: bugs.filter((b) => b.severity === 'critical').length + 1,
     high: bugs.filter((b) => b.severity === 'high').length + 1,
     low: bugs.filter((b) => b.severity === 'low').length + 1,
   }
 
-  const grouped = {}
+  const grouped: Record<string, Bug[]> = {}
   SEVERITIES.forEach((s) => {
     grouped[s] = filtered.filter((b) => b.severity === s)
   })
@@ -275,7 +290,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
               placeholder="Search bugs..."
               className="w-64 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 py-2 pl-9 pr-16 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-400/30 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
             />
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-[11px] text-slate-500 dark:text-slate-300 font-mono pointer-events-none">⌘ K</kbd>
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-[11px] text-slate-500 dark:text-slate-300 font-mono pointer-events-none">⌘ K</kbd>
           </div>
           <button
             onClick={() => setShowAddForm(true)}
@@ -283,7 +298,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           >
             <Plus size={16} />
             New Bug
-            <kbd className="ml-1 rounded bg-blue-600/60 px-1.5 py-0.5 text-[11px] font-mono">⌘ J</kbd>
+            <kbd className="ml-1 rounded bg-blue-600/60 px-1.5 py-0.5 text-[11px] font-mono">⌘ J</kbd>
           </button>
           <button
             onClick={() => { setDarkMode(!darkMode); setThemeKey(k => k + 1) }}
@@ -381,7 +396,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   key={bug.id}
                   bug={bug}
                   onUpdate={updateBug}
-                  onDelete={deleteBug}
+                  onDelete={deleteBugFromState}
                   onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
                 />
               ))}
@@ -390,7 +405,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         })}
 
         {severityFilter === 'all' && testerFilter === 'all' && !search && questions.length > 0 && (() => {
-          const deleteQuestion = async (q) => {
+          const deleteQuestion = async (q: Question) => {
             if (supabase) {
               const { error } = await supabase.from('open_questions').delete().eq('id', q.id)
               if (error) { console.error('Failed to delete question:', error); return }

@@ -13,15 +13,30 @@ const EDGE_RESISTANCE = 20
 const ZOOM_MIN = 1
 const ZOOM_MAX = 1.5
 
-function random(min, max) {
+interface BugState {
+  x: number
+  y: number
+  angle: number
+  walkIndex: number
+  frameCounter: number
+  smallTurnCounter: number
+  largeTurnCounter: number
+  largeTurnAngle: number
+  stationaryCounter: number
+  stationary: boolean
+  zoom: number
+  wingsOpen: boolean
+}
+
+function random(min: number, max: number) {
   return min + Math.random() * (max - min)
 }
 
-function deg2rad(deg) {
+function deg2rad(deg: number) {
   return deg * (Math.PI / 180)
 }
 
-function createBug(containerW, containerH) {
+function createBug(containerW: number, containerH: number): BugState {
   return {
     x: random(EDGE_RESISTANCE, containerW - EDGE_RESISTANCE),
     y: random(EDGE_RESISTANCE, containerH - EDGE_RESISTANCE),
@@ -38,7 +53,7 @@ function createBug(containerW, containerH) {
   }
 }
 
-function nearEdge(bug, w, h) {
+function nearEdge(bug: BugState, w: number, h: number) {
   let edge = 0
   if (bug.y < EDGE_RESISTANCE) edge |= 1 // top
   if (bug.y > h - EDGE_RESISTANCE) edge |= 2 // bottom
@@ -47,19 +62,23 @@ function nearEdge(bug, w, h) {
   return edge
 }
 
-const EDGE_DIRS = {
+const EDGE_DIRS: Record<number, number> = {
   1: 270, 2: 90, 4: 0, 8: 180,
   5: 315, 9: 225, 6: 45, 10: 135,
 }
 
-export default function CrawlingBugs({ count = 3 }) {
+interface CrawlingBugsProps {
+  count?: number
+}
+
+export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
   const numBugs = Math.min(Math.max(count, 0), MAX_BUGS)
-  const containerRef = useRef(null)
-  const bugsRef = useRef([])
-  const canvasRef = useRef(null)
-  const animRef = useRef(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const bugsRef = useRef<BugState[]>([])
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animRef = useRef<number>(0)
   const lastTimeRef = useRef(0)
-  const spriteRef = useRef(null)
+  const spriteRef = useRef<HTMLImageElement | null>(null)
   const spriteLoadedRef = useRef(false)
 
   useEffect(() => {
@@ -100,7 +119,7 @@ export default function CrawlingBugs({ count = 3 }) {
       createBug(rect.width, rect.height)
     )
 
-    const animate = (t) => {
+    const animate = (t: number) => {
       animRef.current = requestAnimationFrame(animate)
 
       if (!spriteLoadedRef.current) return
@@ -115,6 +134,7 @@ export default function CrawlingBugs({ count = 3 }) {
       lastTimeRef.current = t
 
       const ctx = canvas.getContext('2d')
+      if (!ctx) return
       const dpr = window.devicePixelRatio
       const w = canvas.width / dpr
       const h = canvas.height / dpr
@@ -136,7 +156,7 @@ export default function CrawlingBugs({ count = 3 }) {
           // edge avoidance
           const edge = nearEdge(bug, w, h)
           if (edge && EDGE_DIRS[edge] !== undefined) {
-            let target = EDGE_DIRS[edge]
+            const target = EDGE_DIRS[edge]
             let diff = target - ((bug.angle % 360) + 360) % 360
             if (diff > 180) diff -= 360
             if (diff < -180) diff += 360
@@ -194,11 +214,13 @@ export default function CrawlingBugs({ count = 3 }) {
         const sx = bug.stationary ? 0 : bug.walkIndex * BUG_WIDTH
         const sy = bug.wingsOpen ? 0 : BUG_HEIGHT
 
-        ctx.drawImage(
-          spriteRef.current,
-          sx, sy, BUG_WIDTH, BUG_HEIGHT,
-          -BUG_WIDTH / 2, -BUG_HEIGHT / 2, BUG_WIDTH, BUG_HEIGHT
-        )
+        if (spriteRef.current) {
+          ctx.drawImage(
+            spriteRef.current,
+            sx, sy, BUG_WIDTH, BUG_HEIGHT,
+            -BUG_WIDTH / 2, -BUG_HEIGHT / 2, BUG_WIDTH, BUG_HEIGHT
+          )
+        }
         ctx.restore()
       }
 

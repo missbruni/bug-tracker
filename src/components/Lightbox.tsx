@@ -1,6 +1,13 @@
 import { X } from 'lucide-react'
 
-export default function Lightbox({ src, alt, type, onClose }) {
+interface LightboxProps {
+  src: string
+  alt?: string
+  type?: string
+  onClose: () => void
+}
+
+export default function Lightbox({ src, alt, type, onClose }: LightboxProps) {
   const isVideo = type === 'video' || src?.match(/\.(mp4|webm|mov|ogg)$/i)
   return (
     <div

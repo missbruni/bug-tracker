@@ -1,26 +1,46 @@
 import { useState, useRef } from 'react'
 import { Paperclip } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES } from '../constants'
-import AttachmentCard from './AttachmentCard'
+import AttachmentCard, { type Attachment } from './AttachmentCard'
+import type { Severity } from '../constants'
 
-export default function AddBugForm({ onAdd, onCancel, nextIds }) {
+interface NewBugPayload {
+  id: string
+  title: string
+  description: string
+  severity: Severity
+  tester: string
+  device: string
+  page: string
+  category: string | null
+  comments: never[]
+  attachments: Attachment[]
+}
+
+interface AddBugFormProps {
+  onAdd: (bug: NewBugPayload) => void
+  onCancel: () => void
+  nextIds: Record<Severity, number>
+}
+
+export default function AddBugForm({ onAdd, onCancel, nextIds }: AddBugFormProps) {
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
-  const [severity, setSeverity] = useState('high')
+  const [severity, setSeverity] = useState<Severity>('high')
   const [tester, setTester] = useState(() => localStorage.getItem('lastTester') || '')
   const [device, setDevice] = useState('')
   const [page, setPage] = useState('')
   const [category, setCategory] = useState('')
-  const fileRef = useRef(null)
-  const [files, setFiles] = useState([])
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [files, setFiles] = useState<Attachment[]>([])
 
-  const handleFiles = (e) => {
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || [])
     setFiles((prev) => [...prev, ...newFiles.map((f) => ({ name: f.name, url: URL.createObjectURL(f), type: f.type, file: f }))])
     e.target.value = ''
   }
 
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     const items = Array.from(e.clipboardData?.items || [])
     const imageFiles = items
       .filter((item) => item.type.startsWith('image/'))
@@ -33,10 +53,10 @@ export default function AddBugForm({ onAdd, onCancel, nextIds }) {
         }
         return null
       })
-      .filter(Boolean)
+      .filter((f): f is NonNullable<typeof f> => f !== null)
     if (imageFiles.length) {
       e.preventDefault()
-      setFiles((prev) => [...prev, ...imageFiles])
+      setFiles((prev) => [...prev, ...imageFiles as Attachment[]])
     }
   }
 

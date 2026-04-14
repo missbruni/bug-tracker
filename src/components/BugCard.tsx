@@ -11,11 +11,36 @@ import {
 import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL, SEVERITY_STYLES } from '../constants'
 import { TesterBadge } from './TesterBadge'
-import AttachmentCard from './AttachmentCard'
+import AttachmentCard, { type Attachment } from './AttachmentCard'
+import type { Severity } from '../constants'
+
+export interface Comment {
+  id?: number
+  bug_id?: string
+  text: string
+  time?: string
+}
+
+export interface Bug {
+  id: string
+  title: string
+  description: string
+  severity: Severity
+  tester: string
+  device: string
+  page: string
+  category: string | null
+  created_at?: string
+  reviewed?: boolean
+  backlog_url?: string | null
+  comments: Comment[]
+  attachments: Attachment[]
+}
 
 function playTickSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const ctx = new AudioCtx()
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.connect(gain)
@@ -26,16 +51,23 @@ function playTickSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12)
     osc.start(ctx.currentTime)
     osc.stop(ctx.currentTime + 0.12)
-  } catch {}
+  } catch { /* ignore audio errors */ }
 }
 
-export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
+interface BugCardProps {
+  bug: Bug
+  onUpdate: (bug: Bug) => void
+  onImageClick: (src: string, alt: string, type: string) => void
+  onDelete: (bugId: string) => void
+}
+
+export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const [backlogUrl, setBacklogUrl] = useState(bug.backlog_url || null)
-  const fileRef = useRef(null)
+  const [backlogUrl, setBacklogUrl] = useState<string | null>(bug.backlog_url || null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const style = SEVERITY_STYLES.dark[bug.severity]
 
   const publishToBacklog = async () => {
@@ -62,7 +94,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
         setBacklogUrl(url)
         if (url) window.open(url, '_blank')
         if (supabase) {
-          const updates = { backlog_url: url }
+          const updates: Record<string, unknown> = { backlog_url: url }
           if (!bug.reviewed) updates.reviewed = true
           await supabase.from('bugs').update(updates).eq('id', bug.id)
         }
@@ -96,7 +128,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
     setShowCommentInput(false)
   }
 
-  const deleteComment = async (comment, index) => {
+  const deleteComment = async (comment: { id?: number }, index: number) => {
     if (supabase && comment.id) {
       const { error } = await supabase.from('comments').delete().eq('id', comment.id)
       if (error) { console.error('Failed to delete comment:', error); return }
@@ -104,7 +136,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
     onUpdate({ ...bug, comments: bug.comments.filter((_, i) => i !== index) })
   }
 
-  const deleteAttachment = async (attachment, index) => {
+  const deleteAttachment = async (attachment: { id?: number; url?: string }, index: number) => {
     if (supabase && attachment.id) {
       const { error } = await supabase.from('attachments').delete().eq('id', attachment.id)
       if (error) { console.error('Failed to delete attachment:', error); return }
@@ -133,39 +165,28 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
       const storagePaths = bug.attachments
         .map((att) => att.url?.split('/attachments/')[1])
         .filter(Boolean)
-        .map((path) => decodeURIComponent(path))
+        .map((path) => decodeURIComponent(path!))
 
       if (storagePaths.length) {
         const { error: storageError } = await supabase.storage.from('attachments').remove(storagePaths)
-        if (storageError) {
-          console.error('Failed to delete attachment files:', storageError)
-        }
+        if (storageError) console.error('Failed to delete attachment files:', storageError)
       }
 
       const { error: commentsError } = await supabase.from('comments').delete().eq('bug_id', bug.id)
-      if (commentsError) {
-        console.error('Failed to delete bug comments:', commentsError)
-        return
-      }
+      if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return }
 
       const { error: attachmentsError } = await supabase.from('attachments').delete().eq('bug_id', bug.id)
-      if (attachmentsError) {
-        console.error('Failed to delete bug attachments:', attachmentsError)
-        return
-      }
+      if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return }
 
       const { error: bugError } = await supabase.from('bugs').delete().eq('id', bug.id)
-      if (bugError) {
-        console.error('Failed to delete bug:', bugError)
-        return
-      }
+      if (bugError) { console.error('Failed to delete bug:', bugError); return }
     }
 
-    onDelete?.(bug.id)
+    onDelete(bug.id)
   }
 
-  const uploadFiles = async (files) => {
-    const newAttachments = []
+  const uploadFiles = async (files: File[]) => {
+    const newAttachments: Bug['attachments'] = []
     for (const file of files) {
       if (supabase) {
         const path = `${bug.id}/${Date.now()}-${file.name}`
@@ -187,14 +208,14 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
     }
   }
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
     e.target.value = ''
     await uploadFiles(files)
   }
 
-  const handlePaste = async (e) => {
+  const handlePaste = async (e: React.ClipboardEvent) => {
     const items = Array.from(e.clipboardData?.items || [])
     const imageFiles = items
       .filter((item) => item.type.startsWith('image/'))
@@ -206,7 +227,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }) {
         }
         return null
       })
-      .filter(Boolean)
+      .filter((f): f is File => f !== null)
     if (imageFiles.length) {
       e.preventDefault()
       await uploadFiles(imageFiles)
