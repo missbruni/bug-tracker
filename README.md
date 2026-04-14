@@ -6,7 +6,7 @@ A real-time bug tracking app built for testing session triage, with crawling bug
 
 ## Stack
 
-- **React 18** + **TypeScript**
+- **React 19** + **TypeScript**
 - **Vite** for build tooling
 - **Tailwind CSS** for styling
 - **Supabase** for database and file storage
