@@ -1,0 +1,115 @@
+{
+  "name": "Bug Tracker - Publish to Azure DevOps Backlog",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bug-to-backlog",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4000-8000-000000000001",
+      "name": "Bug Tracker Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        200
+      ],
+      "webhookId": "bug-to-backlog"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://dev.azure.com/access-devops/Hospitality%20Accommodation/_apis/wit/workitems/$Dev%20Bug?api-version=7.0",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json-patch+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([\n  {\n    op: 'add',\n    path: '/fields/System.Title',\n    value: '[' + $json.body.id + '] ' + $json.body.title\n  },\n  {\n    op: 'add',\n    path: '/fields/System.Description',\n    value: '<b>Bug ID:</b> ' + $json.body.id + '<br><b>Severity:</b> ' + $json.body.severity + '<br><b>Reported by:</b> ' + $json.body.tester + '<br><b>Page:</b> ' + $json.body.page + '<br><b>Device:</b> ' + $json.body.device + '<br><b>Category:</b> ' + ($json.body.category || 'N/A') + '<hr><p>' + $json.body.description + '</p>' + (($json.body.attachments && $json.body.attachments.length) ? '<hr><b>Attachments:</b><br>' + $json.body.attachments.map(a => a.type && a.type.startsWith('image/') ? '<p><b>' + a.name + '</b><br><img src=\"' + a.url + '\" alt=\"' + a.name + '\" style=\"max-width:600px\"></p>' : '<p><a href=\"' + a.url + '\">' + a.name + '</a></p>').join('') : '')\n  },\n  {\n    op: 'add',\n    path: '/fields/Microsoft.VSTS.Common.Severity',\n    value: ({ critical: '1 - Critical', high: '2 - High', low: '3 - Medium' })[$json.body.severity] || '3 - Medium'\n  },\n  {\n    op: 'add',\n    path: '/fields/System.Tags',\n    value: 'bug-tracker; ' + $json.body.severity + '; ' + $json.body.tester\n  },\n  {\n    op: 'add',\n    path: '/fields/Microsoft.VSTS.TCM.ReproSteps',\n    value: '<p>' + $json.body.description + '</p>' + (($json.body.attachments && $json.body.attachments.length) ? '<hr><b>Attachments:</b><br>' + $json.body.attachments.map(a => a.type && a.type.startsWith('image/') ? '<p><b>' + a.name + '</b><br><img src=\"' + a.url + '\" alt=\"' + a.name + '\" style=\"max-width:600px\"></p>' : '<p><a href=\"' + a.url + '\">' + a.name + '</a></p>').join('') : '')\n  },\n  {\n    op: 'add',\n    path: '/fields/System.AreaPath',\n    value: 'Hospitality Accommodation\\\\EVO-IBE'\n  }\n]) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-2222-4000-8000-000000000002",
+      "name": "Create Azure DevOps Bug",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        200
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Azure DevOps PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, workItemId: $json.id, url: $json._links && $json._links.html && $json._links.html.href || '' }) }}"
+      },
+      "id": "a1b2c3d4-3333-4000-8000-000000000003",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.message || 'Failed to create work item' }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "a1b2c3d4-4444-4000-8000-000000000004",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Bug Tracker Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create Azure DevOps Bug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Azure DevOps Bug": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
