@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Trash2, Sun, Moon, ArrowDownUp } from 'lucide-react'
+import { Plus, Search, Trash2, Sun, Moon, ArrowDownUp, Bug as BugIcon } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import CrawlingBugs from './CrawlingBugs'
@@ -58,6 +58,7 @@ export default function App() {
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
   }, [search, severityFilter, testerFilter, dateFilter, sortOrder])
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showBugs, setShowBugs] = useState(() => localStorage.getItem('showBugs') !== 'false')
   const [themeKey, setThemeKey] = useState(0)
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
   const [loading, setLoading] = useState(true)
@@ -83,6 +84,14 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
         e.preventDefault()
         setShowAddForm(true)
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault()
+        setShowBugs(prev => {
+          const next = !prev
+          localStorage.setItem('showBugs', String(next))
+          return next
+        })
       }
     }
     window.addEventListener('keydown', handler)
@@ -270,10 +279,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
       {/* Header */}
       <div className="sticky top-0 z-40 relative overflow-hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white px-7 py-5 flex justify-between items-center">
-        <CrawlingBugs count={bugs.filter(b => !b.reviewed).length} />
+        {showBugs && <CrawlingBugs count={bugs.filter(b => !b.reviewed).length} />}
         <div className="relative z-10">
           <div className="flex items-baseline gap-3 mb-0.5">
-            <h1 className="text-xl font-bold" style={{ fontFamily: "'Press Start 2P', cursive" }}>EVO IBE</h1>
+            <h1 className="text-xl font-bold flex items-center gap-1" style={{ fontFamily: "'Press Start 2P', cursive" }}>EVO <button onClick={() => setShowBugs(prev => { const next = !prev; localStorage.setItem('showBugs', String(next)); return next })} className={`transition-colors cursor-pointer ${showBugs ? 'text-green-500 hover:text-green-600' : 'text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400'}`} title={`${showBugs ? 'Hide' : 'Show'} crawling bugs (\u2318B)`}><BugIcon size={20} /></button> IBE</h1>
             <p className="text-sm font-semibold text-slate-500 dark:text-gray-300">Testing Session Triage | Bug Catcher</p>
           </div>
           <p className="text-xs text-slate-400 dark:text-gray-500">
