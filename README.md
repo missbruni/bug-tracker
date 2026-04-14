@@ -1,4 +1,4 @@
-# EVO IBE Bug Tracker
+# Bug Tracker
 
 A real-time bug tracking app built for testing session triage, with crawling bug animations, keyboard shortcuts, and Azure DevOps backlog integration.
 
