@@ -238,9 +238,9 @@ export default function App() {
   bugs.forEach((b) => counts[b.severity]++)
 
   const nextIds: Record<Severity, number> = {
-    critical: bugs.filter((b) => b.severity === 'critical').length + 1,
-    high: bugs.filter((b) => b.severity === 'high').length + 1,
-    low: bugs.filter((b) => b.severity === 'low').length + 1,
+    critical: Math.max(0, ...bugs.filter((b) => b.severity === 'critical').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
+    high: Math.max(0, ...bugs.filter((b) => b.severity === 'high').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
+    low: Math.max(0, ...bugs.filter((b) => b.severity === 'low').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
   }
 
   const grouped: Record<string, Bug[]> = {}
