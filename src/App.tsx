@@ -385,7 +385,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
               : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
           }`}
         >
-          {hideReviewed ? 'Hiding reviewed' : 'Show all'}
+          {hideReviewed ? 'Show all' : 'Hide reviewed'}
         </button>
         <button
           onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : sortOrder === 'oldest' ? 'default' : 'newest')}
