@@ -46,6 +46,10 @@ export default function App() {
     const p = new URLSearchParams(window.location.search)
     return p.get('sort') || 'default'
   })
+  const [hideReviewed, setHideReviewed] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    return p.get('hide_reviewed') !== 'false'
+  })
 
   useEffect(() => {
     const p = new URLSearchParams()
@@ -54,9 +58,10 @@ export default function App() {
     if (testerFilter !== 'all') p.set('tester', testerFilter)
     if (dateFilter !== 'all') p.set('date', dateFilter)
     if (sortOrder !== 'default') p.set('sort', sortOrder)
+    if (!hideReviewed) p.set('hide_reviewed', 'false')
     const qs = p.toString()
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-  }, [search, severityFilter, testerFilter, dateFilter, sortOrder])
+  }, [search, severityFilter, testerFilter, dateFilter, sortOrder, hideReviewed])
   const [showAddForm, setShowAddForm] = useState(false)
   const [showBugs, setShowBugs] = useState(() => localStorage.getItem('showBugs') !== 'false')
   const [themeKey, setThemeKey] = useState(0)
@@ -194,6 +199,7 @@ export default function App() {
   const testers = [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort()
 
   const filtered = bugs.filter((b) => {
+    if (hideReviewed && b.reviewed) return false
     if (severityFilter !== 'all' && b.severity !== severityFilter) return false
     if (testerFilter !== 'all' && !b.tester.includes(testerFilter)) return false
     if (search) {
@@ -287,7 +293,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
             <p className="text-sm font-semibold text-slate-500 dark:text-gray-300">Testing Session Triage | Bug Catcher</p>
           </div>
           <p className="text-xs text-slate-400 dark:text-gray-500">
-            {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; Bruna, Robert, Nistor, Denisa, Ricardo, Oliwia &middot; <span className="text-blue-600 dark:text-yellow-400 font-semibold">{bugs.filter(b => !b.reviewed).length} active</span> / {bugs.length} total
+            {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; {testers.join(', ') || 'No testers yet'} &middot; <span className="text-blue-600 dark:text-yellow-400 font-semibold">{bugs.filter(b => !b.reviewed).length} active</span> / {bugs.length} total
           </p>
         </div>
         <div className="relative z-10 flex items-center gap-2">
@@ -371,6 +377,16 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
         </select>
+        <button
+          onClick={() => setHideReviewed(!hideReviewed)}
+          className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+            hideReviewed
+              ? 'bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100'
+              : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
+          }`}
+        >
+          {hideReviewed ? 'Hiding reviewed' : 'Show all'}
+        </button>
         <button
           onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : sortOrder === 'oldest' ? 'default' : 'newest')}
           className={`ml-auto flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
