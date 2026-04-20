@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -7,6 +7,7 @@ import {
   Trash2,
   CheckCircle,
   ExternalLink,
+  Rocket,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL, SEVERITY_STYLES } from '../constants'
@@ -33,6 +34,7 @@ export interface Bug {
   created_at?: string
   reviewed?: boolean
   backlog_url?: string | null
+  devin_url?: string | null
   comments: Comment[]
   attachments: Attachment[]
 }
@@ -65,13 +67,34 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
   const [expanded, setExpanded] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [showCommentInput, setShowCommentInput] = useState(false)
-  const [publishing, setPublishing] = useState(false)
+  const [publishingMode, setPublishingMode] = useState<'backlog' | 'devin' | null>(null)
+  const publishing = publishingMode !== null
+  const [publishMenuOpen, setPublishMenuOpen] = useState(false)
   const [backlogUrl, setBacklogUrl] = useState<string | null>(bug.backlog_url || null)
+  const [devinUrl, setDevinUrl] = useState<string | null>(bug.devin_url || null)
+  const [publishError, setPublishError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const publishMenuRef = useRef<HTMLDivElement>(null)
+  const publishSplitRef = useRef<HTMLDivElement>(null)
   const style = SEVERITY_STYLES.dark[bug.severity]
 
-  const publishToBacklog = async () => {
-    setPublishing(true)
+  useEffect(() => {
+    if (!publishMenuOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (publishMenuRef.current && !publishMenuRef.current.contains(e.target as Node)) {
+        setPublishMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('mousedown', handleClickOutside)
+    return () => window.removeEventListener('mousedown', handleClickOutside)
+  }, [publishMenuOpen])
+
+  const publishToBacklog = async (withDevin = false) => {
+    setPublishingMode(withDevin ? 'devin' : 'backlog')
+    setPublishMenuOpen(false)
+    setPublishError(null)
     try {
       const res = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -86,27 +109,36 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
           device: bug.device,
           category: bug.category || '',
           attachments: bug.attachments.map((a) => ({ name: a.name, url: a.url, type: a.type })),
+          request_devin: withDevin,
         }),
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: Record<string, unknown>
+      try { data = JSON.parse(text) } catch { data = { success: false, error: `Invalid response: ${text.slice(0, 200)}` } }
       if (data.success) {
-        const url = data.url || null
+        const url = (data.url as string) || null
+        const devinSession = (data.devin_session as string) || null
+        const devinLink = devinSession ? `https://app.devin.ai/sessions/${devinSession}` : null
         setBacklogUrl(url)
+        if (devinLink) setDevinUrl(devinLink)
         if (url) window.open(url, '_blank')
         if (supabase) {
           const updates: Record<string, unknown> = { backlog_url: url }
+          if (devinLink) updates.devin_url = devinLink
           if (!bug.reviewed) updates.reviewed = true
           await supabase.from('bugs').update(updates).eq('id', bug.id)
         }
-        onUpdate({ ...bug, backlog_url: url, reviewed: true })
+        onUpdate({ ...bug, backlog_url: url, devin_url: devinLink ?? bug.devin_url, reviewed: true })
       } else {
-        alert('Failed to publish: ' + (data.error || 'Unknown error'))
+        setPublishError((data.error as string) || 'Unknown error')
+        setTimeout(() => setPublishError(null), 5000)
       }
     } catch (err) {
       console.error('Publish to backlog failed:', err)
-      alert('Failed to publish to backlog. Check console for details.')
+      setPublishError(err instanceof Error ? err.message : 'Network error')
+      setTimeout(() => setPublishError(null), 5000)
     }
-    setPublishing(false)
+    setPublishingMode(null)
   }
 
   const addComment = async () => {
@@ -281,13 +313,16 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
               </span>
             )}
             <TesterBadge>{bug.tester}</TesterBadge>
-            <button
+            <span
+              role="button"
+              tabIndex={0}
               onClick={(e) => { e.stopPropagation(); deleteBug() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); deleteBug() } }}
               className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all cursor-pointer"
               title="Delete bug"
             >
               <Trash2 size={14} />
-            </button>
+            </span>
             {backlogUrl && (
               <a
                 href={backlogUrl}
@@ -298,6 +333,18 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
               >
                 <ExternalLink size={10} />
                 View in Backlog
+              </a>
+            )}
+            {devinUrl && (
+              <a
+                href={devinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/50 px-2.5 py-0.5 text-[10px] font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
+              >
+                <Rocket size={10} />
+                View Devin
               </a>
             )}
           </div>
@@ -402,14 +449,38 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
                 View in Backlog
               </a>
             )}
-            <button
-              onClick={publishToBacklog}
-              disabled={publishing}
-              className="flex items-center gap-1.5 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50"
-            >
-              <ExternalLink size={12} />
-              {publishing ? 'Publishing...' : backlogUrl ? 'Re-publish' : 'Publish to Backlog'}
-            </button>
+            <div className="relative" ref={publishMenuRef}>
+              <div className="flex" ref={publishSplitRef}>
+                <button
+                  onClick={() => publishToBacklog(false)}
+                  disabled={publishing}
+                  className={`flex items-center gap-1.5 border border-r-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${publishMenuOpen ? 'rounded-tl-md' : 'rounded-l-md'}`}
+                >
+                  <ExternalLink size={12} />
+                  {publishingMode === 'devin' ? 'Publishing + Devin...' : publishing ? 'Publishing...' : backlogUrl ? 'Re-publish' : 'Publish to Backlog'}
+                </button>
+                <button
+                  onClick={() => setPublishMenuOpen((prev) => !prev)}
+                  disabled={publishing}
+                  className={`flex items-center border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-2 py-1.5 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${publishMenuOpen ? 'rounded-tr-md' : 'rounded-r-md'}`}
+                  title="More publish options"
+                  aria-label="More publish options"
+                >
+                  <ChevronDown size={12} className={`transition-transform ${publishMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {publishMenuOpen && !publishing && (
+                <button
+                  onClick={() => publishToBacklog(true)}
+                  className="absolute left-0 top-full z-20 flex items-center gap-1.5 rounded-b-md border border-t-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
+                  style={{ width: publishSplitRef.current?.offsetWidth }}
+                >
+                  <Rocket size={12} />
+                  Publish + Devin
+                </button>
+              )}
+            </div>
             <button
               onClick={deleteBug}
               className="flex items-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors cursor-pointer"
@@ -418,6 +489,9 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
               Delete Bug
             </button>
           </div>
+          {publishError && (
+            <p className="mt-1.5 text-right text-xs text-red-600 dark:text-red-400">{publishError}</p>
+          )}
         </div>
       )}
     </div>
