@@ -61,22 +61,33 @@ interface BugCardProps {
   onUpdate: (bug: Bug) => void
   onImageClick: (src: string, alt: string, type: string) => void
   onDelete: (bugId: string) => void
+  onPersistError?: (message: string) => void
 }
 
-export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCardProps) {
+export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersistError }: BugCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [publishingMode, setPublishingMode] = useState<'backlog' | 'devin' | null>(null)
   const publishing = publishingMode !== null
   const [publishMenuOpen, setPublishMenuOpen] = useState(false)
-  const [backlogUrl, setBacklogUrl] = useState<string | null>(bug.backlog_url || null)
-  const [devinUrl, setDevinUrl] = useState<string | null>(bug.devin_url || null)
-  const [publishError, setPublishError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const publishMenuRef = useRef<HTMLDivElement>(null)
   const publishSplitRef = useRef<HTMLDivElement>(null)
+  const mountedRef = useRef(true)
   const style = SEVERITY_STYLES.dark[bug.severity]
+  const backlogUrl = bug.backlog_url || null
+  const devinUrl = bug.devin_url || null
+
+  const showUpdateError = (message = 'It was not possible to update the bug.') => {
+    onPersistError?.(message)
+  }
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!publishMenuOpen) return
@@ -91,10 +102,32 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
     return () => window.removeEventListener('mousedown', handleClickOutside)
   }, [publishMenuOpen])
 
+  const persistBugUpdate = async (updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>>) => {
+    if (!supabase) return true
+
+    const { data, error } = await supabase
+      .from('bugs')
+      .update(updates)
+      .eq('id', bug.id)
+      .select('id')
+      .maybeSingle()
+
+    if (error || !data) {
+      console.error('Failed to persist bug update:', {
+        bugId: bug.id,
+        updates,
+        error: error?.message || 'No rows updated',
+      })
+      showUpdateError('It was not possible to update the bug.')
+      return false
+    }
+
+    return true
+  }
+
   const publishToBacklog = async (withDevin = false) => {
     setPublishingMode(withDevin ? 'devin' : 'backlog')
     setPublishMenuOpen(false)
-    setPublishError(null)
     try {
       const res = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -119,26 +152,37 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
         const url = (data.url as string) || null
         const devinSession = (data.devin_session as string) || null
         const devinLink = devinSession ? `https://app.devin.ai/sessions/${devinSession}` : null
-        setBacklogUrl(url)
-        if (devinLink) setDevinUrl(devinLink)
-        if (url) window.open(url, '_blank')
-        if (supabase) {
-          const updates: Record<string, unknown> = { backlog_url: url }
-          if (devinLink) updates.devin_url = devinLink
-          if (!bug.reviewed) updates.reviewed = true
-          await supabase.from('bugs').update(updates).eq('id', bug.id)
+        const previousBug = bug
+        const optimisticBug: Bug = {
+          ...bug,
+          backlog_url: url,
+          devin_url: devinLink ?? bug.devin_url,
+          reviewed: true,
         }
-        onUpdate({ ...bug, backlog_url: url, devin_url: devinLink ?? bug.devin_url, reviewed: true })
+        const updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>> = {
+          backlog_url: url,
+          reviewed: true,
+        }
+        if (devinLink) updates.devin_url = devinLink
+
+        onUpdate(optimisticBug)
+
+        const persisted = await persistBugUpdate(updates)
+        if (!persisted) {
+          onUpdate(previousBug)
+          if (mountedRef.current) setPublishingMode(null)
+          return
+        }
+
+        if (url) window.open(url, '_blank')
       } else {
-        setPublishError((data.error as string) || 'Unknown error')
-        setTimeout(() => setPublishError(null), 5000)
+        showUpdateError((data.error as string) || 'It was not possible to update the bug.')
       }
     } catch (err) {
       console.error('Publish to backlog failed:', err)
-      setPublishError(err instanceof Error ? err.message : 'Network error')
-      setTimeout(() => setPublishError(null), 5000)
+      showUpdateError(err instanceof Error ? err.message : 'It was not possible to update the bug.')
     }
-    setPublishingMode(null)
+    if (mountedRef.current) setPublishingMode(null)
   }
 
   const addComment = async () => {
@@ -183,11 +227,14 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
   const toggleReviewed = async () => {
     const newVal = !bug.reviewed
     if (newVal) playTickSound()
-    if (supabase) {
-      const { error } = await supabase.from('bugs').update({ reviewed: newVal }).eq('id', bug.id)
-      if (error) { console.error('Failed to toggle reviewed:', error); return }
-    }
+
+    const previousBug = bug
     onUpdate({ ...bug, reviewed: newVal })
+
+    const persisted = await persistBugUpdate({ reviewed: newVal })
+    if (!persisted) {
+      onUpdate(previousBug)
+    }
   }
 
   const deleteBug = async () => {
@@ -489,9 +536,6 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete }: BugCa
               Delete Bug
             </button>
           </div>
-          {publishError && (
-            <p className="mt-1.5 text-right text-xs text-red-600 dark:text-red-400">{publishError}</p>
-          )}
         </div>
       )}
     </div>

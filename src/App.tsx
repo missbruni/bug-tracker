@@ -26,6 +26,7 @@ interface LightboxState {
 export default function App() {
   const [bugs, setBugs] = useState<Bug[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
+  const [snackbar, setSnackbar] = useState<string | null>(null)
   const [severityFilter, setSeverityFilter] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     return p.get('severity') || 'all'
@@ -148,6 +149,11 @@ export default function App() {
 
   const updateBug = useCallback((updated: Bug) => {
     setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+  }, [])
+
+  const showPersistError = useCallback(() => {
+    setSnackbar('It was not possible to update the bug.')
+    window.setTimeout(() => setSnackbar(null), 4000)
   }, [])
 
   const deleteBugFromState = useCallback((bugId: string) => {
@@ -426,6 +432,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   bug={bug}
                   onUpdate={updateBug}
                   onDelete={deleteBugFromState}
+                  onPersistError={showPersistError}
                   onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
                 />
               ))}
@@ -494,6 +501,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           )
         })()}
       </div>
+      {snackbar && (
+        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          {snackbar}
+        </div>
+      )}
     </div>
   )
 }
