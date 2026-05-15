@@ -594,8 +594,9 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
 
               {publishMenuOpen && !publishing && (
                 <button
-                  onClick={() => publishToBacklog(true)}
-                  className="absolute left-0 top-full z-20 flex items-center gap-1.5 rounded-b-md border border-t-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
+                  // onClick={() => publishToBacklog(true)}
+                  onClick={(e) => { e.preventDefault(); setPublishMenuOpen(false); alert('Devin integration is temporarily paused while we fine-tune things. Hang tight — it\u2019ll be back soon! 🚀') }}
+                  className="absolute left-0 top-full z-20 flex items-center gap-1.5 rounded-b-md border border-t-0 border-slate-300 dark:border-gray-600 bg-slate-100 dark:bg-gray-800 px-3 py-1.5 text-xs font-semibold text-slate-400 dark:text-gray-500 cursor-not-allowed"
                   style={{ width: publishSplitRef.current?.offsetWidth }}
                 >
                   <Rocket size={12} />
