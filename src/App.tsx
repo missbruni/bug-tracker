@@ -237,34 +237,48 @@ export default function App() {
 
     if (supabase) {
       const sb = supabase
-      const { error } = await sb.from('bugs').insert(bugData)
-      if (error) {
-        console.error('Failed to add bug:', error)
-        return
+      const prefix = newBug.id.replace(/\d+$/, '')
+      let num = parseInt(newBug.id.replace(/\D+/g, '')) || 1
+      let finalId = newBug.id
+      let retries = 0
+
+      // Retry with incremented ID on duplicate key conflict (concurrent users)
+      while (retries < 20) {
+        bugData.id = finalId
+        const { error } = await sb.from('bugs').insert(bugData)
+        if (!error) break
+        if (error.code === '23505') {
+          retries++
+          num++
+          finalId = `${prefix}${String(num).padStart(2, '0')}`
+        } else {
+          console.error('Failed to add bug:', error)
+          return
+        }
       }
 
       // Add bug to state immediately and close form
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: [] } as unknown as Bug])
+      setBugs((prev) => [...prev, { ...bugData, id: finalId, comments: [], attachments: [] } as unknown as Bug])
       setShowAddForm(false)
 
       // Upload attachments in parallel in the background
       if (filesToUpload.length) {
         const results = await Promise.all(
           filesToUpload.map(async (att) => {
-            const path = `${newBug.id}/${Date.now()}-${att.name}`
+            const path = `${finalId}/${Date.now()}-${att.name}`
             const { error: upErr } = await sb.storage.from('attachments').upload(path, att.file!)
             if (upErr) return null
             const { data: urlData } = sb.storage.from('attachments').getPublicUrl(path)
             const { data: row } = await sb
               .from('attachments')
-              .insert({ bug_id: newBug.id, name: att.name, url: urlData.publicUrl, type: att.type })
+              .insert({ bug_id: finalId, name: att.name, url: urlData.publicUrl, type: att.type })
               .select()
             return row?.[0] as Attachment | undefined
           })
         )
         const uploaded = results.filter((r): r is Attachment => !!r)
         if (uploaded.length) {
-          setBugs((prev) => prev.map((b) => b.id === newBug.id ? { ...b, attachments: [...b.attachments, ...uploaded] } : b))
+          setBugs((prev) => prev.map((b) => b.id === finalId ? { ...b, attachments: [...b.attachments, ...uploaded] } : b))
         }
       }
     } else {
