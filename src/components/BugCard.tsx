@@ -63,9 +63,10 @@ interface BugCardProps {
   onImageClick: (src: string, alt: string, type: string) => void
   onDelete: (bugId: string) => void
   onPersistError?: (message: string) => void
+  onReviewed?: (bug: Bug, undo: () => void) => void
 }
 
-export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersistError }: BugCardProps) {
+export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersistError, onReviewed }: BugCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [showCommentInput, setShowCommentInput] = useState(false)
@@ -238,6 +239,14 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
     const persisted = await persistBugUpdate({ reviewed: newVal })
     if (!persisted) {
       onUpdate(previousBug)
+      return
+    }
+
+    if (newVal && onReviewed) {
+      onReviewed(bug, async () => {
+        onUpdate({ ...bug, reviewed: false })
+        await persistBugUpdate({ reviewed: false })
+      })
     }
   }
 

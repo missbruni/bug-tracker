@@ -27,7 +27,7 @@ export default function App() {
   const [bugs, setBugs] = useState<Bug[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [sessions, setSessions] = useState<SessionOption[]>([])
-  const [snackbar, setSnackbar] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<{ message: string; undo?: () => void } | null>(null)
   const [severityFilter, setSeverityFilter] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     return p.get('severity') || 'all'
@@ -48,10 +48,6 @@ export default function App() {
     const p = new URLSearchParams(window.location.search)
     return p.get('sort') || 'default'
   })
-  const [hideReviewed, setHideReviewed] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('hide_reviewed') !== 'false'
-  })
   const [sessionFilter, setSessionFilter] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     return p.get('session') || 'all'
@@ -64,14 +60,14 @@ export default function App() {
     if (testerFilter !== 'all') p.set('tester', testerFilter)
     if (dateFilter !== 'all') p.set('date', dateFilter)
     if (sortOrder !== 'default') p.set('sort', sortOrder)
-    if (!hideReviewed) p.set('hide_reviewed', 'false')
     if (sessionFilter !== 'all') p.set('session', sessionFilter)
     const qs = p.toString()
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-  }, [search, severityFilter, testerFilter, dateFilter, sortOrder, hideReviewed, sessionFilter])
+  }, [search, severityFilter, testerFilter, dateFilter, sortOrder, sessionFilter])
   const [showAddForm, setShowAddForm] = useState(false)
   const [showBugs, setShowBugs] = useState(() => localStorage.getItem('showBugs') !== 'false')
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
+  const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
 
@@ -213,7 +209,7 @@ export default function App() {
   }, [])
 
   const showPersistError = useCallback(() => {
-    setSnackbar('It was not possible to update the bug.')
+    setSnackbar({ message: 'It was not possible to update the bug.' })
     window.setTimeout(() => setSnackbar(null), 4000)
   }, [])
 
@@ -291,8 +287,9 @@ export default function App() {
   const testers = [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort()
 
   const filtered = bugs.filter((b) => {
-    if (hideReviewed && b.reviewed) return false
-    if (severityFilter !== 'all' && b.severity !== severityFilter) return false
+    if (severityFilter === 'completed') { if (!b.reviewed) return false }
+    else { if (b.reviewed) return false }
+    if (severityFilter !== 'all' && severityFilter !== 'completed' && b.severity !== severityFilter) return false
     if (testerFilter !== 'all' && !b.tester.includes(testerFilter)) return false
     if (sessionFilter !== 'all') {
       const bugSessionId = (b as Bug & { session_id?: string | null }).session_id
@@ -337,8 +334,9 @@ export default function App() {
     return 0
   })
 
+  const activeBugs = bugs.filter(b => !b.reviewed)
   const counts: Record<Severity, number> = { critical: 0, high: 0, low: 0 }
-  bugs.forEach((b) => counts[b.severity]++)
+  activeBugs.forEach((b) => counts[b.severity]++)
 
   const nextIds: Record<Severity, number> = {
     critical: Math.max(0, ...bugs.filter((b) => b.severity === 'critical').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
@@ -421,10 +419,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
       <div className="border-b border-slate-200 dark:border-gray-800">
       <div className="max-w-screen-2xl mx-auto flex flex-wrap items-center gap-2 px-7 py-3.5">
         {[
-          { k: 'all', l: `All (${bugs.length})` },
+          { k: 'all', l: `Active (${activeBugs.length})` },
           { k: 'critical', l: `Critical (${counts.critical})` },
           { k: 'high', l: `High (${counts.high})` },
           { k: 'low', l: `Low (${counts.low})` },
+          { k: 'completed', l: `Completed (${bugs.filter(b => b.reviewed).length})` },
         ].map((f) => (
           <button
             key={f.k}
@@ -473,16 +472,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           </select>
         )}
         <button
-          onClick={() => setHideReviewed(!hideReviewed)}
-          className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-            hideReviewed
-              ? 'bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100'
-              : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
-          }`}
-        >
-          {hideReviewed ? `${bugs.filter(b => b.reviewed).length} reviewed hidden \u2014 Show all` : 'Hide reviewed'}
-        </button>
-        <button
           onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : sortOrder === 'oldest' ? 'default' : 'newest')}
           className={`ml-auto flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
             sortOrder !== 'default'
@@ -529,6 +518,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   onDelete={deleteBugFromState}
                   onPersistError={showPersistError}
                   onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
+                  onReviewed={(b, undo) => {
+                    if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+                    setSnackbar({ message: `${b.id} marked as completed`, undo })
+                    snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
+                  }}
                 />
               ))}
             </div>
@@ -597,8 +591,16 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         })()}
       </div>
       {snackbar && (
-        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg">
-          {snackbar}
+        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${snackbar.undo ? 'bg-slate-800 dark:bg-gray-700' : 'bg-red-600'}`}>
+          {snackbar.message}
+          {snackbar.undo && (
+            <button
+              onClick={() => { snackbar.undo!(); setSnackbar(null); if (snackbarTimer.current) clearTimeout(snackbarTimer.current) }}
+              className="rounded-md bg-white/20 px-2.5 py-1 text-xs font-bold hover:bg-white/30 transition-colors cursor-pointer"
+            >
+              Undo
+            </button>
+          )}
         </div>
       )}
     </>
