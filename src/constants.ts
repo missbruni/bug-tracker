@@ -25,6 +25,8 @@ export const SEVERITY_STYLES: { light: SeverityStyleMap; dark: SeverityStyleMap 
   },
 }
 
+export const PAGES = ['Home', 'Availability', 'Add ons', 'Summary', 'Payment', 'Confirmation'] as const
+
 export const SESSION_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: 'bg-slate-100 dark:bg-gray-800', text: 'text-slate-600 dark:text-gray-400' },
   active: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400' },

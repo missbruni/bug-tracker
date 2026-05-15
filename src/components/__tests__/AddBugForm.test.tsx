@@ -19,7 +19,8 @@ describe('AddBugForm', () => {
     render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
     expect(screen.getByPlaceholderText('Tester name')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Device / Browser')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Page')).toBeInTheDocument()
+    // Page is now a select dropdown with page options
+    expect(screen.getByRole('option', { name: 'Home' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Category (optional)')).toBeInTheDocument()
   })
 

@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
 import { Paperclip } from 'lucide-react'
-import { SEVERITIES, SEVERITY_STYLES } from '../constants'
+import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
 import AttachmentCard from './AttachmentCard'
+import { filesToAttachments, getImageFilesFromPaste } from '../lib/attachments'
 import type { Severity } from '../constants'
 import type { Attachment, SessionOption } from '../types'
 
@@ -41,27 +42,15 @@ export default function AddBugForm({ onAdd, onCancel, nextIds, sessions = [], ac
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || [])
-    setFiles((prev) => [...prev, ...newFiles.map((f) => ({ name: f.name, url: URL.createObjectURL(f), type: f.type, file: f }))])
+    if (newFiles.length) setFiles((prev) => [...prev, ...filesToAttachments(newFiles)])
     e.target.value = ''
   }
 
   const handlePaste = (e: React.ClipboardEvent) => {
-    const items = Array.from(e.clipboardData?.items || [])
-    const imageFiles = items
-      .filter((item) => item.type.startsWith('image/'))
-      .map((item) => {
-        const file = item.getAsFile()
-        if (file) {
-          const ext = file.type.split('/')[1] || 'png'
-          const named = new File([file], `pasted-image-${Date.now()}.${ext}`, { type: file.type })
-          return { name: named.name, url: URL.createObjectURL(named), type: named.type, file: named }
-        }
-        return null
-      })
-      .filter((f): f is NonNullable<typeof f> => f !== null)
+    const imageFiles = getImageFilesFromPaste(e)
     if (imageFiles.length) {
       e.preventDefault()
-      setFiles((prev) => [...prev, ...imageFiles as Attachment[]])
+      setFiles((prev) => [...prev, ...filesToAttachments(imageFiles)])
     }
   }
 
@@ -102,8 +91,13 @@ export default function AddBugForm({ onAdd, onCancel, nextIds, sessions = [], ac
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
         <input value={device} onChange={(e) => setDevice(e.target.value)} placeholder="Device / Browser"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
-        <input value={page} onChange={(e) => setPage(e.target.value)} placeholder="Page"
-          className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
+        <select value={page} onChange={(e) => setPage(e.target.value)}
+          className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 transition-all">
+          <option value="" disabled hidden>Page</option>
+          {PAGES.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
         <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category (optional)"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
         {sessions.length > 0 && (

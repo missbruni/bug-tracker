@@ -10,6 +10,7 @@ import SessionSetupPage from "./pages/SessionSetupPage";
 import PresentationPage from "./pages/PresentationPage";
 import TesterManagementPage from "./pages/TesterManagementPage";
 import SettingsSidebar from "./components/SettingsSidebar";
+import AiAssistantPanel from "./components/AiAssistantPanel";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import "./index.css";
 
@@ -19,11 +20,18 @@ function Layout({ children }: { children: React.ReactNode }) {
 	);
 	const activeBugCount = useActiveBugCount();
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
 	useEffect(() => {
 		const handler = () => setSettingsOpen(true);
 		window.addEventListener("openSettings", handler);
 		return () => window.removeEventListener("openSettings", handler);
+	}, []);
+
+	useEffect(() => {
+		const handler = () => setAiPanelOpen(true);
+		window.addEventListener("openAiAssistant", handler);
+		return () => window.removeEventListener("openAiAssistant", handler);
 	}, []);
 
 	useEffect(() => {
@@ -58,10 +66,24 @@ function Layout({ children }: { children: React.ReactNode }) {
 			>
 				<ThemeToggle />
 			</NavBar>
-			{children}
+			<div
+				className={`transition-[margin] duration-200 ease-in-out ${
+					aiPanelOpen ? "lg:mr-[420px]" : ""
+				}`}
+			>
+				{children}
+			</div>
 			<SettingsSidebar
 				open={settingsOpen}
 				onClose={() => setSettingsOpen(false)}
+			/>
+			<AiAssistantPanel
+				open={aiPanelOpen}
+				onClose={() => setAiPanelOpen(false)}
+				onOpenSettings={() => {
+					setAiPanelOpen(false);
+					setSettingsOpen(true);
+				}}
 			/>
 		</div>
 	);

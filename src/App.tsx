@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Sparkles } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import Lightbox from './components/Lightbox'
@@ -91,8 +91,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
       {/* Secondary bar — bugs page only */}
       <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
-        <div className="max-w-screen-2xl mx-auto px-7 py-3 flex items-center justify-between gap-4">
-          <div className="min-w-0 flex-1">
+        <div className="max-w-screen-2xl mx-auto px-7 py-3 flex flex-wrap items-center justify-between gap-x-8 gap-y-2">
+          <div className="min-w-[280px] flex-1">
             <p className="text-xs text-slate-400 dark:text-gray-500 truncate">
               {testers.join(', ') || 'No testers yet'}
             </p>
@@ -100,25 +100,33 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
               <span className="text-blue-600 dark:text-yellow-400 font-semibold">{activeBugs.length} active</span> / {bugs.length} total
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex items-center gap-2 shrink-0 h-9">
+            <div className="relative h-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 ref={searchRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search bugs, testers, devices..."
-                className="w-64 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 py-2 pl-9 pr-16 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-400/30 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+                className="h-full w-64 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 pl-9 pr-16 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-400 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-400/30 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
               />
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-[11px] text-slate-500 dark:text-slate-300 font-mono pointer-events-none">⌘ K</kbd>
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-500 dark:text-slate-300 font-mono pointer-events-none">⌘ K</kbd>
             </div>
             <button
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+              onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
+              className="relative h-full flex items-center gap-1.5 rounded-lg border border-amber-400 dark:border-amber-500/60 bg-amber-50 dark:bg-amber-900/20 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Plus size={16} />
+              <span className="absolute -top-1.5 -right-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold leading-none text-white uppercase tracking-wide">new</span>
+              <Sparkles size={14} />
+              Bug Chat
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <Plus size={14} />
               New Bug
-              <kbd className="ml-1 rounded bg-blue-600/60 px-1.5 py-0.5 text-[11px] font-mono">⌘ J</kbd>
+              <kbd className="ml-1 rounded bg-blue-600/60 px-1.5 py-0.5 text-[10px] font-mono">⌘ J</kbd>
             </button>
           </div>
         </div>

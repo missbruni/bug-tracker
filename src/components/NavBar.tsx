@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings } from "lucide-react";
+import { Bug, Presentation, Users, Settings, Sparkles } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
 
 const NAV_ITEMS = [
@@ -73,6 +73,13 @@ export default function NavBar({
 				</div>
 				{children && (
 					<div className="ml-auto flex items-center gap-2">
+						<button
+							onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
+							className="text-amber-400 dark:text-amber-500 hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer"
+							title="Bug Chat"
+						>
+							<Sparkles size={18} />
+						</button>
 						{children}
 						{onOpenSettings && (
 							<button

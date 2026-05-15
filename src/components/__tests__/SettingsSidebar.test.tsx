@@ -20,15 +20,15 @@ describe('SettingsSidebar', () => {
 
   test('save button is disabled when key is empty', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
-    const saveBtn = screen.getByText('Save')
-    expect(saveBtn.closest('button')).toBeDisabled()
+    const saveBtns = screen.getAllByText('Save')
+    expect(saveBtns[0].closest('button')).toBeDisabled()
   })
 
   test('shows validation error for invalid key', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
     const input = screen.getByPlaceholderText('apk_user_xxxxxxxx')
     fireEvent.change(input, { target: { value: 'sk_invalid_key' } })
-    fireEvent.click(screen.getByText('Save'))
+    fireEvent.click(screen.getAllByText('Save')[0])
     expect(screen.getByText(/Key must start with apk_user/)).toBeInTheDocument()
   })
 
@@ -36,7 +36,7 @@ describe('SettingsSidebar', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
     const input = screen.getByPlaceholderText('apk_user_xxxxxxxx')
     fireEvent.change(input, { target: { value: 'apk_user_test123' } })
-    fireEvent.click(screen.getByText('Save'))
+    fireEvent.click(screen.getAllByText('Save')[0])
     expect(localStorage.getItem('devin_api_key')).toBe('apk_user_test123')
     expect(screen.getByText('Saved')).toBeInTheDocument()
   })
