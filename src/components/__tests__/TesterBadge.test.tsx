@@ -1,7 +1,9 @@
 /// <reference lib="dom" />
-import { test, expect, describe } from 'bun:test'
-import { render, screen } from '@testing-library/react'
+import { test, expect, describe, afterEach } from 'bun:test'
+import { render, screen, cleanup } from '@testing-library/react'
 import { TesterBadge } from '../TesterBadge'
+
+afterEach(() => cleanup())
 
 describe('TesterBadge', () => {
   test('renders the tester name', () => {

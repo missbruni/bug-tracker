@@ -1,8 +1,10 @@
 /// <reference lib="dom" />
-import { test, expect, describe, mock } from 'bun:test'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { test, expect, describe, mock, afterEach } from 'bun:test'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import NavBar from '../NavBar'
+
+afterEach(() => cleanup())
 
 function renderNavBar(props: { showBugs?: boolean; onToggleBugs?: () => void; bugCount?: number } = {}) {
   return render(

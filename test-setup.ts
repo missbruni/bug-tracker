@@ -10,6 +10,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

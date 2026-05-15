@@ -1,7 +1,9 @@
 /// <reference lib="dom" />
-import { test, expect, describe, mock } from 'bun:test'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { test, expect, describe, mock, afterEach } from 'bun:test'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import BugCard, { type Bug } from '../BugCard'
+
+afterEach(() => cleanup())
 
 // Mock supabase to avoid real DB calls
 mock.module('../../supabaseClient', () => ({ supabase: null }))

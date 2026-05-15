@@ -50,6 +50,8 @@ export default function SessionSetupPage() {
   const [loading, setLoading] = useState(true)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [expandedScenarioId, setExpandedScenarioId] = useState<string | null>(null)
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
+  const [showStatusMenu, setShowStatusMenu] = useState(false)
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = useState(false)
@@ -238,11 +240,22 @@ export default function SessionSetupPage() {
     }
   }
 
-  const cycleStatus = async () => {
+  const setStatus = async (next: string) => {
     if (!supabase || !session) return
-    const next = session.status === 'draft' ? 'active' : session.status === 'active' ? 'completed' : 'draft'
+    setShowStatusMenu(false)
+    if (next === 'completed') {
+      setShowCompleteConfirm(true)
+      return
+    }
     const { error } = await supabase.from('sessions').update({ status: next }).eq('id', session.id)
     if (!error) setSession({ ...session, status: next })
+  }
+
+  const confirmComplete = async () => {
+    if (!supabase || !session) return
+    const { error } = await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id)
+    if (!error) setSession({ ...session, status: 'completed' })
+    setShowCompleteConfirm(false)
   }
 
   const getAssignedTester = (scenarioId: string): Tester | null => {
@@ -280,14 +293,42 @@ export default function SessionSetupPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">{session.name}</h1>
-            <button
-              onClick={cycleStatus}
-              className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${st.bg} ${st.text} cursor-pointer hover:opacity-80 transition-opacity`}
-            >
-              {session.status}
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => !isCompleted && setShowStatusMenu(!showStatusMenu)}
+                disabled={isCompleted}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${st.bg} ${st.text} ${isCompleted ? 'cursor-default' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
+              >
+                {session.status}
+                {!isCompleted && <ChevronDown size={10} />}
+              </button>
+              {showStatusMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowStatusMenu(false)} />
+                  <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
+                    {(['draft', 'active', 'completed'] as const).map(s => {
+                      const sty = STATUS_STYLES[s]
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setStatus(s)}
+                          className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
+                            session.status === s
+                              ? `${sty.bg} ${sty.text}`
+                              : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <p className="text-sm text-slate-500 dark:text-gray-500">
+            {session.date && <>{new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · </>}
             {scenarios.length} scenarios · {assignments.length} assigned · {testers.length} testers in pool
           </p>
         </div>
@@ -545,6 +586,26 @@ export default function SessionSetupPage() {
           )}
         </div>
       </div>
+      {showCompleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCompleteConfirm(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-2">Complete session?</h3>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
+              This will lock the session. You will no longer be able to edit scenarios, reassign testers, or change the status. This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowCompleteConfirm(false)}
+                className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmComplete}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 cursor-pointer transition-colors">
+                Yes, complete session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

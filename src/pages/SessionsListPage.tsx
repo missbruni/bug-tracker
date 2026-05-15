@@ -1,216 +1,492 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Calendar, Users, FileText, Presentation, MessageSquareHeart, Star } from 'lucide-react'
-import { supabase } from '../supabaseClient'
-import FeedbackModal from '../components/FeedbackModal'
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import {
+	Plus,
+	Calendar,
+	Users,
+	FileText,
+	Presentation,
+	MessageSquareHeart,
+	Star,
+	ChevronDown,
+	Trash2,
+} from "lucide-react";
+import { supabase } from "../supabaseClient";
+import FeedbackModal from "../components/FeedbackModal";
 
 interface Session {
-  id: string
-  name: string
-  date: string | null
-  status: 'draft' | 'active' | 'completed'
-  created_at: string
-  scenario_count?: number
-  assignment_count?: number
-  feedback_avg?: number
-  feedback_count?: number
+	id: string;
+	name: string;
+	date: string | null;
+	status: "draft" | "active" | "completed";
+	created_at: string;
+	scenario_count?: number;
+	assignment_count?: number;
+	feedback_avg?: number;
+	feedback_count?: number;
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: 'bg-slate-100 dark:bg-gray-800', text: 'text-slate-600 dark:text-gray-400' },
-  active: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400' },
-  completed: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400' },
-}
+	draft: {
+		bg: "bg-slate-100 dark:bg-gray-800",
+		text: "text-slate-600 dark:text-gray-400",
+	},
+	active: {
+		bg: "bg-green-100 dark:bg-green-900/40",
+		text: "text-green-700 dark:text-green-400",
+	},
+	completed: {
+		bg: "bg-blue-100 dark:bg-blue-900/40",
+		text: "text-blue-700 dark:text-blue-400",
+	},
+};
 
 export default function SessionsListPage() {
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreate, setShowCreate] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newDate, setNewDate] = useState('')
-  const [feedbackSession, setFeedbackSession] = useState<Session | null>(null)
+	const [sessions, setSessions] = useState<Session[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [showCreate, setShowCreate] = useState(false);
+	const [newName, setNewName] = useState("");
+	const [newDate, setNewDate] = useState("");
+	const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
+	const [completeConfirmSession, setCompleteConfirmSession] =
+		useState<Session | null>(null);
+	const [statusMenuId, setStatusMenuId] = useState<string | null>(null);
+	const [deleteConfirmSession, setDeleteConfirmSession] =
+		useState<Session | null>(null);
+	const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  const load = useCallback(async () => {
-    if (!supabase) return
-    const { data: sessionsData } = await supabase
-      .from('sessions')
-      .select('*')
-      .order('created_at', { ascending: false })
+	const load = useCallback(async () => {
+		if (!supabase) return;
+		const { data: sessionsData } = await supabase
+			.from("sessions")
+			.select("*")
+			.order("created_at", { ascending: false });
 
-    if (sessionsData) {
-      const enriched: Session[] = []
-      for (const s of sessionsData) {
-        const { count: scCount } = await supabase
-          .from('scenarios')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', s.id)
-        const { count: asCount } = await supabase
-          .from('assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', s.id)
-        let feedbackAvg = 0
-        let feedbackCount = 0
-        if (s.status === 'completed') {
-          const { data: fbData } = await supabase.from('session_feedback').select('rating').eq('session_id', s.id)
-          if (fbData && fbData.length) {
-            feedbackCount = fbData.length
-            feedbackAvg = fbData.reduce((sum: number, f: { rating: number }) => sum + f.rating, 0) / fbData.length
-          }
-        }
-        enriched.push({ ...s, scenario_count: scCount ?? 0, assignment_count: asCount ?? 0, feedback_avg: feedbackAvg, feedback_count: feedbackCount } as Session)
-      }
-      setSessions(enriched)
-    }
-    setLoading(false)
-  }, [])
+		if (sessionsData) {
+			const enriched: Session[] = [];
+			for (const s of sessionsData) {
+				const { count: scCount } = await supabase
+					.from("scenarios")
+					.select("*", { count: "exact", head: true })
+					.eq("session_id", s.id);
+				const { count: asCount } = await supabase
+					.from("assignments")
+					.select("*", { count: "exact", head: true })
+					.eq("session_id", s.id);
+				let feedbackAvg = 0;
+				let feedbackCount = 0;
+				if (s.status === "completed") {
+					const { data: fbData } = await supabase
+						.from("session_feedback")
+						.select("rating")
+						.eq("session_id", s.id);
+					if (fbData && fbData.length) {
+						feedbackCount = fbData.length;
+						feedbackAvg =
+							fbData.reduce(
+								(sum: number, f: { rating: number }) => sum + f.rating,
+								0,
+							) / fbData.length;
+					}
+				}
+				enriched.push({
+					...s,
+					scenario_count: scCount ?? 0,
+					assignment_count: asCount ?? 0,
+					feedback_avg: feedbackAvg,
+					feedback_count: feedbackCount,
+				} as Session);
+			}
+			setSessions(enriched);
+		}
+		setLoading(false);
+	}, []);
 
-  useEffect(() => { load() }, [load])
+	useEffect(() => {
+		load();
+	}, [load]);
 
-  const createSession = async () => {
-    if (!supabase || !newName.trim()) return
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert({ name: newName.trim(), date: newDate || null, status: 'draft' })
-      .select()
-    if (!error && data?.[0]) {
-      setSessions(prev => [{ ...data[0], scenario_count: 0, assignment_count: 0 } as Session, ...prev])
-      setNewName('')
-      setNewDate('')
-      setShowCreate(false)
-    }
-  }
+	const createSession = async () => {
+		if (!supabase || !newName.trim()) return;
+		const { data, error } = await supabase
+			.from("sessions")
+			.insert({ name: newName.trim(), date: newDate || null, status: "draft" })
+			.select();
+		if (!error && data?.[0]) {
+			setSessions((prev) => [
+				{ ...data[0], scenario_count: 0, assignment_count: 0 } as Session,
+				...prev,
+			]);
+			setNewName("");
+			setNewDate("");
+			setShowCreate(false);
+		}
+	};
 
-  const cycleStatus = async (session: Session) => {
-    if (!supabase) return
-    const next = session.status === 'draft' ? 'active' : session.status === 'active' ? 'completed' : 'draft'
-    const { error } = await supabase.from('sessions').update({ status: next }).eq('id', session.id)
-    if (!error) setSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: next as Session['status'] } : s))
-  }
+	const setSessionStatus = async (session: Session, next: string) => {
+		if (!supabase) return;
+		setStatusMenuId(null);
+		if (next === "completed") {
+			setCompleteConfirmSession(session);
+			return;
+		}
+		const { error } = await supabase
+			.from("sessions")
+			.update({ status: next })
+			.eq("id", session.id);
+		if (!error)
+			setSessions((prev) =>
+				prev.map((s) =>
+					s.id === session.id ? { ...s, status: next as Session["status"] } : s,
+				),
+			);
+	};
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20 text-sm text-gray-500">Loading sessions...</div>
-  }
+	const deleteSession = async () => {
+		if (!supabase || !deleteConfirmSession) return;
+		const id = deleteConfirmSession.id;
+		// Delete related data first, then the session
+		await supabase.from("assignments").delete().eq("session_id", id);
+		await supabase.from("scenarios").delete().eq("session_id", id);
+		await supabase.from("session_feedback").delete().eq("session_id", id);
+		const { error } = await supabase.from("sessions").delete().eq("id", id);
+		if (!error) setSessions((prev) => prev.filter((s) => s.id !== id));
+		setDeleteConfirmSession(null);
+		setDeleteConfirmText("");
+	};
 
-  return (
-    <div className="max-w-screen-lg mx-auto px-7 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">Testing Sessions</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-500 mt-0.5">{sessions.length} session{sessions.length !== 1 ? 's' : ''}</p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer"
-        >
-          <Plus size={16} /> New Session
-        </button>
-      </div>
+	const confirmComplete = async () => {
+		if (!supabase || !completeConfirmSession) return;
+		const { error } = await supabase
+			.from("sessions")
+			.update({ status: "completed" })
+			.eq("id", completeConfirmSession.id);
+		if (!error)
+			setSessions((prev) =>
+				prev.map((s) =>
+					s.id === completeConfirmSession.id
+						? { ...s, status: "completed" }
+						: s,
+				),
+			);
+		setCompleteConfirmSession(null);
+	};
 
-      {showCreate && (
-        <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">Create Session</h3>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <input
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              placeholder="Session name *"
-              autoFocus
-              className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
-            />
-            <input
-              type="date"
-              value={newDate}
-              onChange={e => setNewDate(e.target.value)}
-              className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
-            />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button onClick={() => { setShowCreate(false); setNewName(''); setNewDate('') }}
-              className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-              Cancel
-            </button>
-            <button onClick={createSession} disabled={!newName.trim()}
-              className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default">
-              Create
-            </button>
-          </div>
-        </div>
-      )}
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center py-20 text-sm text-gray-500">
+				Loading sessions...
+			</div>
+		);
+	}
 
-      {sessions.length === 0 ? (
-        <div className="text-center py-16 text-slate-400 dark:text-gray-600">
-          <Presentation size={48} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No sessions yet. Create one to get started.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {sessions.map(session => {
-            const st = STATUS_STYLES[session.status]
-            return (
-              <Link
-                key={session.id}
-                to={`/sessions/${session.id}`}
-                className="block rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate">{session.name}</h3>
-                      <button
-                        onClick={e => { e.preventDefault(); cycleStatus(session) }}
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${st.bg} ${st.text} cursor-pointer hover:opacity-80 transition-opacity`}
-                      >
-                        {session.status}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-gray-500">
-                      {session.date && (
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <FileText size={12} />
-                        {session.scenario_count} scenario{session.scenario_count !== 1 ? 's' : ''}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users size={12} />
-                        {session.assignment_count} assigned
-                      </span>
-                    </div>
-                  </div>
-                  {session.status === 'completed' && (
-                    <div className="flex items-center gap-3 shrink-0">
-                      {(session.feedback_count ?? 0) > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-gray-400">
-                          <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                          <span className="font-bold">{(session.feedback_avg ?? 0).toFixed(1)}</span>
-                          <span className="text-slate-400 dark:text-gray-500">({session.feedback_count})</span>
-                        </div>
-                      )}
-                      <button
-                        onClick={e => { e.preventDefault(); setFeedbackSession(session) }}
-                        className="flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
-                      >
-                        <MessageSquareHeart size={14} />
-                        Feedback
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      )}
-      {feedbackSession && (
-        <FeedbackModal
-          sessionId={feedbackSession.id}
-          sessionName={feedbackSession.name}
-          onClose={() => { setFeedbackSession(null); load() }}
-        />
-      )}
-    </div>
-  )
+	return (
+		<div className="max-w-screen-lg mx-auto px-7 py-6">
+			<div className="flex items-center justify-between mb-6">
+				<div>
+					<h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">
+						Testing Sessions
+					</h1>
+					<p className="text-sm text-slate-500 dark:text-gray-500 mt-0.5">
+						{sessions.length} session{sessions.length !== 1 ? "s" : ""}
+					</p>
+				</div>
+				<button
+					onClick={() => setShowCreate(true)}
+					className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+				>
+					<Plus size={16} /> New Session
+				</button>
+			</div>
+
+			{showCreate && (
+				<div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
+					<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">
+						Create Session
+					</h3>
+					<div className="grid grid-cols-2 gap-3 mb-3">
+						<input
+							value={newName}
+							onChange={(e) => setNewName(e.target.value)}
+							placeholder="Session name *"
+							autoFocus
+							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
+						/>
+						<input
+							type="date"
+							value={newDate}
+							onChange={(e) => setNewDate(e.target.value)}
+							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
+						/>
+					</div>
+					<div className="flex gap-2 justify-end">
+						<button
+							onClick={() => {
+								setShowCreate(false);
+								setNewName("");
+								setNewDate("");
+							}}
+							className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+						>
+							Cancel
+						</button>
+						<button
+							onClick={createSession}
+							disabled={!newName.trim()}
+							className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
+						>
+							Create
+						</button>
+					</div>
+				</div>
+			)}
+
+			{sessions.length === 0 ? (
+				<div className="text-center py-16 text-slate-400 dark:text-gray-600">
+					<Presentation size={48} className="mx-auto mb-3 opacity-40" />
+					<p className="text-sm">No sessions yet. Create one to get started.</p>
+				</div>
+			) : (
+				<div className="space-y-2">
+					{sessions.map((session) => {
+						const st = STATUS_STYLES[session.status];
+						return (
+							<Link
+								key={session.id}
+								to={`/sessions/${session.id}`}
+								className="block rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+							>
+								<div className="flex items-center gap-3">
+									<div className="flex-1 min-w-0">
+										<div className="flex items-center gap-2 mb-1">
+											<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate">
+												{session.name}
+											</h3>
+											<div className="relative">
+												<button
+													onClick={(e) => {
+														e.preventDefault();
+														if (session.status !== "completed")
+															setStatusMenuId(
+																statusMenuId === session.id ? null : session.id,
+															);
+													}}
+													disabled={session.status === "completed"}
+													className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${st.bg} ${st.text} ${session.status === "completed" ? "cursor-default" : "cursor-pointer hover:opacity-80"} transition-opacity`}
+												>
+													{session.status}
+													{session.status !== "completed" && (
+														<ChevronDown size={10} />
+													)}
+												</button>
+												{statusMenuId === session.id && (
+													<>
+														<div
+															className="fixed inset-0 z-40"
+															onClick={(e) => {
+																e.preventDefault();
+																setStatusMenuId(null);
+															}}
+														/>
+														<div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
+															{(["draft", "active", "completed"] as const).map(
+																(s) => {
+																	const sty = STATUS_STYLES[s];
+																	return (
+																		<button
+																			key={s}
+																			onClick={(e) => {
+																				e.preventDefault();
+																				setSessionStatus(session, s);
+																			}}
+																			className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
+																				session.status === s
+																					? `${sty.bg} ${sty.text}`
+																					: "text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800"
+																			}`}
+																		>
+																			{s}
+																		</button>
+																	);
+																},
+															)}
+														</div>
+													</>
+												)}
+											</div>
+										</div>
+										<div className="flex items-center gap-4 text-xs text-slate-500 dark:text-gray-500">
+											{session.date && (
+												<span className="flex items-center gap-1">
+													<Calendar size={12} />
+													{new Date(session.date).toLocaleDateString("en-GB", {
+														day: "numeric",
+														month: "short",
+														year: "numeric",
+													})}
+												</span>
+											)}
+											<span className="flex items-center gap-1">
+												<FileText size={12} />
+												{session.scenario_count} scenario
+												{session.scenario_count !== 1 ? "s" : ""}
+											</span>
+											<span className="flex items-center gap-1">
+												<Users size={12} />
+												{session.assignment_count} assigned
+											</span>
+										</div>
+									</div>
+									<div className="flex items-center gap-2 shrink-0">
+										<button
+											onClick={(e) => {
+												e.preventDefault();
+												setDeleteConfirmSession(session);
+												setDeleteConfirmText("");
+											}}
+											className="p-1.5 rounded-md text-slate-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+											title="Delete session"
+										>
+											<Trash2 size={14} />
+										</button>
+										{session.status === "completed" && (
+											<div className="flex items-center gap-3 shrink-0">
+												{(session.feedback_count ?? 0) > 0 && (
+													<div className="flex items-center gap-1 text-xs text-slate-500 dark:text-gray-400">
+														<Star
+															size={14}
+															className="fill-yellow-400 text-yellow-400"
+														/>
+														<span className="font-bold">
+															{(session.feedback_avg ?? 0).toFixed(1)}
+														</span>
+														<span className="text-slate-400 dark:text-gray-500">
+															({session.feedback_count})
+														</span>
+													</div>
+												)}
+												<button
+													onClick={(e) => {
+														e.preventDefault();
+														setFeedbackSession(session);
+													}}
+													className="flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+												>
+													<MessageSquareHeart size={14} />
+													Feedback
+												</button>
+											</div>
+										)}
+									</div>
+								</div>
+							</Link>
+						);
+					})}
+				</div>
+			)}
+			{feedbackSession && (
+				<FeedbackModal
+					sessionId={feedbackSession.id}
+					sessionName={feedbackSession.name}
+					onClose={() => {
+						setFeedbackSession(null);
+						load();
+					}}
+				/>
+			)}
+			{completeConfirmSession && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+					onClick={() => setCompleteConfirmSession(null)}
+				>
+					<div
+						className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-2">
+							Complete session?
+						</h3>
+						<p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
+							This will lock{" "}
+							<span className="font-semibold text-slate-700 dark:text-gray-300">
+								{completeConfirmSession.name}
+							</span>
+							. You will no longer be able to edit scenarios, reassign testers,
+							or change the status. This action cannot be undone.
+						</p>
+						<div className="flex gap-2 justify-end">
+							<button
+								onClick={() => setCompleteConfirmSession(null)}
+								className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={confirmComplete}
+								className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 cursor-pointer transition-colors"
+							>
+								Yes, complete session
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+			{deleteConfirmSession && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+					onClick={() => {
+						setDeleteConfirmSession(null);
+						setDeleteConfirmText("");
+					}}
+				>
+					<div
+						className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">
+							Delete session?
+						</h3>
+						<p className="text-xs text-slate-500 dark:text-gray-400 mb-1 leading-relaxed">
+							This will permanently delete{" "}
+							<span className="font-semibold text-slate-700 dark:text-gray-300">
+								{deleteConfirmSession.name}
+							</span>{" "}
+							and all its scenarios, assignments, and feedback. This action
+							cannot be undone.
+						</p>
+						<p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
+							Type{" "}
+							<span className="font-mono font-bold text-red-500">DELETE</span>{" "}
+							to confirm:
+						</p>
+						<input
+							value={deleteConfirmText}
+							onChange={(e) => setDeleteConfirmText(e.target.value)}
+							placeholder="Type DELETE here"
+							autoFocus
+							className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
+						/>
+						<div className="flex gap-2 justify-end">
+							<button
+								onClick={() => {
+									setDeleteConfirmSession(null);
+									setDeleteConfirmText("");
+								}}
+								className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={deleteSession}
+								disabled={deleteConfirmText !== "DELETE"}
+								className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
+							>
+								Delete permanently
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
+	);
 }
