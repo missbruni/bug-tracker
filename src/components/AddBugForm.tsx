@@ -4,6 +4,12 @@ import { SEVERITIES, SEVERITY_STYLES } from '../constants'
 import AttachmentCard, { type Attachment } from './AttachmentCard'
 import type { Severity } from '../constants'
 
+export interface SessionOption {
+  id: string
+  name: string
+  status: string
+}
+
 interface NewBugPayload {
   id: string
   title: string
@@ -13,6 +19,7 @@ interface NewBugPayload {
   device: string
   page: string
   category: string | null
+  session_id: string | null
   comments: never[]
   attachments: Attachment[]
 }
@@ -21,9 +28,11 @@ interface AddBugFormProps {
   onAdd: (bug: NewBugPayload) => void
   onCancel: () => void
   nextIds: Record<Severity, number>
+  sessions?: SessionOption[]
+  activeSessionId?: string | null
 }
 
-export default function AddBugForm({ onAdd, onCancel, nextIds }: AddBugFormProps) {
+export default function AddBugForm({ onAdd, onCancel, nextIds, sessions = [], activeSessionId = null }: AddBugFormProps) {
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [severity, setSeverity] = useState<Severity>('high')
@@ -31,6 +40,7 @@ export default function AddBugForm({ onAdd, onCancel, nextIds }: AddBugFormProps
   const [device, setDevice] = useState('')
   const [page, setPage] = useState('')
   const [category, setCategory] = useState('')
+  const [sessionId, setSessionId] = useState<string | null>(activeSessionId)
   const fileRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<Attachment[]>([])
 
@@ -74,6 +84,7 @@ export default function AddBugForm({ onAdd, onCancel, nextIds }: AddBugFormProps
       device: device || '\u2014',
       page: page || '\u2014',
       category: category || null,
+      session_id: sessionId || null,
       comments: [],
       attachments: files,
     })
@@ -93,6 +104,18 @@ export default function AddBugForm({ onAdd, onCancel, nextIds }: AddBugFormProps
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
         <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category (optional)"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
+        {sessions.length > 0 && (
+          <select
+            value={sessionId || ''}
+            onChange={(e) => setSessionId(e.target.value || null)}
+            className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 transition-all"
+          >
+            <option value="">No session</option>
+            {sessions.map(s => (
+              <option key={s.id} value={s.id}>{s.name}{s.status === 'active' ? ' (active)' : ''}</option>
+            ))}
+          </select>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-600 dark:text-gray-400">Severity:</span>
           {SEVERITIES.map((s) => (

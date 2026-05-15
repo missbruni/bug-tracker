@@ -6,9 +6,10 @@ import CrawlingBugs from './CrawlingBugs'
 import Lightbox from './components/Lightbox'
 import { TesterBadge } from './components/TesterBadge'
 import BugCard, { type Bug } from './components/BugCard'
-import AddBugForm from './components/AddBugForm'
+import AddBugForm, { type SessionOption } from './components/AddBugForm'
 import type { Severity } from './constants'
 import type { Attachment } from './components/AttachmentCard'
+import NavBar from './components/NavBar'
 
 interface Question {
   id: string
@@ -26,6 +27,7 @@ interface LightboxState {
 export default function App() {
   const [bugs, setBugs] = useState<Bug[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
+  const [sessions, setSessions] = useState<SessionOption[]>([])
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [severityFilter, setSeverityFilter] = useState(() => {
     const p = new URLSearchParams(window.location.search)
@@ -51,6 +53,10 @@ export default function App() {
     const p = new URLSearchParams(window.location.search)
     return p.get('hide_reviewed') !== 'false'
   })
+  const [sessionFilter, setSessionFilter] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    return p.get('session') || 'all'
+  })
 
   useEffect(() => {
     const p = new URLSearchParams()
@@ -60,9 +66,10 @@ export default function App() {
     if (dateFilter !== 'all') p.set('date', dateFilter)
     if (sortOrder !== 'default') p.set('sort', sortOrder)
     if (!hideReviewed) p.set('hide_reviewed', 'false')
+    if (sessionFilter !== 'all') p.set('session', sessionFilter)
     const qs = p.toString()
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-  }, [search, severityFilter, testerFilter, dateFilter, sortOrder, hideReviewed])
+  }, [search, severityFilter, testerFilter, dateFilter, sortOrder, hideReviewed, sessionFilter])
   const [showAddForm, setShowAddForm] = useState(false)
   const [showBugs, setShowBugs] = useState(() => localStorage.getItem('showBugs') !== 'false')
   const [themeKey, setThemeKey] = useState(0)
@@ -112,11 +119,12 @@ export default function App() {
         return
       }
       try {
-        const [bugsRes, commentsRes, attachmentsRes, questionsRes] = await Promise.all([
+        const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes] = await Promise.all([
           supabase.from('bugs').select('*').order('id'),
           supabase.from('comments').select('*').order('created_at'),
           supabase.from('attachments').select('*').order('created_at'),
           supabase.from('open_questions').select('*').order('id'),
+          supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
         ])
 
         const commentsMap: Record<string, Bug['comments']> = {}
@@ -139,6 +147,7 @@ export default function App() {
 
         setBugs(mergedBugs)
         setQuestions(questionsRes.data as Question[] || [])
+        setSessions((sessionsRes.data || []) as SessionOption[])
       } catch (err) {
         console.error('Failed to load data:', err)
       }
@@ -160,9 +169,9 @@ export default function App() {
     setBugs((prev) => prev.filter((b) => b.id !== bugId))
   }, [])
 
-  const addBug = async (newBug: { id: string; title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string | null; attachments: Attachment[] }) => {
+  const addBug = async (newBug: { id: string; title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string | null; session_id?: string | null; attachments: Attachment[] }) => {
     const filesToUpload = newBug.attachments.filter((a) => a.file)
-    const bugData = {
+    const bugData: Record<string, unknown> = {
       id: newBug.id,
       title: newBug.title,
       description: newBug.description,
@@ -172,6 +181,7 @@ export default function App() {
       page: newBug.page,
       category: newBug.category,
     }
+    if (newBug.session_id) bugData.session_id = newBug.session_id
 
     if (supabase) {
       const { error } = await supabase.from('bugs').insert(bugData)
@@ -194,9 +204,9 @@ export default function App() {
         }
       }
 
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: uploadedAttachments } as Bug])
+      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: uploadedAttachments } as unknown as Bug])
     } else {
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: newBug.attachments } as Bug])
+      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: newBug.attachments } as unknown as Bug])
     }
     setShowAddForm(false)
   }
@@ -208,6 +218,11 @@ export default function App() {
     if (hideReviewed && b.reviewed) return false
     if (severityFilter !== 'all' && b.severity !== severityFilter) return false
     if (testerFilter !== 'all' && !b.tester.includes(testerFilter)) return false
+    if (sessionFilter !== 'all') {
+      const bugSessionId = (b as Bug & { session_id?: string | null }).session_id
+      if (sessionFilter === 'none') { if (bugSessionId) return false }
+      else if (bugSessionId !== sessionFilter) return false
+    }
     if (search) {
       const q = search.toLowerCase()
       if (
@@ -288,6 +303,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 font-sans">
       {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} type={lightbox.type} onClose={() => setLightbox(null)} />}
+
+      <NavBar />
 
       {/* Header */}
       <div className="sticky top-0 z-40 relative overflow-hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
@@ -383,6 +400,19 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
         </select>
+        {sessions.length > 0 && (
+          <select
+            value={sessionFilter}
+            onChange={(e) => setSessionFilter(e.target.value)}
+            className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
+          >
+            <option value="all">All sessions</option>
+            <option value="none">No session</option>
+            {sessions.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        )}
         <button
           onClick={() => setHideReviewed(!hideReviewed)}
           className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
@@ -411,7 +441,13 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
       {/* Content */}
       <div className="max-w-screen-2xl mx-auto px-7 pt-4 pb-8">
         {showAddForm && (
-          <AddBugForm onAdd={addBug} onCancel={() => setShowAddForm(false)} nextIds={nextIds} />
+          <AddBugForm
+            onAdd={addBug}
+            onCancel={() => setShowAddForm(false)}
+            nextIds={nextIds}
+            sessions={sessions}
+            activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+          />
         )}
 
         {SEVERITIES.map((s) => {
