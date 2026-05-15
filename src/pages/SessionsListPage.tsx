@@ -12,34 +12,11 @@ import {
 	Trash2,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
+import { SESSION_STATUS_STYLES } from "../constants";
 import FeedbackModal from "../components/FeedbackModal";
+import type { SessionWithStats } from "../types";
 
-interface Session {
-	id: string;
-	name: string;
-	date: string | null;
-	status: "draft" | "active" | "completed";
-	created_at: string;
-	scenario_count?: number;
-	assignment_count?: number;
-	feedback_avg?: number;
-	feedback_count?: number;
-}
-
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-	draft: {
-		bg: "bg-slate-100 dark:bg-gray-800",
-		text: "text-slate-600 dark:text-gray-400",
-	},
-	active: {
-		bg: "bg-green-100 dark:bg-green-900/40",
-		text: "text-green-700 dark:text-green-400",
-	},
-	completed: {
-		bg: "bg-blue-100 dark:bg-blue-900/40",
-		text: "text-blue-700 dark:text-blue-400",
-	},
-};
+type Session = SessionWithStats;
 
 export default function SessionsListPage() {
 	const [sessions, setSessions] = useState<Session[]>([]);
@@ -249,7 +226,7 @@ export default function SessionsListPage() {
 			) : (
 				<div className="space-y-2">
 					{sessions.map((session) => {
-						const st = STATUS_STYLES[session.status];
+						const st = SESSION_STATUS_STYLES[session.status];
 						return (
 							<Link
 								key={session.id}
@@ -291,7 +268,7 @@ export default function SessionsListPage() {
 														<div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
 															{(["draft", "active", "completed"] as const).map(
 																(s) => {
-																	const sty = STATUS_STYLES[s];
+																	const sty = SESSION_STATUS_STYLES[s];
 																	return (
 																		<button
 																			key={s}

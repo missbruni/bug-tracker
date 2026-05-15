@@ -2,33 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-
-interface Session {
-  id: string
-  name: string
-  date: string | null
-  status: string
-}
-
-interface Scenario {
-  id: string
-  letter: string
-  title: string
-  description: string | null
-  device_requirement: string | null
-  sort_order: number
-}
-
-interface Tester {
-  id: string
-  name: string
-  devices: string[]
-}
-
-interface Assignment {
-  scenario_id: string
-  tester_id: string
-}
+import type { Session, Scenario, Tester, Assignment } from '../types'
 
 interface Slide {
   type: 'title' | 'objective' | 'timeline' | 'assignments' | 'scenario' | 'crosscutting' | 'edgecases' | 'bugreporting' | 'tips'

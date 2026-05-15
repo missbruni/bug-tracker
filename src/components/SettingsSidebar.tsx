@@ -1,20 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Settings, Eye, EyeOff, ExternalLink, Check } from 'lucide-react'
-
-const DEVIN_KEY_STORAGE = 'devin_api_key'
-
-export function getDevinApiKey(): string {
-  return localStorage.getItem(DEVIN_KEY_STORAGE) || ''
-}
-
-export function hasDevinApiKey(): boolean {
-  return getDevinApiKey().trim().length > 0
-}
-
-/** Dispatch this event from anywhere to open the settings sidebar */
-export function openSettings() {
-  window.dispatchEvent(new CustomEvent('openSettings'))
-}
+import { getDevinApiKey, setDevinApiKey, removeDevinApiKey, isValidDevinKey } from '../lib/devin'
 
 interface SettingsSidebarProps {
   open: boolean
@@ -42,12 +28,12 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
 
   const save = () => {
     if (!devinKey.trim()) return
-    if (!devinKey.trim().startsWith('apk_user')) {
+    if (!isValidDevinKey(devinKey)) {
       setKeyError('Key must start with apk_user. Check your Devin dashboard for a valid API key.')
       return
     }
     setKeyError('')
-    localStorage.setItem(DEVIN_KEY_STORAGE, devinKey.trim())
+    setDevinApiKey(devinKey)
     setSaved(true)
     setTimeout(() => {
       setSaved(false)
@@ -57,7 +43,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
 
   const clear = () => {
     setDevinKey('')
-    localStorage.removeItem(DEVIN_KEY_STORAGE)
+    removeDevinApiKey()
     setSaved(false)
   }
 

@@ -1,14 +1,9 @@
 import { useState, useRef } from 'react'
 import { Paperclip } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES } from '../constants'
-import AttachmentCard, { type Attachment } from './AttachmentCard'
+import AttachmentCard from './AttachmentCard'
 import type { Severity } from '../constants'
-
-export interface SessionOption {
-  id: string
-  name: string
-  status: string
-}
+import type { Attachment, SessionOption } from '../types'
 
 interface NewBugPayload {
   id: string

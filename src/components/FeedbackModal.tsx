@@ -1,19 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Star, Send, MessageSquareHeart } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-
-interface Feedback {
-  id: string
-  session_id: string
-  name: string | null
-  rating: number
-  length_feel: 'too_short' | 'just_right' | 'too_long'
-  clarity: number
-  helpfulness: 'not_at_all' | 'somewhat' | 'very'
-  worked_well: string | null
-  to_improve: string | null
-  created_at: string
-}
+import type { Feedback } from '../types'
 
 interface Props {
   sessionId: string

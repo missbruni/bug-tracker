@@ -1,72 +1,39 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Trash2, ArrowDownUp } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Search } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import Lightbox from './components/Lightbox'
-import { TesterBadge } from './components/TesterBadge'
-import BugCard, { type Bug } from './components/BugCard'
-import AddBugForm, { type SessionOption } from './components/AddBugForm'
-import type { Severity } from './constants'
-import type { Attachment } from './components/AttachmentCard'
-
-interface Question {
-  id: string
-  text: string
-  tester: string
-  created_at?: string
-}
-
-interface LightboxState {
-  src: string
-  alt: string
-  type: string
-}
+import BugCard from './components/BugCard'
+import AddBugForm from './components/AddBugForm'
+import FilterBar from './components/FilterBar'
+import QuestionsSection from './components/QuestionsSection'
+import { useBugs } from './hooks/useBugs'
+import { useBugFilters } from './hooks/useBugFilters'
+import type { LightboxState } from './types'
 
 export default function App() {
-  const [bugs, setBugs] = useState<Bug[]>([])
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [sessions, setSessions] = useState<SessionOption[]>([])
-  const [snackbar, setSnackbar] = useState<{ message: string; undo?: () => void } | null>(null)
-  const [severityFilter, setSeverityFilter] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('severity') || 'all'
-  })
-  const [search, setSearch] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('q') || ''
-  })
-  const [testerFilter, setTesterFilter] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('tester') || 'all'
-  })
-  const [dateFilter, setDateFilter] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('date') || 'all'
-  })
-  const [sortOrder, setSortOrder] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('sort') || 'default'
-  })
-  const [sessionFilter, setSessionFilter] = useState(() => {
-    const p = new URLSearchParams(window.location.search)
-    return p.get('session') || 'all'
-  })
+  const {
+    bugs,
+    questions,
+    sessions,
+    loading,
+    snackbar,
+    setSnackbar,
+    clearSnackbar,
+    updateBug,
+    deleteBugFromState,
+    showPersistError,
+    addBug,
+    deleteQuestion,
+    showAddForm,
+    setShowAddForm,
+  } = useBugs()
 
-  useEffect(() => {
-    const p = new URLSearchParams()
-    if (search) p.set('q', search)
-    if (severityFilter !== 'all') p.set('severity', severityFilter)
-    if (testerFilter !== 'all') p.set('tester', testerFilter)
-    if (dateFilter !== 'all') p.set('date', dateFilter)
-    if (sortOrder !== 'default') p.set('sort', sortOrder)
-    if (sessionFilter !== 'all') p.set('session', sessionFilter)
-    const qs = p.toString()
-    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-  }, [search, severityFilter, testerFilter, dateFilter, sortOrder, sessionFilter])
-  const [showAddForm, setShowAddForm] = useState(false)
+  const filters = useBugFilters(bugs, questions)
+  const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions } = filters
+
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
   const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [loading, setLoading] = useState(true)
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
 
   useEffect(() => {
@@ -91,253 +58,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
-
-  // Load data from Supabase
-  useEffect(() => {
-    async function load() {
-      if (!supabase) {
-        setLoading(false)
-        return
-      }
-      try {
-        const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes] = await Promise.all([
-          supabase.from('bugs').select('*').order('id'),
-          supabase.from('comments').select('*').order('created_at'),
-          supabase.from('attachments').select('*').order('created_at'),
-          supabase.from('open_questions').select('*').order('id'),
-          supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
-        ])
-
-        const commentsMap: Record<string, Bug['comments']> = {}
-        ;((commentsRes.data || []) as Array<Bug['comments'][number] & { bug_id: string }>).forEach((c) => {
-          if (!commentsMap[c.bug_id]) commentsMap[c.bug_id] = []
-          commentsMap[c.bug_id].push(c)
-        })
-
-        const attachmentsMap: Record<string, Attachment[]> = {}
-        ;((attachmentsRes.data || []) as Array<Attachment & { bug_id: string }>).forEach((a) => {
-          if (!attachmentsMap[a.bug_id]) attachmentsMap[a.bug_id] = []
-          attachmentsMap[a.bug_id].push(a)
-        })
-
-        const mergedBugs = (bugsRes.data || []).map((b: Bug) => ({
-          ...b,
-          comments: commentsMap[b.id] || [],
-          attachments: attachmentsMap[b.id] || [],
-        }))
-
-        setBugs(mergedBugs)
-        setQuestions(questionsRes.data as Question[] || [])
-        setSessions((sessionsRes.data || []) as SessionOption[])
-      } catch (err) {
-        console.error('Failed to load data:', err)
-      }
-      setLoading(false)
-    }
-    load()
-  }, [])
-
-  // Real-time subscriptions so all users stay in sync
-  useEffect(() => {
-    if (!supabase) return
-
-    const sb = supabase
-    const channel = sb.channel('bugs-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bugs' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const newBug = payload.new as Bug
-          setBugs((prev) => {
-            if (prev.some(b => b.id === newBug.id)) return prev
-            return [...prev, { ...newBug, comments: [], attachments: [] }]
-          })
-        } else if (payload.eventType === 'UPDATE') {
-          const updated = payload.new as Bug
-          setBugs((prev) => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b))
-        } else if (payload.eventType === 'DELETE') {
-          const deleted = payload.old as { id: string }
-          setBugs((prev) => prev.filter(b => b.id !== deleted.id))
-        }
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
-        const c = payload.new as { id: number; bug_id: string; text: string; time?: string }
-        setBugs((prev) => prev.map(b => {
-          if (b.id !== c.bug_id) return b
-          if (b.comments.some(cm => cm.id === c.id)) return b
-          return { ...b, comments: [...b.comments, c] }
-        }))
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, (payload) => {
-        const c = payload.old as { id: number; bug_id: string }
-        setBugs((prev) => prev.map(b => {
-          if (b.id !== c.bug_id) return b
-          return { ...b, comments: b.comments.filter(cm => cm.id !== c.id) }
-        }))
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attachments' }, (payload) => {
-        const a = payload.new as Attachment & { bug_id: string }
-        setBugs((prev) => prev.map(b => {
-          if (b.id !== a.bug_id) return b
-          if (b.attachments.some(at => at.id === a.id)) return b
-          return { ...b, attachments: [...b.attachments, a] }
-        }))
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'attachments' }, (payload) => {
-        const a = payload.old as { id: number; bug_id: string }
-        setBugs((prev) => prev.map(b => {
-          if (b.id !== a.bug_id) return b
-          return { ...b, attachments: b.attachments.filter(at => at.id !== a.id) }
-        }))
-      })
-      .subscribe()
-
-    return () => { sb.removeChannel(channel) }
-  }, [])
-
-  const updateBug = useCallback((updated: Bug) => {
-    setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
-  }, [])
-
-  const showPersistError = useCallback(() => {
-    setSnackbar({ message: 'It was not possible to update the bug.' })
-    window.setTimeout(() => setSnackbar(null), 4000)
-  }, [])
-
-  const deleteBugFromState = useCallback((bugId: string) => {
-    setBugs((prev) => prev.filter((b) => b.id !== bugId))
-  }, [])
-
-  const addBug = async (newBug: { id: string; title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string | null; session_id?: string | null; attachments: Attachment[] }) => {
-    const filesToUpload = newBug.attachments.filter((a) => a.file)
-    const bugData: Record<string, unknown> = {
-      id: newBug.id,
-      title: newBug.title,
-      description: newBug.description,
-      severity: newBug.severity,
-      tester: newBug.tester,
-      device: newBug.device,
-      page: newBug.page,
-      category: newBug.category,
-    }
-    if (newBug.session_id) bugData.session_id = newBug.session_id
-
-    if (supabase) {
-      const sb = supabase
-      const prefix = newBug.id.replace(/\d+$/, '')
-      let num = parseInt(newBug.id.replace(/\D+/g, '')) || 1
-      let finalId = newBug.id
-      let retries = 0
-
-      // Retry with incremented ID on duplicate key conflict (concurrent users)
-      while (retries < 20) {
-        bugData.id = finalId
-        const { error } = await sb.from('bugs').insert(bugData)
-        if (!error) break
-        if (error.code === '23505') {
-          retries++
-          num++
-          finalId = `${prefix}${String(num).padStart(2, '0')}`
-        } else {
-          console.error('Failed to add bug:', error)
-          return
-        }
-      }
-
-      // Add bug to state immediately and close form
-      setBugs((prev) => [...prev, { ...bugData, id: finalId, comments: [], attachments: [] } as unknown as Bug])
-      setShowAddForm(false)
-
-      // Upload attachments in parallel in the background
-      if (filesToUpload.length) {
-        const results = await Promise.all(
-          filesToUpload.map(async (att) => {
-            const path = `${finalId}/${Date.now()}-${att.name}`
-            const { error: upErr } = await sb.storage.from('attachments').upload(path, att.file!)
-            if (upErr) return null
-            const { data: urlData } = sb.storage.from('attachments').getPublicUrl(path)
-            const { data: row } = await sb
-              .from('attachments')
-              .insert({ bug_id: finalId, name: att.name, url: urlData.publicUrl, type: att.type })
-              .select()
-            return row?.[0] as Attachment | undefined
-          })
-        )
-        const uploaded = results.filter((r): r is Attachment => !!r)
-        if (uploaded.length) {
-          setBugs((prev) => prev.map((b) => b.id === finalId ? { ...b, attachments: [...b.attachments, ...uploaded] } : b))
-        }
-      }
-    } else {
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: newBug.attachments } as unknown as Bug])
-      setShowAddForm(false)
-    }
-  }
-
-  // Derived data
-  const testers = [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort()
-
-  const filtered = bugs.filter((b) => {
-    if (severityFilter === 'completed') { if (!b.reviewed) return false }
-    else { if (b.reviewed) return false }
-    if (severityFilter !== 'all' && severityFilter !== 'completed' && b.severity !== severityFilter) return false
-    if (testerFilter !== 'all' && !b.tester.includes(testerFilter)) return false
-    if (sessionFilter !== 'all') {
-      const bugSessionId = (b as Bug & { session_id?: string | null }).session_id
-      if (sessionFilter === 'none') { if (bugSessionId) return false }
-      else if (bugSessionId !== sessionFilter) return false
-    }
-    if (search) {
-      const q = search.toLowerCase()
-      if (
-        !b.title.toLowerCase().includes(q) &&
-        !(b.description || '').toLowerCase().includes(q) &&
-        !b.id.toLowerCase().includes(q) &&
-        !(b.category || '').toLowerCase().includes(q) &&
-        !b.page.toLowerCase().includes(q)
-      )
-        return false
-    }
-    if (dateFilter !== 'all' && b.created_at) {
-      const now = new Date()
-      const bugDate = new Date(b.created_at)
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      if (dateFilter === 'today') {
-        if (bugDate < startOfToday) return false
-      } else if (dateFilter === 'yesterday') {
-        const startOfYesterday = new Date(startOfToday)
-        startOfYesterday.setDate(startOfYesterday.getDate() - 1)
-        if (bugDate < startOfYesterday || bugDate >= startOfToday) return false
-      } else if (dateFilter === '7d') {
-        const weekAgo = new Date(startOfToday)
-        weekAgo.setDate(weekAgo.getDate() - 7)
-        if (bugDate < weekAgo) return false
-      } else if (dateFilter === '30d') {
-        const monthAgo = new Date(startOfToday)
-        monthAgo.setDate(monthAgo.getDate() - 30)
-        if (bugDate < monthAgo) return false
-      }
-    }
-    return true
-  }).sort((a, b) => {
-    if (sortOrder === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-    if (sortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
-    return 0
-  })
-
-  const activeBugs = bugs.filter(b => !b.reviewed)
-  const counts: Record<Severity, number> = { critical: 0, high: 0, low: 0 }
-  activeBugs.forEach((b) => counts[b.severity]++)
-
-  const nextIds: Record<Severity, number> = {
-    critical: Math.max(0, ...bugs.filter((b) => b.severity === 'critical').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
-    high: Math.max(0, ...bugs.filter((b) => b.severity === 'high').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
-    low: Math.max(0, ...bugs.filter((b) => b.severity === 'low').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
-  }
-
-  const grouped: Record<string, Bug[]> = {}
-  SEVERITIES.forEach((s) => {
-    grouped[s] = filtered.filter((b) => b.severity === s)
-  })
+  }, [setShowAddForm])
 
   if (loading) {
     return (
@@ -376,7 +97,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
               {testers.join(', ') || 'No testers yet'}
             </p>
             <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
-              <span className="text-blue-600 dark:text-yellow-400 font-semibold">{bugs.filter(b => !b.reviewed).length} active</span> / {bugs.length} total
+              <span className="text-blue-600 dark:text-yellow-400 font-semibold">{activeBugs.length} active</span> / {bugs.length} total
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -403,76 +124,23 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="border-b border-slate-200 dark:border-gray-800">
-      <div className="max-w-screen-2xl mx-auto flex flex-wrap items-center gap-2 px-7 py-3.5">
-        {[
-          { k: 'all', l: `Active (${activeBugs.length})` },
-          { k: 'critical', l: `Critical (${counts.critical})` },
-          { k: 'high', l: `High (${counts.high})` },
-          { k: 'low', l: `Low (${counts.low})` },
-          { k: 'completed', l: `Completed (${bugs.filter(b => b.reviewed).length})` },
-        ].map((f) => (
-          <button
-            key={f.k}
-            onClick={() => setSeverityFilter(f.k)}
-            className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-              severityFilter === f.k
-                ? 'bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100'
-                : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            {f.l}
-          </button>
-        ))}
-        <select
-          value={testerFilter}
-          onChange={(e) => setTesterFilter(e.target.value)}
-          className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
-        >
-          <option value="all">All testers</option>
-          {testers.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-        <select
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
-        >
-          <option value="all">All dates</option>
-          <option value="today">Today</option>
-          <option value="yesterday">Yesterday</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-        </select>
-        {sessions.length > 0 && (
-          <select
-            value={sessionFilter}
-            onChange={(e) => setSessionFilter(e.target.value)}
-            className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
-          >
-            <option value="all">All sessions</option>
-            <option value="none">No session</option>
-            {sessions.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        )}
-        <button
-          onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : sortOrder === 'oldest' ? 'default' : 'newest')}
-          className={`ml-auto flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-            sortOrder !== 'default'
-              ? 'bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100'
-              : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
-          }`}
-          title={sortOrder === 'newest' ? 'Newest first' : sortOrder === 'oldest' ? 'Oldest first' : 'Default order'}
-        >
-          <ArrowDownUp size={12} />
-          {sortOrder === 'newest' ? 'Newest' : sortOrder === 'oldest' ? 'Oldest' : 'Sort'}
-        </button>
-      </div>
-      </div>
+      <FilterBar
+        bugs={bugs}
+        activeBugs={activeBugs}
+        counts={counts}
+        severityFilter={severityFilter}
+        setSeverityFilter={filters.setSeverityFilter}
+        testerFilter={testerFilter}
+        setTesterFilter={filters.setTesterFilter}
+        dateFilter={filters.dateFilter}
+        setDateFilter={filters.setDateFilter}
+        sessionFilter={filters.sessionFilter}
+        setSessionFilter={filters.setSessionFilter}
+        sortOrder={filters.sortOrder}
+        setSortOrder={filters.setSortOrder}
+        testers={testers}
+        sessions={sessions}
+      />
 
       {/* Content */}
       <div className="max-w-screen-2xl mx-auto px-7 pt-4 pb-8">
@@ -517,73 +185,16 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           )
         })}
 
-        {severityFilter === 'all' && testerFilter === 'all' && !search && questions.length > 0 && (() => {
-          const deleteQuestion = async (q: Question) => {
-            if (supabase) {
-              const { error } = await supabase.from('open_questions').delete().eq('id', q.id)
-              if (error) { console.error('Failed to delete question:', error); return }
-            }
-            setQuestions((prev) => prev.filter((x) => x.id !== q.id))
-          }
-          const filteredQuestions = questions.filter((q) => {
-            if (dateFilter === 'all' || !q.created_at) return true
-            const now = new Date()
-            const qDate = new Date(q.created_at)
-            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            if (dateFilter === 'today') return qDate >= startOfToday
-            if (dateFilter === 'yesterday') {
-              const startOfYesterday = new Date(startOfToday)
-              startOfYesterday.setDate(startOfYesterday.getDate() - 1)
-              return qDate >= startOfYesterday && qDate < startOfToday
-            }
-            if (dateFilter === '7d') {
-              const weekAgo = new Date(startOfToday)
-              weekAgo.setDate(weekAgo.getDate() - 7)
-              return qDate >= weekAgo
-            }
-            if (dateFilter === '30d') {
-              const monthAgo = new Date(startOfToday)
-              monthAgo.setDate(monthAgo.getDate() - 30)
-              return qDate >= monthAgo
-            }
-            return true
-          })
-          if (!filteredQuestions.length) return null
-          return (
-          <div className="mt-5">
-            <div className="mb-2 inline-block rounded-md bg-blue-50 dark:bg-blue-900/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-800 dark:text-blue-300">
-              Open Questions ({filteredQuestions.length})
-            </div>
-            {filteredQuestions.map((q) => (
-              <div
-                key={q.id}
-                className="mb-2 flex items-center gap-2 rounded-lg border border-blue-200 dark:border-blue-900 bg-white dark:bg-gray-900 p-3"
-                style={{ borderLeft: '4px solid #3b82f6' }}
-              >
-                <span className="text-xs font-bold text-blue-500 dark:text-blue-400" style={{ minWidth: 36 }}>
-                  {q.id}
-                </span>
-                <span className="flex-1 text-sm text-slate-900 dark:text-gray-200">{q.text}</span>
-                <TesterBadge>{q.tester}</TesterBadge>
-                <button
-                  onClick={() => deleteQuestion(q)}
-                  className="shrink-0 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
-                  title="Delete question"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-          )
-        })()}
+        {severityFilter === 'all' && testerFilter === 'all' && !search && filteredQuestions.length > 0 && (
+          <QuestionsSection questions={filteredQuestions} onDelete={deleteQuestion} />
+        )}
       </div>
       {snackbar && (
         <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${snackbar.undo ? 'bg-slate-800 dark:bg-gray-700' : 'bg-red-600'}`}>
           {snackbar.message}
           {snackbar.undo && (
             <button
-              onClick={() => { snackbar.undo!(); setSnackbar(null); if (snackbarTimer.current) clearTimeout(snackbarTimer.current) }}
+              onClick={() => { snackbar.undo!(); clearSnackbar() }}
               className="rounded-md bg-white/20 px-2.5 py-1 text-xs font-bold hover:bg-white/30 transition-colors cursor-pointer"
             >
               Undo

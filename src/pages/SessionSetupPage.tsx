@@ -3,43 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, Star } from 'lucide-react'
 import FeedbackModal from '../components/FeedbackModal'
 import { supabase } from '../supabaseClient'
-
-interface Tester {
-  id: string
-  name: string
-  devices: string[]
-  active: boolean
-}
-
-interface Scenario {
-  id: string
-  session_id: string
-  letter: string
-  title: string
-  description: string | null
-  device_requirement: string | null
-  sort_order: number
-}
-
-interface Assignment {
-  id: string
-  session_id: string
-  scenario_id: string
-  tester_id: string
-}
-
-interface Session {
-  id: string
-  name: string
-  date: string | null
-  status: string
-}
-
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: 'bg-slate-100 dark:bg-gray-800', text: 'text-slate-600 dark:text-gray-400' },
-  active: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400' },
-  completed: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400' },
-}
+import { SESSION_STATUS_STYLES } from '../constants'
+import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../types'
 
 export default function SessionSetupPage() {
   const { id: sessionId } = useParams<{ id: string }>()
@@ -240,7 +205,7 @@ export default function SessionSetupPage() {
     }
   }
 
-  const setStatus = async (next: string) => {
+  const setStatus = async (next: SessionStatus) => {
     if (!supabase || !session) return
     setShowStatusMenu(false)
     if (next === 'completed') {
@@ -284,7 +249,7 @@ export default function SessionSetupPage() {
   }
 
   const isCompleted = session.status === 'completed'
-  const st = STATUS_STYLES[session.status] || STATUS_STYLES.draft
+  const st = SESSION_STATUS_STYLES[session.status] || SESSION_STATUS_STYLES.draft
 
   return (
     <div className="max-w-screen-2xl mx-auto px-7 py-6">
@@ -307,7 +272,7 @@ export default function SessionSetupPage() {
                   <div className="fixed inset-0 z-40" onClick={() => setShowStatusMenu(false)} />
                   <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
                     {(['draft', 'active', 'completed'] as const).map(s => {
-                      const sty = STATUS_STYLES[s]
+                      const sty = SESSION_STATUS_STYLES[s]
                       return (
                         <button
                           key={s}

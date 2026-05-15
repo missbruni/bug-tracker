@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, X, Check, Pencil } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-
-interface Tester {
-  id: string
-  name: string
-  devices: string[]
-  active: boolean
-}
+import type { Tester } from '../types'
 
 const COMMON_DEVICES = [
   'Desktop Chrome',

@@ -1,7 +1,8 @@
 /// <reference lib="dom" />
 import { test, expect, describe, mock, afterEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import BugCard, { type Bug } from '../BugCard'
+import BugCard from '../BugCard'
+import type { Bug } from '../../types'
 
 afterEach(() => cleanup())
 

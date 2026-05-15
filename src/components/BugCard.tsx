@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -10,53 +10,13 @@ import {
   Rocket,
   Pencil,
 } from 'lucide-react'
-import { supabase } from '../supabaseClient'
-import { N8N_WEBHOOK_URL, SEVERITY_STYLES } from '../constants'
-import { hasDevinApiKey, openSettings } from './SettingsSidebar'
+import { SEVERITY_STYLES } from '../constants'
 import { TesterBadge } from './TesterBadge'
-import AttachmentCard, { type Attachment } from './AttachmentCard'
-import type { Severity } from '../constants'
-
-export interface Comment {
-  id?: number
-  bug_id?: string
-  text: string
-  time?: string
-}
-
-export interface Bug {
-  id: string
-  title: string
-  description: string
-  severity: Severity
-  tester: string
-  device: string
-  page: string
-  category: string | null
-  created_at?: string
-  reviewed?: boolean
-  backlog_url?: string | null
-  devin_url?: string | null
-  comments: Comment[]
-  attachments: Attachment[]
-}
-
-function playTickSound() {
-  try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const ctx = new AudioCtx()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.setValueAtTime(1800, ctx.currentTime)
-    osc.frequency.setValueAtTime(2400, ctx.currentTime + 0.04)
-    gain.gain.setValueAtTime(0.15, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12)
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + 0.12)
-  } catch { /* ignore audio errors */ }
-}
+import AttachmentCard from './AttachmentCard'
+import BugEditForm from './BugEditForm'
+import PublishMenu from './PublishMenu'
+import { useBugActions } from '../hooks/useBugActions'
+import type { Bug } from '../types'
 
 interface BugCardProps {
   bug: Bug
@@ -73,241 +33,19 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [publishingMode, setPublishingMode] = useState<'backlog' | 'devin' | null>(null)
   const [editing, setEditing] = useState(false)
-  const [editFields, setEditFields] = useState({ title: '', description: '', severity: '' as Severity, tester: '', device: '', page: '', category: '' })
-  const [saving, setSaving] = useState(false)
   const publishing = publishingMode !== null
-  const [publishMenuOpen, setPublishMenuOpen] = useState(false)
-  const [devinKeyMissing, setDevinKeyMissing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const publishMenuRef = useRef<HTMLDivElement>(null)
-  const publishSplitRef = useRef<HTMLDivElement>(null)
-  const mountedRef = useRef(true)
   const style = SEVERITY_STYLES.dark[bug.severity]
   const backlogUrl = bug.backlog_url || null
   const devinUrl = bug.devin_url || null
 
-  const showUpdateError = (message = 'It was not possible to update the bug.') => {
-    onPersistError?.(message)
-  }
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!publishMenuOpen) return
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (publishMenuRef.current && !publishMenuRef.current.contains(e.target as Node)) {
-        setPublishMenuOpen(false)
-        setDevinKeyMissing(false)
-      }
-    }
-
-    window.addEventListener('mousedown', handleClickOutside)
-    return () => window.removeEventListener('mousedown', handleClickOutside)
-  }, [publishMenuOpen])
-
-  const persistBugUpdate = async (updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>>) => {
-    if (!supabase) return true
-
-    const { data, error } = await supabase
-      .from('bugs')
-      .update(updates)
-      .eq('id', bug.id)
-      .select('id')
-      .maybeSingle()
-
-    if (error || !data) {
-      console.error('Failed to persist bug update:', {
-        bugId: bug.id,
-        updates,
-        error: error?.message || 'No rows updated',
-      })
-      showUpdateError('It was not possible to update the bug.')
-      return false
-    }
-
-    return true
-  }
-
-  const publishToBacklog = async (withDevin = false) => {
-    setPublishingMode(withDevin ? 'devin' : 'backlog')
-    setPublishMenuOpen(false)
-    try {
-      const res = await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: bug.id,
-          title: bug.title,
-          description: (bug.description || '') + (bug.comments.length ? '\n\n---\nComments:\n' + bug.comments.map(c => `- ${c.text}${c.time ? ` (${c.time})` : ''}`).join('\n') : ''),
-          severity: bug.severity,
-          tester: bug.tester,
-          page: bug.page,
-          device: bug.device,
-          category: bug.category || '',
-          attachments: bug.attachments.map((a) => ({ name: a.name, url: a.url, type: a.type })),
-          request_devin: withDevin,
-        }),
-      })
-      const text = await res.text()
-      let data: Record<string, unknown>
-      try { data = JSON.parse(text) } catch { data = { success: false, error: `Invalid response: ${text.slice(0, 200)}` } }
-      if (data.success) {
-        const url = (data.url as string) || null
-        const devinSession = (data.devin_session as string) || null
-        const devinLink = devinSession ? `https://app.devin.ai/sessions/${devinSession}` : null
-        const previousBug = bug
-        const optimisticBug: Bug = {
-          ...bug,
-          backlog_url: url,
-          devin_url: devinLink ?? bug.devin_url,
-          reviewed: true,
-        }
-        const updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>> = {
-          backlog_url: url,
-          reviewed: true,
-        }
-        if (devinLink) updates.devin_url = devinLink
-
-        onUpdate(optimisticBug)
-
-        const persisted = await persistBugUpdate(updates)
-        if (!persisted) {
-          onUpdate(previousBug)
-          if (mountedRef.current) setPublishingMode(null)
-          return
-        }
-
-        if (url) window.open(url, '_blank')
-      } else {
-        showUpdateError((data.error as string) || 'It was not possible to update the bug.')
-      }
-    } catch (err) {
-      console.error('Publish to backlog failed:', err)
-      showUpdateError(err instanceof Error ? err.message : 'It was not possible to update the bug.')
-    }
-    if (mountedRef.current) setPublishingMode(null)
-  }
-
-  const addComment = async () => {
-    if (!commentText.trim()) return
-    const newComment = { text: commentText.trim(), time: 'Just now' }
-
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({ bug_id: bug.id, text: newComment.text, time: newComment.time })
-        .select()
-      if (!error && data?.[0]) {
-        onUpdate({ ...bug, comments: [...bug.comments, { ...newComment, id: data[0].id }] })
-      }
-    } else {
-      onUpdate({ ...bug, comments: [...bug.comments, newComment] })
-    }
-    setCommentText('')
-    setShowCommentInput(false)
-  }
-
-  const deleteComment = async (comment: { id?: number }, index: number) => {
-    if (supabase && comment.id) {
-      const { error } = await supabase.from('comments').delete().eq('id', comment.id)
-      if (error) { console.error('Failed to delete comment:', error); return }
-    }
-    onUpdate({ ...bug, comments: bug.comments.filter((_, i) => i !== index) })
-  }
-
-  const deleteAttachment = async (attachment: { id?: number; url?: string }, index: number) => {
-    if (supabase && attachment.id) {
-      const { error } = await supabase.from('attachments').delete().eq('id', attachment.id)
-      if (error) { console.error('Failed to delete attachment:', error); return }
-      if (attachment.url) {
-        const path = attachment.url.split('/attachments/')[1]
-        if (path) await supabase.storage.from('attachments').remove([decodeURIComponent(path)])
-      }
-    }
-    onUpdate({ ...bug, attachments: bug.attachments.filter((_, i) => i !== index) })
-  }
-
-  const toggleReviewed = async () => {
-    const newVal = !bug.reviewed
-    if (newVal) playTickSound()
-
-    const previousBug = bug
-    onUpdate({ ...bug, reviewed: newVal })
-
-    const persisted = await persistBugUpdate({ reviewed: newVal })
-    if (!persisted) {
-      onUpdate(previousBug)
-      return
-    }
-
-    if (newVal && onReviewed) {
-      onReviewed(bug, async () => {
-        onUpdate({ ...bug, reviewed: false })
-        await persistBugUpdate({ reviewed: false })
-      })
-    }
-  }
-
-  const deleteBug = async () => {
-    if (!window.confirm(`Delete bug ${bug.id}? This cannot be undone.`)) return
-
-    if (supabase) {
-      const storagePaths = bug.attachments
-        .map((att) => att.url?.split('/attachments/')[1])
-        .filter(Boolean)
-        .map((path) => decodeURIComponent(path!))
-
-      if (storagePaths.length) {
-        const { error: storageError } = await supabase.storage.from('attachments').remove(storagePaths)
-        if (storageError) console.error('Failed to delete attachment files:', storageError)
-      }
-
-      const { error: commentsError } = await supabase.from('comments').delete().eq('bug_id', bug.id)
-      if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return }
-
-      const { error: attachmentsError } = await supabase.from('attachments').delete().eq('bug_id', bug.id)
-      if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return }
-
-      const { error: bugError } = await supabase.from('bugs').delete().eq('id', bug.id)
-      if (bugError) { console.error('Failed to delete bug:', bugError); return }
-    }
-
-    onDelete(bug.id)
-  }
-
-  const uploadFiles = async (files: File[]) => {
-    const newAttachments: Bug['attachments'] = []
-    for (const file of files) {
-      if (supabase) {
-        const path = `${bug.id}/${Date.now()}-${file.name}`
-        const { error } = await supabase.storage.from('attachments').upload(path, file)
-        if (!error) {
-          const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
-          const { data: row } = await supabase
-            .from('attachments')
-            .insert({ bug_id: bug.id, name: file.name, url: urlData.publicUrl, type: file.type })
-            .select()
-          if (row?.[0]) newAttachments.push(row[0])
-        }
-      } else {
-        newAttachments.push({ name: file.name, url: URL.createObjectURL(file), type: file.type })
-      }
-    }
-    if (newAttachments.length) {
-      onUpdate({ ...bug, attachments: [...bug.attachments, ...newAttachments] })
-    }
-  }
+  const actions = useBugActions({ bug, onUpdate, onDelete, onPersistError, onReviewed })
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
     e.target.value = ''
-    await uploadFiles(files)
+    await actions.uploadFiles(files)
   }
 
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -325,8 +63,19 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
       .filter((f): f is File => f !== null)
     if (imageFiles.length) {
       e.preventDefault()
-      await uploadFiles(imageFiles)
+      await actions.uploadFiles(imageFiles)
     }
+  }
+
+  const handleAddComment = async () => {
+    await actions.addComment(commentText)
+    setCommentText('')
+    setShowCommentInput(false)
+  }
+
+  const startEditing = () => {
+    setEditing(true)
+    setExpanded(true)
   }
 
   return (
@@ -336,7 +85,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
     >
       <div className="flex items-center">
         <button
-          onClick={toggleReviewed}
+          onClick={actions.toggleReviewed}
           className={`shrink-0 pl-4 pr-1 py-3 cursor-pointer transition-colors ${bug.reviewed ? 'text-green-500' : 'text-slate-300 dark:text-gray-600 hover:text-green-400'}`}
           title={bug.reviewed ? 'Mark as unreviewed' : 'Mark as reviewed'}
         >
@@ -379,8 +128,8 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
             <span
               role="button"
               tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); setEditing(true); setExpanded(true); setEditFields({ title: bug.title, description: bug.description || '', severity: bug.severity, tester: bug.tester, device: bug.device, page: bug.page, category: bug.category || '' }) }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setEditing(true); setExpanded(true); setEditFields({ title: bug.title, description: bug.description || '', severity: bug.severity, tester: bug.tester, device: bug.device, page: bug.page, category: bug.category || '' }) } }}
+              onClick={(e) => { e.stopPropagation(); startEditing() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startEditing() } }}
               className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-all cursor-pointer"
               title="Edit bug"
             >
@@ -389,8 +138,8 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
             <span
               role="button"
               tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); deleteBug() }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); deleteBug() } }}
+              onClick={(e) => { e.stopPropagation(); actions.deleteBug() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); actions.deleteBug() } }}
               className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all cursor-pointer"
               title="Delete bug"
             >
@@ -427,55 +176,15 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
       {expanded && (
         <div className="border-t border-slate-100 dark:border-gray-800 px-4 py-3" onPaste={handlePaste}>
           {editing ? (
-            <div className="mb-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <input value={editFields.title} onChange={e => setEditFields(f => ({ ...f, title: e.target.value }))} placeholder="Title *" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
-                <input value={editFields.tester} onChange={e => setEditFields(f => ({ ...f, tester: e.target.value }))} placeholder="Tester" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
-                <input value={editFields.device} onChange={e => setEditFields(f => ({ ...f, device: e.target.value }))} placeholder="Device" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
-                <input value={editFields.page} onChange={e => setEditFields(f => ({ ...f, page: e.target.value }))} placeholder="Page" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
-                <input value={editFields.category} onChange={e => setEditFields(f => ({ ...f, category: e.target.value }))} placeholder="Category" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
-                <div className="flex items-center gap-1.5">
-                  {(['critical', 'high', 'low'] as Severity[]).map(s => (
-                    <button key={s} onClick={() => setEditFields(f => ({ ...f, severity: s }))} className="rounded-full px-3 py-1 text-xs font-bold uppercase text-white cursor-pointer transition-opacity" style={{ background: SEVERITY_STYLES.dark[s].badge, opacity: s === editFields.severity ? 1 : 0.35 }}>{s}</button>
-                  ))}
-                </div>
-              </div>
-              <textarea value={editFields.description} onChange={e => setEditFields(f => ({ ...f, description: e.target.value }))} placeholder="Description" rows={3} className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y focus:border-blue-400 dark:focus:border-blue-500" />
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    if (!editFields.title.trim() || saving) return
-                    setSaving(true)
-                    const updates = {
-                      title: editFields.title,
-                      description: editFields.description,
-                      severity: editFields.severity,
-                      tester: editFields.tester || 'Unknown',
-                      device: editFields.device || '\u2014',
-                      page: editFields.page || '\u2014',
-                      category: editFields.category || null,
-                    }
-                    if (supabase) {
-                      const { error } = await supabase.from('bugs').update(updates).eq('id', bug.id)
-                      if (error) {
-                        console.error('Failed to update bug:', error)
-                        showUpdateError('Failed to save changes.')
-                        setSaving(false)
-                        return
-                      }
-                    }
-                    onUpdate({ ...bug, ...updates })
-                    setEditing(false)
-                    setSaving(false)
-                  }}
-                  disabled={!editFields.title.trim() || saving}
-                  className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
-                >
-                  {saving ? 'Saving\u2026' : 'Save'}
-                </button>
-                <button onClick={() => setEditing(false)} className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">Cancel</button>
-              </div>
-            </div>
+            <BugEditForm
+              initial={{ title: bug.title, description: bug.description || '', severity: bug.severity, tester: bug.tester, device: bug.device, page: bug.page, category: bug.category || '' }}
+              onSave={async (fields) => {
+                const ok = await actions.saveBugEdit(fields)
+                if (ok) setEditing(false)
+                return ok
+              }}
+              onCancel={() => setEditing(false)}
+            />
           ) : (
             <p className="mb-3 text-sm text-slate-700 dark:text-gray-300 leading-relaxed">{bug.description}</p>
           )}
@@ -486,7 +195,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
             )}
             <div className="flex flex-wrap gap-3">
               {bug.attachments.map((att, i) => (
-                <AttachmentCard key={att.id || i} att={att} onImageClick={onImageClick} onRemove={() => deleteAttachment(att, i)} />
+                <AttachmentCard key={att.id || i} att={att} onImageClick={onImageClick} onRemove={() => actions.deleteAttachment(att, i)} />
               ))}
               <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 dark:border-gray-600 text-slate-400 dark:text-gray-500 text-[10px] text-center leading-tight px-2 cursor-default" style={{ width: 180, height: 140 }}>
                 <span>Paste image<br />to attach</span>
@@ -509,7 +218,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
                     )}
                   </span>
                   <button
-                    onClick={() => deleteComment(c, i)}
+                    onClick={() => actions.deleteComment(c, i)}
                     className="shrink-0 opacity-0 group-hover/comment:opacity-100 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-opacity cursor-pointer"
                     title="Delete comment"
                   >
@@ -541,13 +250,13 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
                 <input
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addComment()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
                   placeholder="Write a comment..."
                   className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500"
                   autoFocus
                 />
                 <button
-                  onClick={addComment}
+                  onClick={handleAddComment}
                   className="rounded-md bg-blue-500 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer"
                 >
                   Add
@@ -574,63 +283,14 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
                 View in Backlog
               </a>
             )}
-            <div className="relative" ref={publishMenuRef}>
-              <div className="flex" ref={publishSplitRef}>
-                <button
-                  onClick={() => publishToBacklog(false)}
-                  disabled={publishing}
-                  className={`flex items-center gap-1.5 border border-r-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${publishMenuOpen ? 'rounded-tl-md' : 'rounded-l-md'}`}
-                >
-                  <ExternalLink size={12} />
-                  {publishingMode === 'devin' ? 'Publishing + Devin...' : publishing ? 'Publishing...' : backlogUrl ? 'Re-publish' : 'Publish to Backlog'}
-                </button>
-                <button
-                  onClick={() => setPublishMenuOpen((prev) => !prev)}
-                  disabled={publishing}
-                  className={`flex items-center border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-2 py-1.5 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${publishMenuOpen ? 'rounded-tr-md' : 'rounded-r-md'}`}
-                  title="More publish options"
-                  aria-label="More publish options"
-                >
-                  <ChevronDown size={12} className={`transition-transform ${publishMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-
-              {publishMenuOpen && !publishing && (
-                <div
-                  className="absolute left-0 top-full z-20"
-                  style={{ width: Math.max(publishSplitRef.current?.offsetWidth || 0, devinKeyMissing ? 260 : 0) }}
-                >
-                  <button
-                    onClick={() => {
-                      if (!hasDevinApiKey()) {
-                        setDevinKeyMissing(true)
-                        return
-                      }
-                      setDevinKeyMissing(false)
-                      publishToBacklog(true)
-                    }}
-                    className="w-full flex items-center gap-1.5 border border-t-0 border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/40 px-3 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors cursor-pointer"
-                    style={{ borderRadius: devinKeyMissing ? 0 : '0 0 6px 6px' }}
-                  >
-                    <Rocket size={12} />
-                    Publish + Devin
-                  </button>
-                  {devinKeyMissing && (
-                    <div className="rounded-b-md border border-t-0 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                      Configure your Devin API key first.{' '}
-                      <button
-                        onClick={() => { setPublishMenuOpen(false); setDevinKeyMissing(false); openSettings() }}
-                        className="underline font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
-                      >
-                        Open Settings
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <PublishMenu
+              publishing={publishing}
+              publishingMode={publishingMode}
+              backlogUrl={backlogUrl}
+              onPublish={(withDevin) => actions.publishToBacklog(withDevin, setPublishingMode, () => {})}
+            />
             <button
-              onClick={deleteBug}
+              onClick={actions.deleteBug}
               className="flex items-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors cursor-pointer"
             >
               <Trash2 size={12} />

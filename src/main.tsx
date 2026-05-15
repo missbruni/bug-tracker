@@ -5,49 +5,25 @@ import App from "./App";
 import PinGate from "./components/PinGate";
 import NavBar from "./components/NavBar";
 import ThemeToggle from "./components/ThemeToggle";
-import { supabase } from "./supabaseClient";
 import SessionsListPage from "./pages/SessionsListPage";
 import SessionSetupPage from "./pages/SessionSetupPage";
 import PresentationPage from "./pages/PresentationPage";
 import TesterManagementPage from "./pages/TesterManagementPage";
 import SettingsSidebar from "./components/SettingsSidebar";
+import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import "./index.css";
 
 function Layout({ children }: { children: React.ReactNode }) {
 	const [showBugs, setShowBugs] = useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
-	const [activeBugCount, setActiveBugCount] = useState(3);
+	const activeBugCount = useActiveBugCount();
 	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	useEffect(() => {
 		const handler = () => setSettingsOpen(true);
 		window.addEventListener("openSettings", handler);
 		return () => window.removeEventListener("openSettings", handler);
-	}, []);
-
-	useEffect(() => {
-		if (!supabase) return;
-		const sb = supabase;
-		const fetchCount = async () => {
-			const { count } = await sb
-				.from("bugs")
-				.select("*", { count: "exact", head: true })
-				.eq("reviewed", false);
-			if (count !== null) setActiveBugCount(count);
-		};
-		fetchCount();
-		const channel = sb
-			.channel("layout-bugs-count")
-			.on(
-				"postgres_changes",
-				{ event: "*", schema: "public", table: "bugs" },
-				() => fetchCount(),
-			)
-			.subscribe();
-		return () => {
-			sb.removeChannel(channel);
-		};
 	}, []);
 
 	useEffect(() => {
