@@ -30,7 +30,7 @@ export default function App() {
   } = useBugs()
 
   const filters = useBugFilters(bugs, questions)
-  const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions } = filters
+  const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
 
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
   const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -107,7 +107,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                 ref={searchRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search bugs..."
+                placeholder="Search bugs, testers, devices..."
                 className="w-64 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 py-2 pl-9 pr-16 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-400/30 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
               />
               <kbd className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-[11px] text-slate-500 dark:text-slate-300 font-mono pointer-events-none">⌘ K</kbd>
@@ -143,7 +143,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
       />
 
       {/* Content */}
-      <div className="max-w-screen-2xl mx-auto px-7 pt-4 pb-8">
+      <div className={`max-w-screen-2xl mx-auto px-7 pt-4 pb-8 transition-opacity duration-150 ${isSearchPending ? 'opacity-60' : 'opacity-100'}`}>
         {showAddForm && (
           <AddBugForm
             onAdd={addBug}

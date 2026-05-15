@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useDeferredValue } from 'react'
 import { SEVERITIES } from '../constants'
 import { matchesDateFilter } from '../lib/dateFilter'
 import type { Bug, Question } from '../types'
@@ -28,11 +28,13 @@ interface UseBugFiltersReturn {
   nextIds: Record<Severity, number>
   grouped: Record<string, Bug[]>
   filteredQuestions: Question[]
+  isSearchPending: boolean
 }
 
 export function useBugFilters(bugs: Bug[], questions: Question[]): UseBugFiltersReturn {
   const [severityFilter, setSeverityFilter] = useState(() => getParam('severity') || 'all')
   const [search, setSearch] = useState(() => getParam('q') || '')
+  const deferredSearch = useDeferredValue(search)
   const [testerFilter, setTesterFilter] = useState(() => getParam('tester') || 'all')
   const [dateFilter, setDateFilter] = useState(() => getParam('date') || 'all')
   const [sortOrder, setSortOrder] = useState(() => getParam('sort') || 'default')
@@ -67,12 +69,14 @@ export function useBugFilters(bugs: Bug[], questions: Question[]): UseBugFilters
         if (sessionFilter === 'none') { if (bugSessionId) return false }
         else if (bugSessionId !== sessionFilter) return false
       }
-      if (search) {
-        const q = search.toLowerCase()
+      if (deferredSearch) {
+        const q = deferredSearch.toLowerCase()
         if (
           !b.title.toLowerCase().includes(q) &&
           !(b.description || '').toLowerCase().includes(q) &&
           !b.id.toLowerCase().includes(q) &&
+          !b.tester.toLowerCase().includes(q) &&
+          !b.device.toLowerCase().includes(q) &&
           !(b.category || '').toLowerCase().includes(q) &&
           !b.page.toLowerCase().includes(q)
         )
@@ -85,7 +89,7 @@ export function useBugFilters(bugs: Bug[], questions: Question[]): UseBugFilters
       if (sortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
       return 0
     })
-  }, [bugs, severityFilter, search, testerFilter, dateFilter, sortOrder, sessionFilter])
+  }, [bugs, severityFilter, deferredSearch, testerFilter, dateFilter, sortOrder, sessionFilter])
 
   const activeBugs = useMemo(() => bugs.filter(b => !b.reviewed), [bugs])
 
@@ -132,5 +136,6 @@ export function useBugFilters(bugs: Bug[], questions: Question[]): UseBugFilters
     nextIds,
     grouped,
     filteredQuestions,
+    isSearchPending: search !== deferredSearch,
   }
 }
