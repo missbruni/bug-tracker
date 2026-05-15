@@ -135,7 +135,7 @@ insert into scenarios (session_id, letter, title, description, device_requiremen
 (
   'a0000000-0000-0000-0000-000000000001', 'I',
   'GXP Tag: Embedded / Modal Mode',
-  '1. Go to the tag test page → click the "Book Now" floating button on the right side → the IBE opens in a modal / iframe
+  '1. Go to the tag test page at https://evoibedevstorage.blob.core.windows.net/tag/test/index.html → click the "Book Now" floating button on the right side → the IBE opens in a modal / iframe
 2. Check: close (X) button visible in the top bar. Pressing it should close the modal
 3. Verify: reduced padding, full-width content, no horizontal overflow inside the modal
 4. Complete the full funnel inside the modal: Search → Availabilities → Room → Add-ons → Summary → Payment → Confirmation

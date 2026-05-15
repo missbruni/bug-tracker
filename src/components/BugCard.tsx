@@ -8,6 +8,7 @@ import {
   CheckCircle,
   ExternalLink,
   Rocket,
+  Pencil,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL, SEVERITY_STYLES } from '../constants'
@@ -69,6 +70,9 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
   const [commentText, setCommentText] = useState('')
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [publishingMode, setPublishingMode] = useState<'backlog' | 'devin' | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editFields, setEditFields] = useState({ title: '', description: '', severity: '' as Severity, tester: '', device: '', page: '', category: '' })
+  const [saving, setSaving] = useState(false)
   const publishing = publishingMode !== null
   const [publishMenuOpen, setPublishMenuOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -363,6 +367,16 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
             <span
               role="button"
               tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); setEditing(true); setExpanded(true); setEditFields({ title: bug.title, description: bug.description || '', severity: bug.severity, tester: bug.tester, device: bug.device, page: bug.page, category: bug.category || '' }) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setEditing(true); setExpanded(true); setEditFields({ title: bug.title, description: bug.description || '', severity: bug.severity, tester: bug.tester, device: bug.device, page: bug.page, category: bug.category || '' }) } }}
+              className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-all cursor-pointer"
+              title="Edit bug"
+            >
+              <Pencil size={14} />
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
               onClick={(e) => { e.stopPropagation(); deleteBug() }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); deleteBug() } }}
               className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all cursor-pointer"
@@ -400,7 +414,59 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
 
       {expanded && (
         <div className="border-t border-slate-100 dark:border-gray-800 px-4 py-3" onPaste={handlePaste}>
-          <p className="mb-3 text-sm text-slate-700 dark:text-gray-300 leading-relaxed">{bug.description}</p>
+          {editing ? (
+            <div className="mb-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input value={editFields.title} onChange={e => setEditFields(f => ({ ...f, title: e.target.value }))} placeholder="Title *" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
+                <input value={editFields.tester} onChange={e => setEditFields(f => ({ ...f, tester: e.target.value }))} placeholder="Tester" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
+                <input value={editFields.device} onChange={e => setEditFields(f => ({ ...f, device: e.target.value }))} placeholder="Device" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
+                <input value={editFields.page} onChange={e => setEditFields(f => ({ ...f, page: e.target.value }))} placeholder="Page" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
+                <input value={editFields.category} onChange={e => setEditFields(f => ({ ...f, category: e.target.value }))} placeholder="Category" className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
+                <div className="flex items-center gap-1.5">
+                  {(['critical', 'high', 'low'] as Severity[]).map(s => (
+                    <button key={s} onClick={() => setEditFields(f => ({ ...f, severity: s }))} className="rounded-full px-3 py-1 text-xs font-bold uppercase text-white cursor-pointer transition-opacity" style={{ background: SEVERITY_STYLES.dark[s].badge, opacity: s === editFields.severity ? 1 : 0.35 }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <textarea value={editFields.description} onChange={e => setEditFields(f => ({ ...f, description: e.target.value }))} placeholder="Description" rows={3} className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y focus:border-blue-400 dark:focus:border-blue-500" />
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!editFields.title.trim() || saving) return
+                    setSaving(true)
+                    const updates = {
+                      title: editFields.title,
+                      description: editFields.description,
+                      severity: editFields.severity,
+                      tester: editFields.tester || 'Unknown',
+                      device: editFields.device || '\u2014',
+                      page: editFields.page || '\u2014',
+                      category: editFields.category || null,
+                    }
+                    if (supabase) {
+                      const { error } = await supabase.from('bugs').update(updates).eq('id', bug.id)
+                      if (error) {
+                        console.error('Failed to update bug:', error)
+                        showUpdateError('Failed to save changes.')
+                        setSaving(false)
+                        return
+                      }
+                    }
+                    onUpdate({ ...bug, ...updates })
+                    setEditing(false)
+                    setSaving(false)
+                  }}
+                  disabled={!editFields.title.trim() || saving}
+                  className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                >
+                  {saving ? 'Saving\u2026' : 'Save'}
+                </button>
+                <button onClick={() => setEditing(false)} className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <p className="mb-3 text-sm text-slate-700 dark:text-gray-300 leading-relaxed">{bug.description}</p>
+          )}
 
           <div className="mb-3">
             {bug.attachments.length > 0 && (

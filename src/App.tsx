@@ -152,6 +152,62 @@ export default function App() {
     load()
   }, [])
 
+  // Real-time subscriptions so all users stay in sync
+  useEffect(() => {
+    if (!supabase) return
+
+    const sb = supabase
+    const channel = sb.channel('bugs-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bugs' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newBug = payload.new as Bug
+          setBugs((prev) => {
+            if (prev.some(b => b.id === newBug.id)) return prev
+            return [...prev, { ...newBug, comments: [], attachments: [] }]
+          })
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = payload.new as Bug
+          setBugs((prev) => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b))
+        } else if (payload.eventType === 'DELETE') {
+          const deleted = payload.old as { id: string }
+          setBugs((prev) => prev.filter(b => b.id !== deleted.id))
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+        const c = payload.new as { id: number; bug_id: string; text: string; time?: string }
+        setBugs((prev) => prev.map(b => {
+          if (b.id !== c.bug_id) return b
+          if (b.comments.some(cm => cm.id === c.id)) return b
+          return { ...b, comments: [...b.comments, c] }
+        }))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, (payload) => {
+        const c = payload.old as { id: number; bug_id: string }
+        setBugs((prev) => prev.map(b => {
+          if (b.id !== c.bug_id) return b
+          return { ...b, comments: b.comments.filter(cm => cm.id !== c.id) }
+        }))
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attachments' }, (payload) => {
+        const a = payload.new as Attachment & { bug_id: string }
+        setBugs((prev) => prev.map(b => {
+          if (b.id !== a.bug_id) return b
+          if (b.attachments.some(at => at.id === a.id)) return b
+          return { ...b, attachments: [...b.attachments, a] }
+        }))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'attachments' }, (payload) => {
+        const a = payload.old as { id: number; bug_id: string }
+        setBugs((prev) => prev.map(b => {
+          if (b.id !== a.bug_id) return b
+          return { ...b, attachments: b.attachments.filter(at => at.id !== a.id) }
+        }))
+      })
+      .subscribe()
+
+    return () => { sb.removeChannel(channel) }
+  }, [])
+
   const updateBug = useCallback((updated: Bug) => {
     setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
   }, [])
@@ -180,31 +236,41 @@ export default function App() {
     if (newBug.session_id) bugData.session_id = newBug.session_id
 
     if (supabase) {
-      const { error } = await supabase.from('bugs').insert(bugData)
+      const sb = supabase
+      const { error } = await sb.from('bugs').insert(bugData)
       if (error) {
         console.error('Failed to add bug:', error)
         return
       }
 
-      const uploadedAttachments: Attachment[] = []
-      for (const att of filesToUpload) {
-        const path = `${newBug.id}/${Date.now()}-${att.name}`
-        const { error: upErr } = await supabase.storage.from('attachments').upload(path, att.file!)
-        if (!upErr) {
-          const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
-          const { data: row } = await supabase
-            .from('attachments')
-            .insert({ bug_id: newBug.id, name: att.name, url: urlData.publicUrl, type: att.type })
-            .select()
-          if (row?.[0]) uploadedAttachments.push(row[0] as Attachment)
+      // Add bug to state immediately and close form
+      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: [] } as unknown as Bug])
+      setShowAddForm(false)
+
+      // Upload attachments in parallel in the background
+      if (filesToUpload.length) {
+        const results = await Promise.all(
+          filesToUpload.map(async (att) => {
+            const path = `${newBug.id}/${Date.now()}-${att.name}`
+            const { error: upErr } = await sb.storage.from('attachments').upload(path, att.file!)
+            if (upErr) return null
+            const { data: urlData } = sb.storage.from('attachments').getPublicUrl(path)
+            const { data: row } = await sb
+              .from('attachments')
+              .insert({ bug_id: newBug.id, name: att.name, url: urlData.publicUrl, type: att.type })
+              .select()
+            return row?.[0] as Attachment | undefined
+          })
+        )
+        const uploaded = results.filter((r): r is Attachment => !!r)
+        if (uploaded.length) {
+          setBugs((prev) => prev.map((b) => b.id === newBug.id ? { ...b, attachments: [...b.attachments, ...uploaded] } : b))
         }
       }
-
-      setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: uploadedAttachments } as unknown as Bug])
     } else {
       setBugs((prev) => [...prev, { ...bugData, comments: [], attachments: newBug.attachments } as unknown as Bug])
+      setShowAddForm(false)
     }
-    setShowAddForm(false)
   }
 
   // Derived data
@@ -304,16 +370,19 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
       <div className="sticky top-0 z-40 relative overflow-hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
         {showBugs && <CrawlingBugs count={bugs.filter(b => !b.reviewed).length} />}
         <div className="max-w-screen-2xl mx-auto px-7 py-5 flex justify-between items-center">
-        <div className="relative z-10">
+        <div className="relative z-10 min-w-0 flex-1 mr-4">
           <div className="flex items-baseline gap-3 mb-0.5">
             <h1 className="text-xl font-bold flex items-center gap-1" style={{ fontFamily: "'Press Start 2P', cursive" }}>EVO <button onClick={() => setShowBugs(prev => { const next = !prev; localStorage.setItem('showBugs', String(next)); return next })} className={`transition-colors cursor-pointer ${showBugs ? 'text-green-500 hover:text-green-600' : 'text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400'}`} title={`${showBugs ? 'Hide' : 'Show'} crawling bugs (\u2318B)`}><BugIcon size={20} /></button> IBE</h1>
             <p className="text-sm font-semibold text-slate-500 dark:text-gray-300">Testing Session Triage | Bug Catcher</p>
           </div>
           <p className="text-xs text-slate-400 dark:text-gray-500">
-            {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; {testers.join(', ') || 'No testers yet'} &middot; <span className="text-blue-600 dark:text-yellow-400 font-semibold">{bugs.filter(b => !b.reviewed).length} active</span> / {bugs.length} total
+            {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; {testers.join(', ') || 'No testers yet'}
+          </p>
+          <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+            <span className="text-blue-600 dark:text-yellow-400 font-semibold">{bugs.filter(b => !b.reviewed).length} active</span> / {bugs.length} total
           </p>
         </div>
-        <div className="relative z-10 flex items-center gap-2">
+        <div className="relative z-10 flex items-center gap-2 shrink-0">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400" />
             <input
@@ -327,7 +396,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           </div>
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer whitespace-nowrap"
           >
             <Plus size={16} />
             New Bug

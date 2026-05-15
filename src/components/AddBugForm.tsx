@@ -25,7 +25,7 @@ interface NewBugPayload {
 }
 
 interface AddBugFormProps {
-  onAdd: (bug: NewBugPayload) => void
+  onAdd: (bug: NewBugPayload) => Promise<void> | void
   onCancel: () => void
   nextIds: Record<Severity, number>
   sessions?: SessionOption[]
@@ -70,24 +70,31 @@ export default function AddBugForm({ onAdd, onCancel, nextIds, sessions = [], ac
     }
   }
 
-  const submit = () => {
-    if (!title.trim()) return
+  const [submitting, setSubmitting] = useState(false)
+
+  const submit = async () => {
+    if (!title.trim() || submitting) return
+    setSubmitting(true)
     const prefix = severity === 'critical' ? 'CRT' : severity === 'high' ? 'HI' : 'LO'
     const id = `${prefix}-${String(nextIds[severity]).padStart(2, '0')}`
     if (tester.trim()) localStorage.setItem('lastTester', tester.trim())
-    onAdd({
-      id,
-      title,
-      description: desc,
-      severity,
-      tester: tester || 'Unknown',
-      device: device || '\u2014',
-      page: page || '\u2014',
-      category: category || null,
-      session_id: sessionId || null,
-      comments: [],
-      attachments: files,
-    })
+    try {
+      await onAdd({
+        id,
+        title,
+        description: desc,
+        severity,
+        tester: tester || 'Unknown',
+        device: device || '\u2014',
+        page: page || '\u2014',
+        category: category || null,
+        session_id: sessionId || null,
+        comments: [],
+        attachments: files,
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -147,10 +154,10 @@ export default function AddBugForm({ onAdd, onCancel, nextIds, sessions = [], ac
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
           Cancel
         </button>
-        <button onClick={submit} disabled={!title.trim()}
+        <button onClick={submit} disabled={!title.trim() || submitting}
           className="rounded-md px-5 py-1.5 text-xs font-semibold text-white transition-colors cursor-pointer disabled:cursor-default"
-          style={{ background: title.trim() ? '#3b82f6' : '#94a3b8' }}>
-          Add Bug
+          style={{ background: title.trim() && !submitting ? '#3b82f6' : '#94a3b8' }}>
+          {submitting ? 'Adding…' : 'Add Bug'}
         </button>
       </div>
     </div>
