@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL, SEVERITY_STYLES } from '../constants'
+import { hasDevinApiKey, openSettings } from './SettingsSidebar'
 import { TesterBadge } from './TesterBadge'
 import AttachmentCard, { type Attachment } from './AttachmentCard'
 import type { Severity } from '../constants'
@@ -76,6 +77,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
   const [saving, setSaving] = useState(false)
   const publishing = publishingMode !== null
   const [publishMenuOpen, setPublishMenuOpen] = useState(false)
+  const [devinKeyMissing, setDevinKeyMissing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const publishMenuRef = useRef<HTMLDivElement>(null)
   const publishSplitRef = useRef<HTMLDivElement>(null)
@@ -100,6 +102,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
     const handleClickOutside = (e: MouseEvent) => {
       if (publishMenuRef.current && !publishMenuRef.current.contains(e.target as Node)) {
         setPublishMenuOpen(false)
+        setDevinKeyMissing(false)
       }
     }
 
@@ -593,15 +596,37 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
               </div>
 
               {publishMenuOpen && !publishing && (
-                <button
-                  // onClick={() => publishToBacklog(true)}
-                  onClick={(e) => { e.preventDefault(); setPublishMenuOpen(false); alert('Devin integration is temporarily paused while we fine-tune things. Hang tight — it\u2019ll be back soon! 🚀') }}
-                  className="absolute left-0 top-full z-20 flex items-center gap-1.5 rounded-b-md border border-t-0 border-slate-300 dark:border-gray-600 bg-slate-100 dark:bg-gray-800 px-3 py-1.5 text-xs font-semibold text-slate-400 dark:text-gray-500 cursor-not-allowed"
-                  style={{ width: publishSplitRef.current?.offsetWidth }}
+                <div
+                  className="absolute left-0 top-full z-20"
+                  style={{ width: Math.max(publishSplitRef.current?.offsetWidth || 0, devinKeyMissing ? 260 : 0) }}
                 >
-                  <Rocket size={12} />
-                  Publish + Devin
-                </button>
+                  <button
+                    onClick={() => {
+                      if (!hasDevinApiKey()) {
+                        setDevinKeyMissing(true)
+                        return
+                      }
+                      setDevinKeyMissing(false)
+                      publishToBacklog(true)
+                    }}
+                    className="w-full flex items-center gap-1.5 border border-t-0 border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/40 px-3 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors cursor-pointer"
+                    style={{ borderRadius: devinKeyMissing ? 0 : '0 0 6px 6px' }}
+                  >
+                    <Rocket size={12} />
+                    Publish + Devin
+                  </button>
+                  {devinKeyMissing && (
+                    <div className="rounded-b-md border border-t-0 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                      Configure your Devin API key first.{' '}
+                      <button
+                        onClick={() => { setPublishMenuOpen(false); setDevinKeyMissing(false); openSettings() }}
+                        className="underline font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+                      >
+                        Open Settings
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <button
