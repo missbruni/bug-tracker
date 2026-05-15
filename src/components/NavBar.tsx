@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Bug, Presentation, Users } from 'lucide-react'
 
@@ -7,7 +8,7 @@ const NAV_ITEMS = [
   { to: '/testers', label: 'Testers', icon: Users },
 ]
 
-export default function NavBar() {
+export default function NavBar({ children }: { children?: ReactNode }) {
   const location = useLocation()
 
   return (
@@ -32,6 +33,7 @@ export default function NavBar() {
             </Link>
           )
         })}
+        {children && <div className="ml-auto flex items-center">{children}</div>}
       </div>
     </nav>
   )

@@ -14,7 +14,8 @@ insert into testers (name) values
   ('Bojan Tasevski'),
   ('Ionut Nistor'),
   ('Bruna Lima'),
-  ('Robert Ventura')
+  ('Robert Ventura'),
+  ('Leo Costa')
 on conflict do nothing;
 
 -- Session #2
@@ -195,5 +196,20 @@ insert into scenarios (session_id, letter, title, description, device_requiremen
 7. Type a random/invalid URL path → a proper 404 / not-found page appears
 8. Complete a full booking to verify nothing is broken',
   NULL, 13
+),
+(
+  'a0000000-0000-0000-0000-000000000001', 'N',
+  'Search & Guest Configuration',
+  '1. Open the booking engine → try searching with 1 adult only → verify results show single-occupancy rates
+2. Search with 2 adults + 2 children → set different ages for each child → verify child age selectors work
+3. Search with 3 rooms, mixed guest counts (e.g. 2+1, 1+0, 2+2 children) → verify each room shows correct guest config
+4. Try changing dates after searching → results update without errors
+5. Search with check-in = today, 1-night stay → verify availability loads (edge case: same-day booking)
+6. Search with dates far in the future (6+ months) → verify calendar scrolls and prices load
+7. Clear all fields and try searching with missing required fields → proper validation messages appear
+8. Complete a full booking with children included → verify guest counts on confirmation page
+
+✓ PMS: Reservation shows correct number of adults and children per room.',
+  'Desktop Edge', 14
 )
 on conflict do nothing;

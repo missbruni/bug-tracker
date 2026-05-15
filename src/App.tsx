@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Trash2, Sun, Moon, ArrowDownUp, Bug as BugIcon } from 'lucide-react'
+import { Plus, Search, Trash2, ArrowDownUp, Bug as BugIcon } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import CrawlingBugs from './CrawlingBugs'
@@ -9,7 +9,6 @@ import BugCard, { type Bug } from './components/BugCard'
 import AddBugForm, { type SessionOption } from './components/AddBugForm'
 import type { Severity } from './constants'
 import type { Attachment } from './components/AttachmentCard'
-import NavBar from './components/NavBar'
 
 interface Question {
   id: string
@@ -72,20 +71,17 @@ export default function App() {
   }, [search, severityFilter, testerFilter, dateFilter, sortOrder, hideReviewed, sessionFilter])
   const [showAddForm, setShowAddForm] = useState(false)
   const [showBugs, setShowBugs] = useState(() => localStorage.getItem('showBugs') !== 'false')
-  const [themeKey, setThemeKey] = useState(0)
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [darkMode, setDarkMode] = useState(() => {
-    const stored = localStorage.getItem('theme')
-    return stored ? stored === 'dark' : true
-  })
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode)
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light')
-  }, [darkMode])
+    const handler = (e: Event) => setIsDark((e as CustomEvent).detail.dark)
+    window.addEventListener('themechange', handler)
+    return () => window.removeEventListener('themechange', handler)
+  }, [])
 
-  const sevStyles = darkMode ? SEVERITY_STYLES.dark : SEVERITY_STYLES.light
+  const sevStyles = isDark ? SEVERITY_STYLES.dark : SEVERITY_STYLES.light
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -301,10 +297,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 font-sans">
+    <>
       {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} type={lightbox.type} onClose={() => setLightbox(null)} />}
-
-      <NavBar />
 
       {/* Header */}
       <div className="sticky top-0 z-40 relative overflow-hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
@@ -338,21 +332,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
             <Plus size={16} />
             New Bug
             <kbd className="ml-1 rounded bg-blue-600/60 px-1.5 py-0.5 text-[11px] font-mono">⌘ J</kbd>
-          </button>
-          <button
-            onClick={() => { setDarkMode(!darkMode); setThemeKey(k => k + 1) }}
-            className="relative rounded-lg p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors cursor-pointer overflow-hidden"
-            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            style={{ width: 34, height: 34 }}
-          >
-            <span key={`enter-${themeKey}`} className="theme-icon-enter block">
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </span>
-            {themeKey > 0 && (
-              <span key={`exit-${themeKey}`} className="theme-icon-exit">
-                {darkMode ? <Moon size={18} /> : <Sun size={18} />}
-              </span>
-            )}
           </button>
         </div>
         </div>
@@ -542,6 +521,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           {snackbar}
         </div>
       )}
-    </div>
+    </>
   )
 }

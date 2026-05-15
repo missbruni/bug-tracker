@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom'
 import App from './App'
 import PinGate from './components/PinGate'
 import NavBar from './components/NavBar'
+import ThemeToggle from './components/ThemeToggle'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionSetupPage from './pages/SessionSetupPage'
 import PresentationPage from './pages/PresentationPage'
@@ -13,7 +14,7 @@ import './index.css'
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 font-sans">
-      <NavBar />
+      <NavBar><ThemeToggle /></NavBar>
       {children}
     </div>
   )
@@ -24,7 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <PinGate>
       <HashRouter>
         <Routes>
-          <Route path="/" element={<App />} />
+          <Route path="/" element={<Layout><App /></Layout>} />
           <Route path="/sessions" element={<Layout><SessionsListPage /></Layout>} />
           <Route path="/sessions/:id" element={<Layout><SessionSetupPage /></Layout>} />
           <Route path="/sessions/:id/present" element={<PresentationPage />} />
