@@ -41,6 +41,19 @@ create table if not exists assignments (
 -- Link bugs to sessions
 alter table bugs add column if not exists session_id uuid references sessions(id) on delete set null;
 
+-- Session feedback (anonymous surveys)
+create table if not exists session_feedback (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references sessions(id) on delete cascade,
+  rating int not null check (rating between 1 and 5),
+  length_feel text not null check (length_feel in ('too_short', 'just_right', 'too_long')),
+  clarity int not null check (clarity between 1 and 5),
+  helpfulness text not null check (helpfulness in ('not_at_all', 'somewhat', 'very')),
+  worked_well text,
+  to_improve text,
+  created_at timestamptz default now()
+);
+
 -- Enable RLS with public access (matches existing pattern)
 alter table testers enable row level security;
 alter table sessions enable row level security;
@@ -51,3 +64,4 @@ create policy "Public read/write testers" on testers for all using (true) with c
 create policy "Public read/write sessions" on sessions for all using (true) with check (true);
 create policy "Public read/write scenarios" on scenarios for all using (true) with check (true);
 create policy "Public read/write assignments" on assignments for all using (true) with check (true);
+create policy "Public read/write session_feedback" on session_feedback for all using (true) with check (true);

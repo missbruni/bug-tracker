@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Calendar, Users, FileText, Presentation } from 'lucide-react'
+import { Plus, Calendar, Users, FileText, Presentation, MessageSquareHeart, Star } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import FeedbackModal from '../components/FeedbackModal'
 
 interface Session {
   id: string
@@ -11,6 +12,8 @@ interface Session {
   created_at: string
   scenario_count?: number
   assignment_count?: number
+  feedback_avg?: number
+  feedback_count?: number
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
@@ -25,6 +28,7 @@ export default function SessionsListPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDate, setNewDate] = useState('')
+  const [feedbackSession, setFeedbackSession] = useState<Session | null>(null)
 
   const load = useCallback(async () => {
     if (!supabase) return
@@ -44,7 +48,16 @@ export default function SessionsListPage() {
           .from('assignments')
           .select('*', { count: 'exact', head: true })
           .eq('session_id', s.id)
-        enriched.push({ ...s, scenario_count: scCount ?? 0, assignment_count: asCount ?? 0 } as Session)
+        let feedbackAvg = 0
+        let feedbackCount = 0
+        if (s.status === 'completed') {
+          const { data: fbData } = await supabase.from('session_feedback').select('rating').eq('session_id', s.id)
+          if (fbData && fbData.length) {
+            feedbackCount = fbData.length
+            feedbackAvg = fbData.reduce((sum: number, f: { rating: number }) => sum + f.rating, 0) / fbData.length
+          }
+        }
+        enriched.push({ ...s, scenario_count: scCount ?? 0, assignment_count: asCount ?? 0, feedback_avg: feedbackAvg, feedback_count: feedbackCount } as Session)
       }
       setSessions(enriched)
     }
@@ -167,11 +180,36 @@ export default function SessionsListPage() {
                       </span>
                     </div>
                   </div>
+                  {session.status === 'completed' && (
+                    <div className="flex items-center gap-3 shrink-0">
+                      {(session.feedback_count ?? 0) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-gray-400">
+                          <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                          <span className="font-bold">{(session.feedback_avg ?? 0).toFixed(1)}</span>
+                          <span className="text-slate-400 dark:text-gray-500">({session.feedback_count})</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={e => { e.preventDefault(); setFeedbackSession(session) }}
+                        className="flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                      >
+                        <MessageSquareHeart size={14} />
+                        Feedback
+                      </button>
+                    </div>
+                  )}
                 </div>
               </Link>
             )
           })}
         </div>
+      )}
+      {feedbackSession && (
+        <FeedbackModal
+          sessionId={feedbackSession.id}
+          sessionName={feedbackSession.name}
+          onClose={() => { setFeedbackSession(null); load() }}
+        />
       )}
     </div>
   )
