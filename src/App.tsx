@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Trash2, ArrowDownUp, Bug as BugIcon } from 'lucide-react'
+import { Plus, Search, Trash2, ArrowDownUp } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
-import CrawlingBugs from './CrawlingBugs'
 import Lightbox from './components/Lightbox'
 import { TesterBadge } from './components/TesterBadge'
 import BugCard, { type Bug } from './components/BugCard'
@@ -65,7 +64,6 @@ export default function App() {
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
   }, [search, severityFilter, testerFilter, dateFilter, sortOrder, sessionFilter])
   const [showAddForm, setShowAddForm] = useState(false)
-  const [showBugs, setShowBugs] = useState(() => localStorage.getItem('showBugs') !== 'false')
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
   const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -89,14 +87,6 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
         e.preventDefault()
         setShowAddForm(true)
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-        e.preventDefault()
-        setShowBugs(prev => {
-          const next = !prev
-          localStorage.setItem('showBugs', String(next))
-          return next
-        })
       }
     }
     window.addEventListener('keydown', handler)
@@ -379,8 +369,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
       {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} type={lightbox.type} onClose={() => setLightbox(null)} />}
 
       {/* Secondary bar — bugs page only */}
-      <div className="sticky top-0 z-40 overflow-hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
-        {showBugs && <CrawlingBugs count={bugs.filter(b => !b.reviewed).length} />}
+      <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
         <div className="max-w-screen-2xl mx-auto px-7 py-3 flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-400 dark:text-gray-500 truncate">
@@ -388,7 +377,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
             </p>
             <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
               <span className="text-blue-600 dark:text-yellow-400 font-semibold">{bugs.filter(b => !b.reviewed).length} active</span> / {bugs.length} total
-              <button onClick={() => setShowBugs(prev => { const next = !prev; localStorage.setItem('showBugs', String(next)); return next })} className={`ml-2 transition-colors cursor-pointer ${showBugs ? 'text-green-500 hover:text-green-600' : 'text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400'}`} title={`${showBugs ? 'Hide' : 'Show'} crawling bugs (\u2318B)`}><BugIcon size={14} className="inline" /></button>
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">

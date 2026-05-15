@@ -19,6 +19,7 @@ interface Props {
   sessionId: string
   sessionName: string
   onClose: () => void
+  inline?: boolean
 }
 
 const LENGTH_OPTIONS = [
@@ -45,7 +46,7 @@ const LENGTH_COLORS: Record<string, string> = {
   too_long: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
 }
 
-export default function FeedbackModal({ sessionId, sessionName, onClose }: Props) {
+export default function FeedbackModal({ sessionId, sessionName, onClose, inline }: Props) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [submitted, setSubmitted] = useState(() => {
@@ -142,21 +143,9 @@ export default function FeedbackModal({ sessionId, sessionName, onClose }: Props
     </div>
   )
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <MessageSquareHeart size={18} className="text-blue-500" />
-            <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Session Feedback</h2>
-            <span className="text-xs text-slate-400 dark:text-gray-500">{sessionName}</span>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 cursor-pointer"><X size={18} /></button>
-        </div>
+  const content = (
 
-        <div className="px-6 py-4 space-y-5">
+        <div className={`${inline ? 'py-0' : 'px-6 py-4'} space-y-5`}>
           {/* Results summary */}
           {loading ? (
             <p className="text-xs text-slate-400 text-center">Loading feedback...</p>
@@ -210,7 +199,7 @@ export default function FeedbackModal({ sessionId, sessionName, onClose }: Props
           ) : null}
 
           {/* Form */}
-          {submitted ? (
+          {inline ? null : submitted ? (
             <div className="text-center py-6">
               <div className="text-3xl mb-2">🎉</div>
               <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">Thanks for your feedback!</p>
@@ -282,6 +271,24 @@ export default function FeedbackModal({ sessionId, sessionName, onClose }: Props
             </div>
           )}
         </div>
+  )
+
+  if (inline) return content
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
+          <div className="flex items-center gap-2">
+            <MessageSquareHeart size={18} className="text-blue-500" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Session Feedback</h2>
+            <span className="text-xs text-slate-400 dark:text-gray-500">{sessionName}</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 cursor-pointer"><X size={18} /></button>
+        </div>
+        {content}
       </div>
     </div>
   )

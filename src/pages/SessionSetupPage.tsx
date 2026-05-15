@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check } from 'lucide-react'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, Star } from 'lucide-react'
+import FeedbackModal from '../components/FeedbackModal'
 import { supabase } from '../supabaseClient'
 
 interface Tester {
@@ -48,6 +49,7 @@ export default function SessionSetupPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
+  const [expandedScenarioId, setExpandedScenarioId] = useState<string | null>(null)
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = useState(false)
@@ -268,6 +270,7 @@ export default function SessionSetupPage() {
     return <div className="flex items-center justify-center py-20 text-sm text-red-500">Session not found</div>
   }
 
+  const isCompleted = session.status === 'completed'
   const st = STATUS_STYLES[session.status] || STATUS_STYLES.draft
 
   return (
@@ -303,12 +306,14 @@ export default function SessionSetupPage() {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Scenarios</h2>
-            <button
-              onClick={() => setShowAddScenario(true)}
-              className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer"
-            >
-              <Plus size={12} /> Add
-            </button>
+            {!isCompleted && (
+              <button
+                onClick={() => setShowAddScenario(true)}
+                className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+              >
+                <Plus size={12} /> Add
+              </button>
+            )}
           </div>
 
           {showAddScenario && (
@@ -361,15 +366,26 @@ export default function SessionSetupPage() {
               return (
                 <div
                   key={scenario.id}
-                  onClick={() => setSelectedScenarioId(isSelected ? null : scenario.id)}
+                  onClick={() => {
+                    if (isCompleted) {
+                      setExpandedScenarioId(expandedScenarioId === scenario.id ? null : scenario.id)
+                    } else {
+                      setSelectedScenarioId(isSelected ? null : scenario.id)
+                    }
+                  }}
                   className={`rounded-lg border bg-white dark:bg-gray-900 p-3 cursor-pointer transition-all ${
                     isSelected
                       ? 'border-blue-500 ring-1 ring-blue-500/30'
+                      : expandedScenarioId === scenario.id
+                      ? 'border-blue-500/50 ring-1 ring-blue-500/20'
                       : 'border-slate-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <GripVertical size={14} className="text-slate-300 dark:text-gray-600 shrink-0" />
+                    {isCompleted
+                      ? <ChevronDown size={14} className={`text-slate-400 dark:text-gray-500 shrink-0 transition-transform ${expandedScenarioId === scenario.id ? 'rotate-180' : ''}`} />
+                      : <GripVertical size={14} className="text-slate-300 dark:text-gray-600 shrink-0" />
+                    }
                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white text-xs font-bold shrink-0">
                       {scenario.letter}
                     </span>
@@ -393,25 +409,53 @@ export default function SessionSetupPage() {
                         Unassigned
                       </span>
                     )}
-                    <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => moveScenario(scenario.id, 'up')} disabled={idx === 0}
-                        className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
-                        <ChevronUp size={14} />
-                      </button>
-                      <button onClick={() => moveScenario(scenario.id, 'down')} disabled={idx === scenarios.length - 1}
-                        className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
-                        <ChevronDown size={14} />
-                      </button>
-                      <button onClick={() => startEditScenario(scenario)}
-                        className="p-1 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => deleteScenario(scenario.id)}
-                        className="p-1 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 cursor-pointer">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    {!isCompleted && (
+                      <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => moveScenario(scenario.id, 'up')} disabled={idx === 0}
+                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
+                          <ChevronUp size={14} />
+                        </button>
+                        <button onClick={() => moveScenario(scenario.id, 'down')} disabled={idx === scenarios.length - 1}
+                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
+                          <ChevronDown size={14} />
+                        </button>
+                        <button onClick={() => startEditScenario(scenario)}
+                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => deleteScenario(scenario.id)}
+                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 cursor-pointer">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
+                  {expandedScenarioId === scenario.id && scenario.description && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 space-y-1.5">
+                      {scenario.description.split('\n').filter(l => l.trim()).map((line, i) => {
+                        const trimmed = line.trim()
+                        const numberedMatch = trimmed.match(/^(\d+)\.\s+(.*)/)
+                        const isCheck = trimmed.startsWith('✓') || trimmed.startsWith('✔')
+                        if (numberedMatch) {
+                          return (
+                            <div key={i} className="flex gap-2.5 items-start">
+                              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/10 dark:bg-blue-400/10 text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">{numberedMatch[1]}</span>
+                              <span className="text-[13px] text-slate-700 dark:text-gray-300 leading-relaxed">{numberedMatch[2]}</span>
+                            </div>
+                          )
+                        }
+                        if (isCheck) {
+                          return (
+                            <div key={i} className="flex gap-2 items-start mt-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 px-3 py-2">
+                              <span className="text-green-500 shrink-0 mt-0.5">✓</span>
+                              <span className="text-[13px] font-medium text-green-700 dark:text-green-400">{trimmed.replace(/^[✓✔]\s*/, '')}</span>
+                            </div>
+                          )
+                        }
+                        return <p key={i} className="text-[13px] text-slate-600 dark:text-gray-400 leading-relaxed">{trimmed}</p>
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -422,19 +466,21 @@ export default function SessionSetupPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Tester Pool</h2>
-            <div className="flex gap-1.5">
-              <button onClick={shuffleAssignments}
-                className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer">
-                <Shuffle size={12} /> Shuffle
-              </button>
-              <button onClick={resetAssignments}
-                className="flex items-center gap-1 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                <RotateCcw size={12} /> Reset
-              </button>
-            </div>
+            {!isCompleted && (
+              <div className="flex gap-1.5">
+                <button onClick={shuffleAssignments}
+                  className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer">
+                  <Shuffle size={12} /> Shuffle
+                </button>
+                <button onClick={resetAssignments}
+                  className="flex items-center gap-1 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                  <RotateCcw size={12} /> Reset
+                </button>
+              </div>
+            )}
           </div>
 
-          {selectedScenarioId && (
+          {!isCompleted && selectedScenarioId && (
             <div className="mb-3 rounded-lg border border-blue-500 bg-blue-50 dark:bg-blue-900/20 p-3">
               <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">
                 Assign to: {scenarios.find(s => s.id === selectedScenarioId)?.letter} — {scenarios.find(s => s.id === selectedScenarioId)?.title}
@@ -450,7 +496,7 @@ export default function SessionSetupPage() {
 
           <div className="rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3">
             <p className="text-xs text-slate-500 dark:text-gray-500 mb-2">
-              {selectedScenarioId ? 'Click a name to assign' : 'Click a scenario first, then a tester'}
+              {isCompleted ? 'Session completed — assignments are locked' : selectedScenarioId ? 'Click a name to assign' : 'Click a scenario first, then a tester'}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {testers.map(tester => {
@@ -461,8 +507,8 @@ export default function SessionSetupPage() {
                 return (
                   <button
                     key={tester.id}
-                    onClick={() => selectedScenarioId && eligible && !used && assignTester(selectedScenarioId, tester.id)}
-                    disabled={!selectedScenarioId || used || !eligible}
+                    onClick={() => !isCompleted && selectedScenarioId && eligible && !used && assignTester(selectedScenarioId, tester.id)}
+                    disabled={isCompleted || !selectedScenarioId || used || !eligible}
                     className={`rounded-full px-3 py-1 text-xs font-medium border transition-all ${
                       used
                         ? 'opacity-30 line-through border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-600 cursor-default'
@@ -481,12 +527,22 @@ export default function SessionSetupPage() {
             </div>
           </div>
 
-          {/* Quick legend */}
-          <div className="mt-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 text-[11px] text-slate-500 dark:text-gray-500 space-y-1">
-            <p><Lock size={10} className="inline text-amber-500" /> = device-locked (only matching testers)</p>
-            <p><span className="line-through">Name</span> = already assigned</p>
-            <p><span className="text-red-400">Name</span> = missing required device</p>
-          </div>
+          {!isCompleted && (
+            <div className="mt-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 text-[11px] text-slate-500 dark:text-gray-500 space-y-1">
+              <p><Lock size={10} className="inline text-amber-500" /> = device-locked (only matching testers)</p>
+              <p><span className="line-through">Name</span> = already assigned</p>
+              <p><span className="text-red-400">Name</span> = missing required device</p>
+            </div>
+          )}
+
+          {isCompleted && (
+            <div className="mt-4">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3 flex items-center gap-1.5">
+                <MessageSquareHeart size={14} /> Session Feedback
+              </h2>
+              <FeedbackModal sessionId={session.id} sessionName={session.name} onClose={() => {}} inline />
+            </div>
+          )}
         </div>
       </div>
     </div>
