@@ -4,7 +4,7 @@ import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import App from "./App";
-import PinGate from "./components/PinGate";
+import AuthGate from "./components/AuthGate";
 import NavBar from "./components/NavBar";
 import ThemeToggle from "./components/ThemeToggle";
 import SessionsListPage from "./pages/SessionsListPage";
@@ -15,9 +15,12 @@ import SettingsSidebar from "./components/SettingsSidebar";
 import AiAssistantPanel from "./components/AiAssistantPanel";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { playAiSound } from "./lib/audio";
+import { AuthProvider } from "./lib/auth";
+import { useAuth } from "./lib/useAuth";
 import "./index.css";
 
 function Layout() {
+	const { user, signOut } = useAuth();
 	const [showBugs, setShowBugs] = useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
@@ -69,6 +72,21 @@ function Layout() {
 			return next;
 		});
 
+	const metadataName =
+		typeof user?.user_metadata?.name === "string"
+			? user.user_metadata.name.trim()
+			: "";
+	const userLabel = metadataName || user?.email;
+	const isMicrosoftAuthenticated = Boolean(user);
+
+	const handleLogout = () => {
+		void signOut();
+	};
+
+	const handlePinLock = () => {
+		window.dispatchEvent(new CustomEvent("pin-lock"));
+	};
+
 	return (
 		<div className="min-h-screen bg-slate-50 dark:bg-gray-950 font-sans">
 			<NavBar
@@ -76,6 +94,9 @@ function Layout() {
 				onToggleBugs={toggleBugs}
 				bugCount={activeBugCount}
 				onOpenSettings={() => setSettingsOpen(true)}
+				userLabel={isMicrosoftAuthenticated ? userLabel : undefined}
+				onLogout={isMicrosoftAuthenticated ? handleLogout : undefined}
+				onLock={!isMicrosoftAuthenticated ? handlePinLock : undefined}
 			>
 				<ThemeToggle />
 			</NavBar>
@@ -105,19 +126,21 @@ function Layout() {
 ReactDOM.createRoot(document.getElementById("root")!).render(
 	<React.StrictMode>
 		<QueryClientProvider client={queryClient}>
-		<PinGate>
-			<HashRouter>
-				<Routes>
-					<Route element={<Layout />}>
-						<Route path="/" element={<App />} />
-						<Route path="/sessions" element={<SessionsListPage />} />
-						<Route path="/sessions/:id" element={<SessionSetupPage />} />
-						<Route path="/testers" element={<TesterManagementPage />} />
-					</Route>
-					<Route path="/sessions/:id/present" element={<PresentationPage />} />
-				</Routes>
-			</HashRouter>
-		</PinGate>
+			<AuthProvider>
+				<AuthGate>
+					<HashRouter>
+						<Routes>
+							<Route element={<Layout />}>
+								<Route path="/" element={<App />} />
+								<Route path="/sessions" element={<SessionsListPage />} />
+								<Route path="/sessions/:id" element={<SessionSetupPage />} />
+								<Route path="/testers" element={<TesterManagementPage />} />
+							</Route>
+							<Route path="/sessions/:id/present" element={<PresentationPage />} />
+						</Routes>
+					</HashRouter>
+				</AuthGate>
+			</AuthProvider>
 		</QueryClientProvider>
 	</React.StrictMode>,
 );

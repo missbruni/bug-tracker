@@ -1,6 +1,6 @@
 import { type ReactNode, useRef, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings, Sparkles } from "lucide-react";
+import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
 import { playBugSound } from "../lib/audio";
 
@@ -16,12 +16,18 @@ export default function NavBar({
 	onToggleBugs,
 	bugCount,
 	onOpenSettings,
+	userLabel,
+	onLogout,
+	onLock,
 }: {
 	children?: ReactNode;
 	showBugs?: boolean;
 	onToggleBugs?: () => void;
 	bugCount?: number;
 	onOpenSettings?: () => void;
+	userLabel?: string;
+	onLogout?: () => void;
+	onLock?: () => void;
 }) {
 	const location = useLocation();
 	const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -103,6 +109,34 @@ export default function NavBar({
 								<Sparkles size={14} />
 								<span className="text-xs font-bold">AI</span>
 							</button>
+							{userLabel && (
+								<span
+									className="hidden lg:inline max-w-[220px] truncate text-xs text-slate-500 dark:text-gray-400"
+									title={userLabel}
+								>
+									{userLabel}
+								</span>
+							)}
+							{onLogout && (
+								<button
+									onClick={onLogout}
+									className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-gray-700 px-3 py-1 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+									title="Logout"
+								>
+									<LogOut size={14} />
+									<span className="hidden sm:inline text-xs font-semibold">Logout</span>
+								</button>
+							)}
+							{onLock && (
+								<button
+									onClick={onLock}
+									className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-gray-700 px-3 py-1 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+									title="Lock"
+								>
+									<Lock size={14} />
+									<span className="hidden sm:inline text-xs font-semibold">Lock</span>
+								</button>
+							)}
 							{children}
 							{onOpenSettings && (
 								<button

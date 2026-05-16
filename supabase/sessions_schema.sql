@@ -70,14 +70,26 @@ create table if not exists session_feedback (
   created_at timestamptz default now()
 );
 
--- Enable RLS with public access (matches existing pattern)
+-- Enable RLS with authenticated-only access
 alter table testers enable row level security;
 alter table sessions enable row level security;
 alter table scenarios enable row level security;
 alter table assignments enable row level security;
+alter table session_feedback enable row level security;
 
-create policy "Public read/write testers" on testers for all using (true) with check (true);
-create policy "Public read/write sessions" on sessions for all using (true) with check (true);
-create policy "Public read/write scenarios" on scenarios for all using (true) with check (true);
-create policy "Public read/write assignments" on assignments for all using (true) with check (true);
-create policy "Public read/write session_feedback" on session_feedback for all using (true) with check (true);
+drop policy if exists "Public read/write testers" on testers;
+drop policy if exists "Public read/write sessions" on sessions;
+drop policy if exists "Public read/write scenarios" on scenarios;
+drop policy if exists "Public read/write assignments" on assignments;
+drop policy if exists "Public read/write session_feedback" on session_feedback;
+drop policy if exists "Authenticated read/write testers" on testers;
+drop policy if exists "Authenticated read/write sessions" on sessions;
+drop policy if exists "Authenticated read/write scenarios" on scenarios;
+drop policy if exists "Authenticated read/write assignments" on assignments;
+drop policy if exists "Authenticated read/write session_feedback" on session_feedback;
+
+create policy "Authenticated read/write testers" on testers for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write sessions" on sessions for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write scenarios" on scenarios for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write assignments" on assignments for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write session_feedback" on session_feedback for all to authenticated using (true) with check (true);

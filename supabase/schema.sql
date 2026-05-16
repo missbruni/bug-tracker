@@ -41,20 +41,43 @@ create table if not exists open_questions (
   tester text not null
 );
 
--- Enable RLS but allow all authenticated + anon access (public app)
+-- Enable RLS and restrict table access to authenticated users
 alter table bugs enable row level security;
 alter table comments enable row level security;
 alter table attachments enable row level security;
 alter table open_questions enable row level security;
 
-create policy "Public read/write bugs" on bugs for all using (true) with check (true);
-create policy "Public read/write comments" on comments for all using (true) with check (true);
-create policy "Public read/write attachments" on attachments for all using (true) with check (true);
-create policy "Public read/write open_questions" on open_questions for all using (true) with check (true);
+drop policy if exists "Public read/write bugs" on bugs;
+drop policy if exists "Public read/write comments" on comments;
+drop policy if exists "Public read/write attachments" on attachments;
+drop policy if exists "Public read/write open_questions" on open_questions;
+drop policy if exists "Authenticated read/write bugs" on bugs;
+drop policy if exists "Authenticated read/write comments" on comments;
+drop policy if exists "Authenticated read/write attachments" on attachments;
+drop policy if exists "Authenticated read/write open_questions" on open_questions;
 
--- Storage bucket for file uploads
+create policy "Authenticated read/write bugs" on bugs for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write comments" on comments for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write attachments" on attachments for all to authenticated using (true) with check (true);
+create policy "Authenticated read/write open_questions" on open_questions for all to authenticated using (true) with check (true);
+
+-- Storage bucket for file uploads (public read, authenticated write/delete)
 insert into storage.buckets (id, name, public) values ('attachments', 'attachments', true)
 on conflict do nothing;
 
-create policy "Public upload attachments" on storage.objects for insert with check (bucket_id = 'attachments');
-create policy "Public read attachments" on storage.objects for select using (bucket_id = 'attachments');
+drop policy if exists "Public upload attachments" on storage.objects;
+drop policy if exists "Public read attachments" on storage.objects;
+drop policy if exists "Authenticated upload attachments" on storage.objects;
+drop policy if exists "Authenticated delete attachments" on storage.objects;
+
+create policy "Authenticated upload attachments" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'attachments');
+
+create policy "Authenticated delete attachments" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'attachments');
+
+create policy "Public read attachments" on storage.objects
+  for select
+  using (bucket_id = 'attachments');

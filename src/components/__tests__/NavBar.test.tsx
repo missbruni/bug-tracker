@@ -6,10 +6,18 @@ import NavBar from '../NavBar'
 
 afterEach(() => cleanup())
 
-function renderNavBar(props: { showBugs?: boolean; onToggleBugs?: () => void; bugCount?: number } = {}) {
+function renderNavBar(props: {
+  showBugs?: boolean
+  onToggleBugs?: () => void
+  bugCount?: number
+  onLogout?: () => void
+  onLock?: () => void
+} = {}) {
   return render(
     <MemoryRouter initialEntries={['/']}>
-      <NavBar {...props} />
+      <NavBar {...props}>
+        <span data-testid="child-el">Theme Toggle</span>
+      </NavBar>
     </MemoryRouter>,
   )
 }
@@ -58,13 +66,27 @@ describe('NavBar', () => {
   })
 
   test('renders children in the right slot', () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <NavBar>
-          <span data-testid="child-el">Theme Toggle</span>
-        </NavBar>
-      </MemoryRouter>,
-    )
+    renderNavBar()
     expect(screen.getByTestId('child-el')).toBeInTheDocument()
+  })
+
+  test('renders and triggers logout button when provided', () => {
+    const onLogout = mock(() => {})
+    renderNavBar({ onLogout })
+
+    const logoutBtn = screen.getByTitle('Logout')
+    fireEvent.click(logoutBtn)
+
+    expect(onLogout).toHaveBeenCalledTimes(1)
+  })
+
+  test('renders and triggers lock button when provided', () => {
+    const onLock = mock(() => {})
+    renderNavBar({ onLock })
+
+    const lockBtn = screen.getByTitle('Lock')
+    fireEvent.click(lockBtn)
+
+    expect(onLock).toHaveBeenCalledTimes(1)
   })
 })
