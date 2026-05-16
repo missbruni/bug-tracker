@@ -388,10 +388,10 @@ export default function BugCard({
 						</div>
 					)}
 
-					<div className="flex items-center gap-2">
+					<div className="flex flex-col sm:flex-row sm:items-center gap-2">
 						<button
 							onClick={() => fileRef.current?.click()}
-							className="flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+							className="flex items-center justify-center gap-1.5 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
 						>
 							<Paperclip size={12} />
 							Attach
@@ -424,19 +424,19 @@ export default function BugCard({
 						) : (
 							<button
 								onClick={() => setShowCommentInput(true)}
-								className="flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+								className="flex items-center justify-center gap-1.5 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
 							>
 								<MessageSquare size={12} />
 								Comment
 							</button>
 						)}
-						<div className="flex-1" />
+						<div className="hidden sm:block flex-1" />
 						{backlogUrl && (
 							<a
 								href={backlogUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="flex items-center gap-1.5 rounded-md border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/40 px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/60 transition-colors"
+								className="flex items-center justify-center gap-1.5 rounded-md border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/40 px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/60 transition-colors"
 							>
 								<ExternalLink size={12} />
 								View in Backlog
@@ -453,7 +453,7 @@ export default function BugCard({
 						<button
 							onClick={requestDelete}
 							disabled={isDeleting}
-							className="flex items-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
+							className="flex items-center justify-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
 						>
 							<Trash2 size={12} />
 							Delete Bug
