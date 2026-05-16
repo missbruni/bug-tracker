@@ -14,6 +14,7 @@ import {
 import { supabase } from "../supabaseClient";
 import { SESSION_STATUS_STYLES } from "../constants";
 import FeedbackModal from "../components/FeedbackModal";
+import SecondaryAppBar from "../components/SecondaryAppBar";
 import type { SessionWithStats } from "../types";
 
 type Session = SessionWithStats;
@@ -31,6 +32,7 @@ export default function SessionsListPage() {
 	const [deleteConfirmSession, setDeleteConfirmSession] =
 		useState<Session | null>(null);
 	const [deleteConfirmText, setDeleteConfirmText] = useState("");
+	const [search, setSearch] = useState("");
 
 	const load = useCallback(async () => {
 		if (!supabase) return;
@@ -158,23 +160,25 @@ export default function SessionsListPage() {
 	}
 
 	return (
-		<div className="max-w-screen-lg mx-auto px-7 py-6">
-			<div className="flex items-center justify-between mb-6">
-				<div>
-					<h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">
-						Testing Sessions
-					</h1>
-					<p className="text-sm text-slate-500 dark:text-gray-500 mt-0.5">
-						{sessions.length} session{sessions.length !== 1 ? "s" : ""}
-					</p>
-				</div>
-				<button
-					onClick={() => setShowCreate(true)}
-					className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer"
-				>
-					<Plus size={16} /> New Session
-				</button>
-			</div>
+		<>
+			<SecondaryAppBar
+				description="Plan and run testing sessions — assign scenarios, track progress, and collect feedback."
+				stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{sessions.filter(s => s.status === 'active').length} active</span> / {sessions.length} total</>}
+				search={search}
+				onSearchChange={setSearch}
+				searchPlaceholder="Search sessions..."
+				actionButton={
+					<button
+						onClick={() => setShowCreate(true)}
+						className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+					>
+						<Plus size={14} />
+						New Session
+					</button>
+				}
+			/>
+
+			<div className="max-w-screen-lg mx-auto px-7 py-6">
 
 			{showCreate && (
 				<div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
@@ -225,7 +229,13 @@ export default function SessionsListPage() {
 				</div>
 			) : (
 				<div className="space-y-2">
-					{sessions.map((session) => {
+					{sessions
+						.filter(session => {
+							if (!search.trim()) return true;
+							const q = search.toLowerCase();
+							return session.name.toLowerCase().includes(q) || session.status.toLowerCase().includes(q);
+						})
+						.map((session) => {
 						const st = SESSION_STATUS_STYLES[session.status];
 						return (
 							<Link
@@ -423,23 +433,20 @@ export default function SessionsListPage() {
 						<h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">
 							Delete session?
 						</h3>
-						<p className="text-xs text-slate-500 dark:text-gray-400 mb-1 leading-relaxed">
-							This will permanently delete{" "}
-							<span className="font-semibold text-slate-700 dark:text-gray-300">
-								{deleteConfirmSession.name}
-							</span>{" "}
+						<p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
+							This will permanently delete this session
 							and all its scenarios, assignments, and feedback. This action
 							cannot be undone.
 						</p>
 						<p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
 							Type{" "}
-							<span className="font-mono font-bold text-red-500">DELETE</span>{" "}
+							<span className="font-mono font-bold text-red-500">{deleteConfirmSession.name}</span>{" "}
 							to confirm:
 						</p>
 						<input
 							value={deleteConfirmText}
 							onChange={(e) => setDeleteConfirmText(e.target.value)}
-							placeholder="Type DELETE here"
+							placeholder={deleteConfirmSession.name}
 							autoFocus
 							className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
 						/>
@@ -455,7 +462,7 @@ export default function SessionsListPage() {
 							</button>
 							<button
 								onClick={deleteSession}
-								disabled={deleteConfirmText !== "DELETE"}
+								disabled={deleteConfirmText !== deleteConfirmSession.name}
 								className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
 							>
 								Delete permanently
@@ -465,5 +472,6 @@ export default function SessionsListPage() {
 				</div>
 			)}
 		</div>
+		</>
 	);
 }

@@ -15,6 +15,7 @@ import { TesterBadge } from './TesterBadge'
 import AttachmentCard from './AttachmentCard'
 import BugEditForm from './BugEditForm'
 import PublishMenu from './PublishMenu'
+import DeleteConfirmModal from './DeleteConfirmModal'
 import { useBugActions } from '../hooks/useBugActions'
 import type { Bug } from '../types'
 
@@ -29,6 +30,7 @@ interface BugCardProps {
 
 export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersistError, onReviewed }: BugCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [publishingMode, setPublishingMode] = useState<'backlog' | 'devin' | null>(null)
@@ -76,6 +78,11 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
   const startEditing = () => {
     setEditing(true)
     setExpanded(true)
+  }
+
+  const confirmDelete = async () => {
+    const deleted = await actions.deleteBug()
+    if (deleted) setShowDeleteConfirm(false)
   }
 
   return (
@@ -138,8 +145,8 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
             <span
               role="button"
               tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); actions.deleteBug() }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); actions.deleteBug() } }}
+              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setShowDeleteConfirm(true) } }}
               className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all cursor-pointer"
               title="Delete bug"
             >
@@ -290,7 +297,7 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
               onPublish={(withDevin) => actions.publishToBacklog(withDevin, setPublishingMode, () => {})}
             />
             <button
-              onClick={actions.deleteBug}
+              onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors cursor-pointer"
             >
               <Trash2 size={12} />
@@ -298,6 +305,16 @@ export default function BugCard({ bug, onUpdate, onImageClick, onDelete, onPersi
             </button>
           </div>
         </div>
+      )}
+
+      {showDeleteConfirm && (
+        <DeleteConfirmModal
+          title="Delete bug?"
+          description={`This will permanently delete bug ${bug.id} and all its comments and attachments. This action cannot be undone.`}
+          confirmToken={bug.id}
+          onCancel={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDelete}
+        />
       )}
     </div>
   )

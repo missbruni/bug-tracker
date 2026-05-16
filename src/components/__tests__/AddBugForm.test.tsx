@@ -1,23 +1,51 @@
 /// <reference lib="dom" />
-import { test, expect, describe, mock, afterEach } from 'bun:test'
+import { test, expect, describe, mock, afterEach, beforeEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import AddBugForm from '../AddBugForm'
 import type { Severity } from '../../constants'
 
-afterEach(() => cleanup())
+beforeEach(() => {
+  localStorage.removeItem('lastTesterId')
+  localStorage.removeItem('lastTesterName')
+})
+
+afterEach(() => {
+  cleanup()
+  localStorage.removeItem('lastTesterId')
+  localStorage.removeItem('lastTesterName')
+})
 
 const nextIds: Record<Severity, number> = { critical: 1, high: 1, low: 1 }
+const testers = [
+  { id: 't1', name: 'Bruna Lima' },
+  { id: 't2', name: 'Denisa Buftea' },
+]
+
+function renderForm(overrides?: Partial<ComponentProps<typeof AddBugForm>>) {
+  return render(
+    <AddBugForm
+      onAdd={async () => {}}
+      onAddTester={async () => null}
+      onCancel={() => {}}
+      nextIds={nextIds}
+      testers={testers}
+      {...overrides}
+    />,
+  )
+}
 
 describe('AddBugForm', () => {
   test('renders title and description fields', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
+    renderForm()
     expect(screen.getByPlaceholderText('Bug title *')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Description')).toBeInTheDocument()
   })
 
   test('renders all input fields', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
-    expect(screen.getByPlaceholderText('Tester name')).toBeInTheDocument()
+    renderForm()
+    expect(screen.getByRole('option', { name: 'Bruna Lima' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '+ Add new tester' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Device / Browser')).toBeInTheDocument()
     // Page is now a select dropdown with page options
     expect(screen.getByRole('option', { name: 'Home' })).toBeInTheDocument()
@@ -25,14 +53,14 @@ describe('AddBugForm', () => {
   })
 
   test('renders severity buttons', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
+    renderForm()
     expect(screen.getByText('critical')).toBeInTheDocument()
     expect(screen.getByText('high')).toBeInTheDocument()
     expect(screen.getByText('low')).toBeInTheDocument()
   })
 
   test('Add Bug button is disabled when title is empty', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
+    renderForm()
     expect(screen.getByText('Add Bug')).toBeInTheDocument()
     // Button should be visually disabled (style-based, not HTML disabled attr)
     const btn = screen.getByText('Add Bug')
@@ -40,38 +68,51 @@ describe('AddBugForm', () => {
   })
 
   test('Add Bug button is enabled when title has value', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
+    renderForm()
     fireEvent.change(screen.getByPlaceholderText('Bug title *'), { target: { value: 'A real bug' } })
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 't1' } })
     const btn = screen.getByText('Add Bug')
     expect(btn.closest('button')?.style.background).toBe('#3b82f6')
   })
 
   test('calls onCancel when Cancel is clicked', () => {
     const onCancel = mock(() => {})
-    render(<AddBugForm onAdd={async () => {}} onCancel={onCancel} nextIds={nextIds} />)
+    renderForm({ onCancel })
     fireEvent.click(screen.getByText('Cancel'))
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 
   test('renders session dropdown when sessions are provided', () => {
-    render(
-      <AddBugForm
-        onAdd={async () => {}}
-        onCancel={() => {}}
-        nextIds={nextIds}
-        sessions={[{ id: 's1', name: 'Sprint 1', status: 'active' }]}
-      />,
-    )
+    renderForm({ sessions: [{ id: 's1', name: 'Sprint 1', status: 'active' }] })
     expect(screen.getByText('Sprint 1 (active)')).toBeInTheDocument()
   })
 
   test('does not render session dropdown when no sessions', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
+    renderForm()
     expect(screen.queryByText('No session')).not.toBeInTheDocument()
   })
 
   test('renders Attach files button', () => {
-    render(<AddBugForm onAdd={async () => {}} onCancel={() => {}} nextIds={nextIds} />)
+    renderForm()
     expect(screen.getByText('Attach files')).toBeInTheDocument()
+  })
+
+  test('pre-selects tester from localStorage', () => {
+    localStorage.setItem('lastTesterId', 't2')
+    renderForm()
+    const select = screen.getAllByRole('combobox')[0] as HTMLSelectElement
+    expect(select.value).toBe('t2')
+  })
+
+  test('saves tester to localStorage on submit', async () => {
+    const onAdd = mock(async () => {})
+    renderForm({ onAdd })
+    fireEvent.change(screen.getByPlaceholderText('Bug title *'), { target: { value: 'Test bug' } })
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 't1' } })
+    fireEvent.click(screen.getByText('Add Bug'))
+    // Wait for async submit
+    await new Promise(r => setTimeout(r, 50))
+    expect(localStorage.getItem('lastTesterId')).toBe('t1')
+    expect(localStorage.getItem('lastTesterName')).toBe('Bruna Lima')
   })
 })

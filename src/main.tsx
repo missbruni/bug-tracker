@@ -12,6 +12,7 @@ import TesterManagementPage from "./pages/TesterManagementPage";
 import SettingsSidebar from "./components/SettingsSidebar";
 import AiAssistantPanel from "./components/AiAssistantPanel";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
+import { playAiSound } from "./lib/audio";
 import "./index.css";
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,13 @@ function Layout({ children }: { children: React.ReactNode }) {
 	);
 	const activeBugCount = useActiveBugCount();
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [aiPanelOpen, setAiPanelOpen] = useState(false);
+	const [aiPanelOpen, setAiPanelOpen] = useState(
+		() => sessionStorage.getItem("aiPanelOpen") === "true",
+	);
+
+	useEffect(() => {
+		sessionStorage.setItem("aiPanelOpen", String(aiPanelOpen));
+	}, [aiPanelOpen]);
 
 	useEffect(() => {
 		const handler = () => setSettingsOpen(true);
@@ -29,7 +36,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	useEffect(() => {
-		const handler = () => setAiPanelOpen(true);
+		const handler = () => setAiPanelOpen((prev) => { playAiSound(prev === false); return !prev });
 		window.addEventListener("openAiAssistant", handler);
 		return () => window.removeEventListener("openAiAssistant", handler);
 	}, []);
@@ -43,6 +50,10 @@ function Layout({ children }: { children: React.ReactNode }) {
 					localStorage.setItem("showBugs", String(next));
 					return next;
 				});
+			}
+			if ((e.metaKey || e.ctrlKey) && e.key === "i") {
+				e.preventDefault();
+				setAiPanelOpen((prev) => { playAiSound(!prev); return !prev });
 			}
 		};
 		window.addEventListener("keydown", handler);

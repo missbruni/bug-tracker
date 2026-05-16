@@ -81,14 +81,14 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
       {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-black/20 dark:bg-black/40 transition-opacity"
+          className="fixed inset-0 z-[60] bg-black/20 dark:bg-black/40 transition-opacity"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-80 bg-white dark:bg-gray-900 border-l border-slate-200 dark:border-gray-800 shadow-xl transform transition-transform duration-200 ease-in-out ${
+        className={`fixed top-0 right-0 z-[60] h-full w-[420px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border-l border-slate-200 dark:border-gray-800 shadow-xl transform transition-transform duration-200 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -184,7 +184,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
               AI Assistant
             </h3>
             <p className="text-xs text-slate-500 dark:text-gray-500 mb-3 leading-relaxed">
-              Configure your AI provider to enable the <strong>Bug Assistant</strong> — a chat where you can quickly describe bugs and have them created automatically.
+              Configure your AI provider to enable the <strong>AI Assistant</strong> — a chat where you can log bugs and set up testing sessions.
               Keys are stored locally in your browser.
             </p>
 

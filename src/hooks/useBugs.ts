@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
-import type { Bug, Question, Attachment, SessionOption } from '../types'
+import { findTesterByName } from '../lib/testerLookup'
+import type { Bug, Question, Attachment, SessionOption, Tester } from '../types'
 import type { Severity } from '../constants'
 
 interface SnackbarState {
@@ -12,6 +13,7 @@ interface UseBugsReturn {
   bugs: Bug[]
   questions: Question[]
   sessions: SessionOption[]
+  registeredTesters: Array<Pick<Tester, 'id' | 'name'>>
   loading: boolean
   snackbar: SnackbarState | null
   setSnackbar: (s: SnackbarState | null) => void
@@ -20,10 +22,11 @@ interface UseBugsReturn {
   deleteBugFromState: (bugId: string) => void
   showPersistError: () => void
   addBug: (newBug: NewBugInput) => Promise<void>
+  addTester: (name: string, devices?: string[]) => Promise<Pick<Tester, 'id' | 'name'> | null>
   deleteQuestion: (q: Question) => Promise<void>
   setQuestions: React.Dispatch<React.SetStateAction<Question[]>>
   showAddForm: boolean
-  setShowAddForm: (show: boolean) => void
+  setShowAddForm: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export interface NewBugInput {
@@ -32,6 +35,7 @@ export interface NewBugInput {
   description: string
   severity: Severity
   tester: string
+  tester_id?: string | null
   device: string
   page: string
   category: string | null
@@ -43,6 +47,7 @@ export function useBugs(): UseBugsReturn {
   const [bugs, setBugs] = useState<Bug[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [sessions, setSessions] = useState<SessionOption[]>([])
+  const [registeredTesters, setRegisteredTesters] = useState<Array<Pick<Tester, 'id' | 'name'>>>([])
   const [loading, setLoading] = useState(true)
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -56,12 +61,13 @@ export function useBugs(): UseBugsReturn {
         return
       }
       try {
-        const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes] = await Promise.all([
+        const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes, testersRes] = await Promise.all([
           supabase.from('bugs').select('*').order('id'),
           supabase.from('comments').select('*').order('created_at'),
           supabase.from('attachments').select('*').order('created_at'),
           supabase.from('open_questions').select('*').order('id'),
           supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
+          supabase.from('testers').select('id, name').eq('active', true).order('name'),
         ])
 
         const commentsMap: Record<string, Bug['comments']> = {}
@@ -85,6 +91,7 @@ export function useBugs(): UseBugsReturn {
         setBugs(mergedBugs)
         setQuestions(questionsRes.data as Question[] || [])
         setSessions((sessionsRes.data || []) as SessionOption[])
+        setRegisteredTesters((testersRes.data || []) as Array<Pick<Tester, 'id' | 'name'>>)
       } catch (err) {
         console.error('Failed to load data:', err)
       }
@@ -167,14 +174,76 @@ export function useBugs(): UseBugsReturn {
     setSnackbar(null)
   }, [])
 
+  const addTester = async (name: string, devices: string[] = []): Promise<Pick<Tester, 'id' | 'name'> | null> => {
+    if (!supabase) return null
+    const normalized = name.trim()
+    if (!normalized) return null
+
+    const { data: existing, error: existingErr } = await supabase
+      .from('testers')
+      .select('id, name, active')
+      .ilike('name', normalized)
+      .limit(1)
+
+    if (existingErr) {
+      console.error('Failed to check existing tester:', existingErr)
+      return null
+    }
+
+    if (existing?.length) {
+      const row = existing[0] as { id: string; name: string; active: boolean }
+      if (!row.active) {
+        const updatePayload: { active: boolean; devices?: string[] } = { active: true }
+        if (devices.length) updatePayload.devices = devices
+        const { error: reactivateErr } = await supabase
+          .from('testers')
+          .update(updatePayload)
+          .eq('id', row.id)
+        if (reactivateErr) {
+          console.error('Failed to reactivate tester:', reactivateErr)
+          return null
+        }
+      }
+
+      const result = { id: row.id, name: row.name }
+      setRegisteredTesters(prev => {
+        const next = prev.some(t => t.id === result.id) ? prev : [...prev, result]
+        return next.sort((a, b) => a.name.localeCompare(b.name))
+      })
+      return result
+    }
+
+    const { data: created, error: createErr } = await supabase
+      .from('testers')
+      .insert({ name: normalized, devices, active: true })
+      .select('id, name')
+      .single()
+
+    if (createErr || !created) {
+      console.error('Failed to create tester:', createErr)
+      return null
+    }
+
+    const result = { id: created.id as string, name: created.name as string }
+    setRegisteredTesters(prev => [...prev, result].sort((a, b) => a.name.localeCompare(b.name)))
+    return result
+  }
+
   const addBug = async (newBug: NewBugInput) => {
     const filesToUpload = newBug.attachments.filter((a) => a.file)
+    let resolvedTesterId = newBug.tester_id || null
+    if (!resolvedTesterId) {
+      const matchedTester = await findTesterByName(newBug.tester)
+      resolvedTesterId = matchedTester?.id || null
+    }
+
     const bugData: Record<string, unknown> = {
       id: newBug.id,
       title: newBug.title,
       description: newBug.description,
       severity: newBug.severity,
       tester: newBug.tester,
+      tester_id: resolvedTesterId,
       device: newBug.device,
       page: newBug.page,
       category: newBug.category,
@@ -187,12 +256,16 @@ export function useBugs(): UseBugsReturn {
       let num = parseInt(newBug.id.replace(/\D+/g, '')) || 1
       let finalId = newBug.id
       let retries = 0
+      let inserted = false
 
       // Retry with incremented ID on duplicate key conflict (concurrent users)
       while (retries < 20) {
         bugData.id = finalId
         const { error } = await sb.from('bugs').insert(bugData)
-        if (!error) break
+        if (!error) {
+          inserted = true
+          break
+        }
         if (error.code === '23505') {
           retries++
           num++
@@ -201,6 +274,12 @@ export function useBugs(): UseBugsReturn {
           console.error('Failed to add bug:', error)
           return
         }
+      }
+
+      if (!inserted) {
+        console.error('Failed to add bug after multiple ID retries')
+        setSnackbar({ message: 'Failed to create bug after multiple retries.' })
+        return
       }
 
       // Add bug to state immediately and close form
@@ -245,6 +324,7 @@ export function useBugs(): UseBugsReturn {
     bugs,
     questions,
     sessions,
+    registeredTesters,
     loading,
     snackbar,
     setSnackbar,
@@ -253,6 +333,7 @@ export function useBugs(): UseBugsReturn {
     deleteBugFromState,
     showPersistError,
     addBug,
+    addTester,
     deleteQuestion,
     setQuestions,
     showAddForm,

@@ -25,6 +25,7 @@ export interface Bug {
   description: string
   severity: Severity
   tester: string
+  tester_id?: string | null
   device: string
   page: string
   category: string | null

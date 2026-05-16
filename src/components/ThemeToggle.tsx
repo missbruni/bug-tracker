@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Sun, Moon } from 'lucide-react'
+import { playToggleSound } from '../lib/audio'
 
 const storedTheme = localStorage.getItem('theme')
 const initialDark = storedTheme ? storedTheme === 'dark' : true
@@ -17,7 +18,7 @@ export default function ThemeToggle() {
 
   return (
     <button
-      onClick={() => { setDarkMode(d => !d); setThemeKey(k => k + 1) }}
+      onClick={() => { const next = !darkMode; playToggleSound(next); setDarkMode(next); setThemeKey(k => k + 1) }}
       className="relative rounded-lg p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors cursor-pointer overflow-hidden"
       title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       style={{ width: 34, height: 34 }}

@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL } from '../constants'
 import { playTickSound } from '../lib/audio'
+import { findTesterByName } from '../lib/testerLookup'
 import type { Bug, Attachment } from '../types'
 import type { Severity } from '../constants'
 
@@ -165,8 +166,7 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     }
   }
 
-  const deleteBug = async () => {
-    if (!window.confirm(`Delete bug ${bug.id}? This cannot be undone.`)) return
+  const deleteBug = async (): Promise<boolean> => {
 
     if (supabase) {
       const storagePaths = bug.attachments
@@ -180,16 +180,17 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
       }
 
       const { error: commentsError } = await supabase.from('comments').delete().eq('bug_id', bug.id)
-      if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return }
+      if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return false }
 
       const { error: attachmentsError } = await supabase.from('attachments').delete().eq('bug_id', bug.id)
-      if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return }
+      if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return false }
 
       const { error: bugError } = await supabase.from('bugs').delete().eq('id', bug.id)
-      if (bugError) { console.error('Failed to delete bug:', bugError); return }
+      if (bugError) { console.error('Failed to delete bug:', bugError); return false }
     }
 
     onDelete(bug.id)
+    return true
   }
 
   const uploadFiles = async (files: File[]) => {
@@ -216,11 +217,14 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
   }
 
   const saveBugEdit = async (editFields: { title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string }) => {
+    const normalizedTester = editFields.tester || 'Unknown'
+    const matchedTester = await findTesterByName(normalizedTester)
     const updates = {
       title: editFields.title,
       description: editFields.description,
       severity: editFields.severity,
-      tester: editFields.tester || 'Unknown',
+      tester: normalizedTester,
+      tester_id: matchedTester?.id || null,
       device: editFields.device || '\u2014',
       page: editFields.page || '\u2014',
       category: editFields.category || null,

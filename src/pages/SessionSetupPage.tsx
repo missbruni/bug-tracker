@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, Star } from 'lucide-react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, Star, AlertCircle } from 'lucide-react'
 import FeedbackModal from '../components/FeedbackModal'
 import { supabase } from '../supabaseClient'
 import { SESSION_STATUS_STYLES } from '../constants'
@@ -17,6 +17,11 @@ export default function SessionSetupPage() {
   const [expandedScenarioId, setExpandedScenarioId] = useState<string | null>(null)
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [editNameValue, setEditNameValue] = useState('')
+  const navigate = useNavigate()
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = useState(false)
@@ -41,12 +46,48 @@ export default function SessionSetupPage() {
     ])
     if (sessRes.data) setSession(sessRes.data as Session)
     setScenarios((scenRes.data || []) as Scenario[])
-    setTesters((testRes.data || []) as Tester[])
-    setAssignments((assignRes.data || []) as Assignment[])
+    const assigns = (assignRes.data || []) as Assignment[]
+    setAssignments(assigns)
+
+    // For completed sessions, also load inactive testers that have assignments
+    let allTesters = (testRes.data || []) as Tester[]
+    if (sessRes.data?.status === 'completed' && assigns.length) {
+      const activeIds = new Set(allTesters.map(t => t.id))
+      const missingIds = assigns.map(a => a.tester_id).filter(id => !activeIds.has(id))
+      if (missingIds.length) {
+        const { data: inactiveTesters } = await supabase.from('testers').select('*').in('id', missingIds)
+        if (inactiveTesters?.length) {
+          allTesters = [...allTesters, ...(inactiveTesters as Tester[])].sort((a, b) => a.name.localeCompare(b.name))
+        }
+      }
+    }
+    setTesters(allTesters)
     setLoading(false)
   }, [sessionId])
 
   useEffect(() => { load() }, [load])
+
+  // Reload when AI assistant modifies session data
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (!detail?.sessionId || detail.sessionId === sessionId) {
+        load()
+      }
+    }
+    window.addEventListener('sessionDataChanged', handler)
+    return () => window.removeEventListener('sessionDataChanged', handler)
+  }, [load, sessionId])
+
+  // Navigate away if this session is deleted via AI
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.sessionId === sessionId) navigate('/sessions')
+    }
+    window.addEventListener('sessionDeleted', handler)
+    return () => window.removeEventListener('sessionDeleted', handler)
+  }, [sessionId, navigate])
 
   const assignTester = async (scenarioId: string, testerId: string) => {
     if (!supabase || !sessionId) return
@@ -223,6 +264,17 @@ export default function SessionSetupPage() {
     setShowCompleteConfirm(false)
   }
 
+  const deleteSession = async () => {
+    if (!supabase || !session || deleteConfirmText !== session.name) return
+    await supabase.from('assignments').delete().eq('session_id', session.id)
+    await supabase.from('scenarios').delete().eq('session_id', session.id)
+    await supabase.from('session_feedback').delete().eq('session_id', session.id)
+    const { error } = await supabase.from('sessions').delete().eq('id', session.id)
+    if (!error) navigate('/sessions')
+    setShowDeleteConfirm(false)
+    setDeleteConfirmText('')
+  }
+
   const getAssignedTester = (scenarioId: string): Tester | null => {
     const a = assignments.find(a => a.scenario_id === scenarioId)
     if (!a) return null
@@ -245,7 +297,18 @@ export default function SessionSetupPage() {
   }
 
   if (!session) {
-    return <div className="flex items-center justify-center py-20 text-sm text-red-500">Session not found</div>
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-8 py-6 text-center max-w-sm">
+          <AlertCircle size={28} className="mx-auto mb-3 text-red-400" />
+          <h2 className="text-sm font-bold text-red-600 dark:text-red-400 mb-1">Session not found</h2>
+          <p className="text-xs text-red-500/70 dark:text-red-400/60 mb-4">This session may have been deleted or the link is invalid.</p>
+          <Link to="/sessions" className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 transition-colors">
+            ← Back to Sessions
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   const isCompleted = session.status === 'completed'
@@ -256,8 +319,56 @@ export default function SessionSetupPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">{session.name}</h1>
+          <div className="flex items-center gap-2 mb-1">
+            {editingName ? (
+              <input
+                value={editNameValue}
+                onChange={e => setEditNameValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const newName = editNameValue.trim()
+                    if (newName && supabase) {
+                      const oldName = session.name
+                      setSession({ ...session, name: newName })
+                      supabase.from('sessions').update({ name: newName }).eq('id', session.id).then(({ error }) => {
+                        if (error) setSession((s) => s ? { ...s, name: oldName } : s)
+                      })
+                    }
+                    setEditingName(false)
+                  }
+                  if (e.key === 'Escape') setEditingName(false)
+                }}
+                onBlur={() => {
+                  const newName = editNameValue.trim()
+                  if (newName && supabase) {
+                    const oldName = session.name
+                    setSession({ ...session, name: newName })
+                    supabase.from('sessions').update({ name: newName }).eq('id', session.id).then(({ error }) => {
+                      if (error) setSession((s) => s ? { ...s, name: oldName } : s)
+                    })
+                  }
+                  setEditingName(false)
+                }}
+                autoFocus
+                className="text-xl font-bold text-slate-900 dark:text-gray-100 bg-transparent border-none outline-none px-0 py-0 w-64"
+              />
+            ) : (
+              <div
+                onClick={() => { if (!isCompleted) { setEditNameValue(session.name); setEditingName(true) } }}
+                className={`flex items-center gap-2.5 whitespace-nowrap ${!isCompleted ? 'cursor-pointer' : ''}`}
+                title={!isCompleted ? 'Click to edit title' : ''}
+              >
+                <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">{session.name}</h1>
+                {!isCompleted && <Pencil size={13} className="text-slate-400 dark:text-gray-600" />}
+              </div>
+            )}
+            <button
+              onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText('') }}
+              className="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
+              title="Delete session"
+            >
+              <Trash2 size={15} />
+            </button>
             <div className="relative">
               <button
                 onClick={() => !isCompleted && setShowStatusMenu(!showStatusMenu)}
@@ -566,6 +677,43 @@ export default function SessionSetupPage() {
               <button onClick={confirmComplete}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 cursor-pointer transition-colors">
                 Yes, complete session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && session && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">Delete session?</h3>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
+              This will permanently delete this session and all its scenarios, assignments, and feedback. This action cannot be undone.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
+              Type <span className="font-mono font-bold text-red-500">{session.name}</span> to confirm:
+            </p>
+            <input
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder={session.name}
+              autoFocus
+              className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteSession}
+                disabled={deleteConfirmText !== session.name}
+                className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
+              >
+                Delete permanently
               </button>
             </div>
           </div>

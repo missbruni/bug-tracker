@@ -1,17 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, X, Check, Pencil } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
+import DeleteConfirmModal from '../components/DeleteConfirmModal'
+import SecondaryAppBar from '../components/SecondaryAppBar'
 import type { Tester } from '../types'
-
-const COMMON_DEVICES = [
-  'Desktop Chrome',
-  'Desktop Edge',
-  'Desktop Firefox',
-  'Desktop Safari',
-  'iPhone Safari',
-  'Android Chrome',
-  'iPad Safari',
-]
 
 export default function TesterManagementPage() {
   const [testers, setTesters] = useState<Tester[]>([])
@@ -22,6 +15,9 @@ export default function TesterManagementPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editDevices, setEditDevices] = useState<string[]>([])
+  const [deleteTarget, setDeleteTarget] = useState<Tester | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const load = useCallback(async () => {
     if (!supabase) return
@@ -52,10 +48,63 @@ export default function TesterManagementPage() {
     if (!error) setTesters(prev => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
   }
 
-  const deleteTester = async (id: string) => {
-    if (!supabase) return
-    const { error } = await supabase.from('testers').delete().eq('id', id)
-    if (!error) setTesters(prev => prev.filter(t => t.id !== id))
+  const confirmDeleteTester = async () => {
+    if (!supabase || !deleteTarget) return
+    const tester = deleteTarget
+
+    const { count: assignmentCount, error: assignmentErr } = await supabase
+      .from('assignments')
+      .select('*', { count: 'exact', head: true })
+      .eq('tester_id', tester.id)
+
+    if (assignmentErr) {
+      setDeleteError(`Failed to verify assignments: ${assignmentErr.message}`)
+      return
+    }
+
+    let bugCount = 0
+    const bugByIdRes = await supabase
+      .from('bugs')
+      .select('*', { count: 'exact', head: true })
+      .eq('tester_id', tester.id)
+
+    if (bugByIdRes.error) {
+      if (!bugByIdRes.error.message.toLowerCase().includes('tester_id')) {
+        setDeleteError(`Failed to verify bug dependencies: ${bugByIdRes.error.message}`)
+        return
+      }
+
+      const legacyBugRes = await supabase
+        .from('bugs')
+        .select('*', { count: 'exact', head: true })
+        .ilike('tester', tester.name)
+
+      if (legacyBugRes.error) {
+        setDeleteError(`Failed to verify bug dependencies: ${legacyBugRes.error.message}`)
+        return
+      }
+
+      bugCount = legacyBugRes.count || 0
+    } else {
+      bugCount = bugByIdRes.count || 0
+    }
+
+    if ((assignmentCount || 0) > 0 || bugCount > 0) {
+      const reasons: string[] = []
+      if ((assignmentCount || 0) > 0) reasons.push(`${assignmentCount} assignment(s)`)
+      if (bugCount > 0) reasons.push(`${bugCount} bug(s)`)
+      setDeleteError(`Can't delete ${tester.name} — linked to ${reasons.join(' and ')}. Deactivate them instead.`)
+      return
+    }
+
+    const { error } = await supabase.from('testers').delete().eq('id', tester.id)
+    if (error) {
+      setDeleteError(`Failed to delete tester: ${error.message}`)
+      return
+    }
+    setTesters(prev => prev.filter(t => t.id !== tester.id))
+    setDeleteTarget(null)
+    setDeleteError(null)
   }
 
   const startEdit = (tester: Tester) => {
@@ -88,19 +137,25 @@ export default function TesterManagementPage() {
   }
 
   return (
-    <div className="max-w-screen-lg mx-auto px-7 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">Tester Management</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-500 mt-0.5">{testers.filter(t => t.active).length} active testers</p>
-        </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer"
-        >
-          <Plus size={16} /> Add Tester
-        </button>
-      </div>
+    <>
+      <SecondaryAppBar
+        description="Manage your QA team — add testers, assign devices, and control availability."
+        stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{testers.filter(t => t.active).length} active</span> / {testers.length} total</>}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search testers, devices..."
+        actionButton={
+          <button
+            onClick={() => setShowAdd(true)}
+            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <Plus size={14} />
+            Add Tester
+          </button>
+        }
+      />
+
+      <div className="max-w-screen-lg mx-auto px-7 py-6">
 
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
@@ -114,7 +169,7 @@ export default function TesterManagementPage() {
           />
           <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">Devices:</p>
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {COMMON_DEVICES.map(d => (
+            {COMMON_TESTER_DEVICES.map(d => (
               <button
                 key={d}
                 onClick={() => toggleDevice(d, newDevices, setNewDevices)}
@@ -142,7 +197,13 @@ export default function TesterManagementPage() {
       )}
 
       <div className="space-y-2">
-        {testers.map(tester => (
+        {testers
+          .filter(tester => {
+            if (!search.trim()) return true
+            const q = search.toLowerCase()
+            return tester.name.toLowerCase().includes(q) || tester.devices.some(d => d.toLowerCase().includes(q))
+          })
+          .map(tester => (
           <div
             key={tester.id}
             className={`rounded-lg border bg-white dark:bg-gray-900 p-4 transition-all ${
@@ -161,7 +222,7 @@ export default function TesterManagementPage() {
                 />
                 <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">Devices:</p>
                 <div className="flex flex-wrap gap-1.5 mb-3">
-                  {COMMON_DEVICES.map(d => (
+                  {COMMON_TESTER_DEVICES.map(d => (
                     <button
                       key={d}
                       onClick={() => toggleDevice(d, editDevices, setEditDevices)}
@@ -216,7 +277,7 @@ export default function TesterManagementPage() {
                   className="text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer p-1">
                   <Pencil size={14} />
                 </button>
-                <button onClick={() => deleteTester(tester.id)}
+                <button onClick={() => { setDeleteTarget(tester); setDeleteError(null) }}
                   className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer p-1">
                   <Trash2 size={14} />
                 </button>
@@ -225,6 +286,18 @@ export default function TesterManagementPage() {
           </div>
         ))}
       </div>
-    </div>
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Delete tester?"
+          description={`This will permanently delete "${deleteTarget.name}". This action cannot be undone.`}
+          confirmToken={deleteTarget.name}
+          onCancel={() => { setDeleteTarget(null); setDeleteError(null) }}
+          onConfirm={confirmDeleteTester}
+          error={deleteError}
+        />
+      )}
+      </div>
+    </>
   )
 }

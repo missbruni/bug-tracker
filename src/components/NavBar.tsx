@@ -75,10 +75,11 @@ export default function NavBar({
 					<div className="ml-auto flex items-center gap-2">
 						<button
 							onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
-							className="text-amber-400 dark:text-amber-500 hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer"
-							title="Bug Chat"
+							className="flex items-center gap-1.5 rounded-full border border-indigo-400 dark:border-amber-500 px-3 py-1 text-indigo-600 dark:text-amber-500 hover:bg-indigo-500/10 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
+							title="AI Assistant (⌘I)"
 						>
-							<Sparkles size={18} />
+							<Sparkles size={14} />
+							<span className="text-xs font-bold">AI</span>
 						</button>
 						{children}
 						{onOpenSettings && (

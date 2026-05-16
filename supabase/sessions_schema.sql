@@ -38,6 +38,22 @@ create table if not exists assignments (
   unique (session_id, scenario_id)
 );
 
+-- Link bugs to real testers (prevents deleting testers with bug history)
+alter table bugs add column if not exists tester_id uuid references testers(id) on delete restrict;
+create index if not exists idx_bugs_tester_id on bugs(tester_id);
+
+-- Backfill tester_id from existing plain-text tester names
+with tester_name_map as (
+  select distinct on (lower(name)) id, lower(name) as lname
+  from testers
+  order by lower(name), created_at asc
+)
+update bugs b
+set tester_id = tnm.id
+from tester_name_map tnm
+where b.tester_id is null
+  and lower(b.tester) = tnm.lname;
+
 -- Link bugs to sessions
 alter table bugs add column if not exists session_id uuid references sessions(id) on delete set null;
 
