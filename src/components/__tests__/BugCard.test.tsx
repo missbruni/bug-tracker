@@ -47,7 +47,8 @@ describe('BugCard', () => {
 
   test('renders tester name in badge', () => {
     renderBugCard()
-    expect(screen.getByText('Alice')).toBeInTheDocument()
+    const elements = screen.getAllByText('Alice')
+    expect(elements.length).toBeGreaterThan(0)
   })
 
   test('displays page and category', () => {

@@ -32,7 +32,7 @@ export default function App() {
     setShowAddForm,
   } = useBugs()
 
-  const filters = useBugFilters(bugs, questions)
+  const filters = useBugFilters(bugs, questions, sessions)
   const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
 
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
@@ -132,7 +132,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
       />
 
       {/* Content */}
-      <div className={`max-w-screen-2xl mx-auto px-7 pt-4 pb-8 transition-opacity duration-150 ${isSearchPending ? 'opacity-60' : 'opacity-100'}`}>
+      <div className={`max-w-screen-2xl mx-auto px-4 sm:px-7 pt-4 pb-8 transition-opacity duration-150 ${isSearchPending ? 'opacity-60' : 'opacity-100'}`}>
         {showAddForm && (
           <AddBugForm
             onAdd={addBug}

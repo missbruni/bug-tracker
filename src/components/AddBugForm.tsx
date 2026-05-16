@@ -120,7 +120,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
   return (
     <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5" onPaste={handlePaste}>
       <h3 className="text-base font-bold text-slate-900 dark:text-gray-100 mb-3.5">Add New Bug</h3>
-      <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Bug title *"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
         <select value={selectedTesterId} onChange={(e) => setSelectedTesterId(e.target.value)}

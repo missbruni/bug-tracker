@@ -189,14 +189,14 @@ export default function SessionsListPage() {
 				}
 			/>
 
-			<div className="max-w-screen-lg mx-auto px-7 py-6">
+			<div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
 
 			{showCreate && (
 				<div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
 					<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">
 						Create Session
 					</h3>
-					<div className="grid grid-cols-2 gap-3 mb-3">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 						<input
 							value={newName}
 							onChange={(e) => setNewName(e.target.value)}
@@ -315,7 +315,7 @@ export default function SessionsListPage() {
 												)}
 											</div>
 										</div>
-										<div className="flex items-center gap-4 text-xs text-slate-500 dark:text-gray-500">
+										<div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-gray-500">
 											{session.date && (
 												<span className="flex items-center gap-1">
 													<Calendar size={12} />

@@ -183,7 +183,7 @@ export default function TesterManagementPage() {
         }
       />
 
-      <div className="max-w-screen-lg mx-auto px-7 py-6">
+      <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
 
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
@@ -277,7 +277,7 @@ export default function TesterManagementPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => toggleActive(tester)}
                   className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${

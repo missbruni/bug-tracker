@@ -136,7 +136,7 @@ export default function BugCard({
 				</button>
 				<button
 					onClick={() => setExpanded(!expanded)}
-					className="flex flex-1 items-center gap-3 px-2 py-3 text-left cursor-pointer min-w-0"
+					className="flex flex-1 items-center gap-2 sm:gap-3 px-2 py-3 text-left cursor-pointer min-w-0"
 				>
 					{expanded ? (
 						<ChevronDown
@@ -167,7 +167,7 @@ export default function BugCard({
 							{bug.device ? ` \u00b7 ${bug.device}` : ""}
 						</span>
 					</div>
-					<div className="flex items-center gap-3 shrink-0 ml-3">
+					<div className="hidden sm:flex items-center gap-3 shrink-0 ml-3">
 						{bug.attachments.length > 0 && (
 							<span className="flex items-center gap-1 text-xs text-slate-400 dark:text-gray-500">
 								<Paperclip size={12} />
@@ -294,6 +294,10 @@ export default function BugCard({
 							</a>
 						)}
 					</div>
+					{/* Mobile: show tester name inline */}
+					<span className="sm:hidden shrink-0 text-[11px] text-slate-400 dark:text-gray-500 ml-1 max-w-[80px] truncate">
+						{bug.tester}
+					</span>
 				</button>
 			</div>
 

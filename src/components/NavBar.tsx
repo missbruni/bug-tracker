@@ -38,78 +38,104 @@ export default function NavBar({
 	}, [activeIndex]);
 
 	return (
-		<nav className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 relative overflow-hidden">
-			{showBugs && <CrawlingBugs count={bugCount} />}
-			<div className="max-w-screen-2xl mx-auto px-7 flex items-center gap-6 relative z-10">
-				{/* Branding */}
-				<div className="flex items-center gap-3 py-3 shrink-0">
-					<h1
-						className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1"
-						style={{ fontFamily: "'Press Start 2P', cursive" }}
-					>
-						EVO{" "}
-						<button
-							onClick={onToggleBugs}
-							className={`transition-colors cursor-pointer ${showBugs ? "text-green-500 hover:text-green-600" : "text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400"}`}
-							title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
+		<>
+			{/* ─── Top Nav Bar ─── */}
+			<nav className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 relative overflow-hidden">
+				{showBugs && <CrawlingBugs count={bugCount} />}
+				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-4 sm:gap-6 relative z-10">
+					{/* Branding */}
+					<div className="flex items-center gap-3 py-3 shrink-0">
+						<h1
+							className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1"
+							style={{ fontFamily: "'Press Start 2P', cursive" }}
 						>
-							<Bug size={18} />
-						</button>{" "}
-						IBE
-					</h1>
-					<span className="hidden sm:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
-						Bug Catcher
-					</span>
+							EVO{" "}
+							<button
+								onClick={onToggleBugs}
+								className={`transition-colors cursor-pointer ${showBugs ? "text-green-500 hover:text-green-600" : "text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400"}`}
+								title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
+							>
+								<Bug size={18} />
+							</button>{" "}
+							IBE
+						</h1>
+						<span className="hidden sm:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
+							Bug Catcher
+						</span>
+					</div>
+					{/* Desktop Tabs — hidden on mobile */}
+					<div className="relative hidden sm:flex items-center gap-1">
+						{NAV_ITEMS.map(({ to, label, icon: Icon }, i) => {
+							const active = i === activeIndex;
+							return (
+								<Link
+									key={to}
+									to={to}
+									ref={(el) => { tabRefs.current[i] = el; }}
+									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 border-transparent transition-colors ${
+										active
+											? "text-blue-600 dark:text-blue-400"
+											: "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
+									}`}
+								>
+									<Icon size={14} />
+									{label}
+								</Link>
+							);
+						})}
+						{/* Sliding indicator */}
+						<div
+							className="absolute bottom-0 h-0.5 bg-blue-500 rounded-full transition-all duration-200 ease-out"
+							style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+						/>
+					</div>
+					{children && (
+						<div className="ml-auto flex items-center gap-2">
+							<button
+								onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
+								className="flex items-center gap-1.5 rounded-full border border-indigo-400 dark:border-amber-500 px-3 py-1 text-indigo-600 dark:text-amber-500 hover:bg-indigo-500/10 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
+								title="AI Assistant (⌘I)"
+							>
+								<Sparkles size={14} />
+								<span className="text-xs font-bold">AI</span>
+							</button>
+							{children}
+							{onOpenSettings && (
+								<button
+									onClick={onOpenSettings}
+									className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+									title="Settings"
+								>
+									<Settings size={18} />
+								</button>
+							)}
+						</div>
+					)}
 				</div>
-				{/* Tabs */}
-				<div className="relative flex items-center gap-1">
+			</nav>
+
+			{/* ─── Mobile Bottom Tab Bar ─── */}
+			<div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800">
+				<div className="flex items-center justify-around">
 					{NAV_ITEMS.map(({ to, label, icon: Icon }, i) => {
 						const active = i === activeIndex;
 						return (
 							<Link
 								key={to}
 								to={to}
-								ref={(el) => { tabRefs.current[i] = el; }}
-								className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 border-transparent transition-colors ${
+								className={`flex flex-col items-center gap-0.5 py-2 px-4 flex-1 text-center transition-colors ${
 									active
 										? "text-blue-600 dark:text-blue-400"
-										: "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
+										: "text-slate-400 dark:text-gray-500"
 								}`}
 							>
-								<Icon size={14} />
-								{label}
+								<Icon size={20} />
+								<span className="text-[10px] font-semibold">{label}</span>
 							</Link>
 						);
 					})}
-					{/* Sliding indicator */}
-					<div
-						className="absolute bottom-0 h-0.5 bg-blue-500 rounded-full transition-all duration-200 ease-out"
-						style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-					/>
 				</div>
-				{children && (
-					<div className="ml-auto flex items-center gap-2">
-						<button
-							onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
-							className="flex items-center gap-1.5 rounded-full border border-indigo-400 dark:border-amber-500 px-3 py-1 text-indigo-600 dark:text-amber-500 hover:bg-indigo-500/10 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
-							title="AI Assistant (⌘I)"
-						>
-							<Sparkles size={14} />
-							<span className="text-xs font-bold">AI</span>
-						</button>
-						{children}
-						{onOpenSettings && (
-							<button
-								onClick={onOpenSettings}
-								className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
-								title="Settings"
-							>
-								<Settings size={18} />
-							</button>
-						)}
-					</div>
-				)}
 			</div>
-		</nav>
+		</>
 	);
 }
