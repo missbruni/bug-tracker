@@ -3,13 +3,15 @@ import PinGate from "./PinGate";
 
 interface LoginScreenProps {
   teamPin: string | undefined;
-  onPinUnlock: () => void;
+  godPin: string | undefined;
+  onPinUnlock: (accessLevel: "team" | "god") => void;
   error: string | null;
   allowedEmailDomain: string;
 }
 
 export default function LoginScreen({
   teamPin,
+  godPin,
   onPinUnlock,
   error,
   allowedEmailDomain,
@@ -49,7 +51,7 @@ export default function LoginScreen({
           </p>
         )}
 
-        <PinGate teamPin={teamPin} onUnlock={onPinUnlock} />
+        <PinGate teamPin={teamPin} godPin={godPin} onUnlock={onPinUnlock} />
       </div>
     </div>
   );

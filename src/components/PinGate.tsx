@@ -1,19 +1,22 @@
 import { useState, type FormEvent } from "react";
 
+type PinAccessLevel = "team" | "god";
+
 interface PinGateProps {
   teamPin: string | undefined;
-  onUnlock: () => void;
+  godPin: string | undefined;
+  onUnlock: (accessLevel: PinAccessLevel) => void;
 }
 
-export default function PinGate({ teamPin, onUnlock }: PinGateProps) {
+export default function PinGate({ teamPin, godPin, onUnlock }: PinGateProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
 
-  if (!teamPin) {
+  if (!teamPin && !godPin) {
     return (
       <div className="mt-6 border-t border-slate-200 dark:border-gray-800 pt-5">
         <p role="alert" className="text-xs text-amber-600 dark:text-amber-400 text-center">
-          Temporary PIN access is unavailable because <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">VITE_TEAM_PIN</code> is not configured.
+          Temporary PIN access is unavailable because <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">VITE_TEAM_PIN</code> and <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">VITE_GOD_PIN</code> are not configured.
         </p>
       </div>
     );
@@ -21,11 +24,19 @@ export default function PinGate({ teamPin, onUnlock }: PinGateProps) {
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const enteredPin = pin.trim();
 
-    if (pin === teamPin) {
+    if (godPin && enteredPin === godPin) {
       setError(false);
       setPin("");
-      onUnlock();
+      onUnlock("god");
+      return;
+    }
+
+    if (teamPin && enteredPin === teamPin) {
+      setError(false);
+      setPin("");
+      onUnlock("team");
       return;
     }
 
@@ -36,7 +47,7 @@ export default function PinGate({ teamPin, onUnlock }: PinGateProps) {
   return (
     <div className="mt-6 border-t border-slate-200 dark:border-gray-800 pt-5 text-left">
       <p className="text-xs text-slate-500 dark:text-gray-400 mb-3 text-center">
-        Temporary access: enter team PIN
+        Temporary access: enter team or admin PIN
       </p>
       <form onSubmit={submit} className="space-y-3">
         <input

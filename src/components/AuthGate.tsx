@@ -4,7 +4,10 @@ import { useAuth } from "../lib/useAuth";
 import LoginScreen from "./LoginScreen";
 
 const TEAM_PIN = (import.meta.env.VITE_TEAM_PIN as string | undefined)?.trim();
+const GOD_PIN = (import.meta.env.VITE_GOD_PIN as string | undefined)?.trim();
 const PIN_SESSION_KEY = "bug-tracker-auth";
+const PIN_ROLE_SESSION_KEY = "bug-tracker-auth-role";
+type PinAccessLevel = "team" | "god";
 
 interface AuthGateProps {
   children: ReactNode;
@@ -13,13 +16,19 @@ interface AuthGateProps {
 export default function AuthGate({ children }: AuthGateProps) {
   const [pinUnlocked, setPinUnlocked] = useState(() => {
     if (typeof window === "undefined") return false;
-    return sessionStorage.getItem(PIN_SESSION_KEY) === "true";
+    const role = sessionStorage.getItem(PIN_ROLE_SESSION_KEY);
+    return (
+      sessionStorage.getItem(PIN_SESSION_KEY) === "true" ||
+      role === "team" ||
+      role === "god"
+    );
   });
 
   useEffect(() => {
     const handlePinLock = () => {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(PIN_SESSION_KEY);
+        sessionStorage.removeItem(PIN_ROLE_SESSION_KEY);
       }
       setPinUnlocked(false);
     };
@@ -36,9 +45,10 @@ export default function AuthGate({ children }: AuthGateProps) {
     clearAuthError,
   } = useAuth();
 
-  const handlePinUnlock = () => {
+  const handlePinUnlock = (accessLevel: PinAccessLevel) => {
     if (typeof window !== "undefined") {
       sessionStorage.setItem(PIN_SESSION_KEY, "true");
+      sessionStorage.setItem(PIN_ROLE_SESSION_KEY, accessLevel);
     }
     clearAuthError();
     setPinUnlocked(true);
@@ -78,6 +88,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
   return (
     <LoginScreen
       teamPin={TEAM_PIN}
+      godPin={GOD_PIN}
       onPinUnlock={handlePinUnlock}
       error={authError}
       allowedEmailDomain={allowedEmailDomain}
