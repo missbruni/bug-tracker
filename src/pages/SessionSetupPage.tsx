@@ -339,11 +339,11 @@ export default function SessionSetupPage() {
   const st = SESSION_STATUS_STYLES[session.status] || SESSION_STATUS_STYLES.draft
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-7 py-6">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-7 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             {editingName ? (
               <input
                 value={editNameValue}

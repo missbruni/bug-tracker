@@ -256,10 +256,10 @@ export default function SessionsListPage() {
 								to={`/sessions/${session.id}`}
 								className="block rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
 							>
-								<div className="flex items-center gap-3">
+								<div className="flex flex-col sm:flex-row sm:items-center gap-3">
 									<div className="flex-1 min-w-0">
 										<div className="flex items-center gap-2 mb-1">
-											<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate">
+											<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate sm:truncate break-words sm:break-normal whitespace-normal sm:whitespace-nowrap">
 												{session.name}
 											</h3>
 											<div className="relative">
@@ -337,7 +337,7 @@ export default function SessionsListPage() {
 											</span>
 										</div>
 									</div>
-									<div className="flex items-center gap-2 shrink-0">
+									<div className="flex items-center gap-2 sm:shrink-0">
 										<button
 											onClick={(e) => {
 												e.preventDefault();

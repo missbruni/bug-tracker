@@ -2,6 +2,7 @@ import { type ReactNode, useRef, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bug, Presentation, Users, Settings, Sparkles } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
+import { playBugSound } from "../lib/audio";
 
 const NAV_ITEMS = [
 	{ to: "/", label: "Bugs", icon: Bug },
@@ -51,7 +52,10 @@ export default function NavBar({
 						>
 							EVO{" "}
 							<button
-								onClick={onToggleBugs}
+								onClick={() => {
+									playBugSound();
+									onToggleBugs?.();
+								}}
 								className={`transition-colors cursor-pointer ${showBugs ? "text-green-500 hover:text-green-600" : "text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400"}`}
 								title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
 							>

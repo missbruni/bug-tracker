@@ -1,8 +1,25 @@
+let sharedAudioContext: AudioContext | null = null
+
+function getAudioContext(): AudioContext | null {
+  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioCtx) return null
+
+  if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+    sharedAudioContext = new AudioCtx()
+  }
+
+  if (sharedAudioContext.state === 'suspended') {
+    void sharedAudioContext.resume().catch(() => {})
+  }
+
+  return sharedAudioContext
+}
+
 /** Short tactile click sound for theme toggle — like a physical switch */
 export function playToggleSound(_isDark: boolean): void {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const ctx = new AudioCtx()
+    const ctx = getAudioContext()
+    if (!ctx) return
     const t = ctx.currentTime
 
     // Noise burst — the core of a "click"
@@ -36,8 +53,8 @@ export function playToggleSound(_isDark: boolean): void {
 /** Short sparkly chime for AI assistant toggle */
 export function playAiSound(opening: boolean): void {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const ctx = new AudioCtx()
+    const ctx = getAudioContext()
+    if (!ctx) return
     const t = ctx.currentTime
 
     // Two-note sparkle — ascending when opening, descending when closing
@@ -63,8 +80,8 @@ export function playAiSound(opening: boolean): void {
 
 export function playTickSound(): void {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const ctx = new AudioCtx()
+    const ctx = getAudioContext()
+    if (!ctx) return
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.connect(gain)
@@ -75,5 +92,40 @@ export function playTickSound(): void {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12)
     osc.start(ctx.currentTime)
     osc.stop(ctx.currentTime + 0.12)
+  } catch { /* ignore audio errors */ }
+}
+
+export function playBugSound(): void {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const t = ctx.currentTime
+
+    const masterGain = ctx.createGain()
+    masterGain.gain.setValueAtTime(0.09, t)
+    masterGain.connect(ctx.destination)
+
+    const chirps: Array<[number, number, number]> = [
+      [820, 980, 0],
+      [980, 1240, 0.06],
+    ]
+
+    chirps.forEach(([startFreq, endFreq, offset]) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(startFreq, t + offset)
+      osc.frequency.exponentialRampToValueAtTime(endFreq, t + offset + 0.08)
+
+      gain.gain.setValueAtTime(0.0001, t + offset)
+      gain.gain.exponentialRampToValueAtTime(0.08, t + offset + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.12)
+
+      osc.connect(gain)
+      gain.connect(masterGain)
+      osc.start(t + offset)
+      osc.stop(t + offset + 0.12)
+    })
   } catch { /* ignore audio errors */ }
 }

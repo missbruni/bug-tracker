@@ -28,12 +28,12 @@ export default function PublishMenu({ publishing, publishingMode, backlogUrl, on
   }, [menuOpen])
 
   return (
-    <div className="relative" ref={menuRef}>
-      <div className="flex" ref={splitRef}>
+    <div className="relative w-full sm:w-auto" ref={menuRef}>
+      <div className="flex w-full" ref={splitRef}>
         <button
           onClick={() => onPublish(false)}
           disabled={publishing}
-          className={`flex items-center gap-1.5 border border-r-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${menuOpen ? 'rounded-tl-md' : 'rounded-l-md'}`}
+          className={`flex flex-1 items-center justify-center gap-1.5 border border-r-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${menuOpen ? 'rounded-tl-md' : 'rounded-l-md'}`}
         >
           <ExternalLink size={12} />
           {publishingMode === 'devin' ? 'Publishing + Devin...' : publishing ? 'Publishing...' : backlogUrl ? 'Re-publish' : 'Publish to Backlog'}

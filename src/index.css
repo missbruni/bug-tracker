@@ -6,6 +6,16 @@
   --navbar-h: 49px;
 }
 
+@keyframes slideUp {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
 @keyframes icon-rise {
   0% {
     transform: scale(0) rotate(-180deg);
