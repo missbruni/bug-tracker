@@ -6,6 +6,32 @@ interface ActionContext {
   onSessionCreated: (id: string) => void
 }
 
+// ─── Bug matching helper ─────────────────────────────────────
+async function findBugByQuery(query: string): Promise<{ id: string; title: string } | null> {
+  if (!supabase || !query.trim()) return null
+  const q = query.trim()
+
+  // Try exact ID match first (e.g. "HI-03", "CRT-01")
+  if (/^[A-Z]{2,3}-\d+$/i.test(q)) {
+    const { data } = await supabase.from('bugs').select('id, title').ilike('id', q).limit(1)
+    if (data?.length) return data[0]
+  }
+
+  // Try case-insensitive title contains
+  const { data: titleMatch } = await supabase
+    .from('bugs')
+    .select('id, title')
+    .ilike('title', `%${q}%`)
+    .limit(1)
+  if (titleMatch?.length) return titleMatch[0]
+
+  // Try exact ID match as fallback (user might pass lowercase)
+  const { data: idFallback } = await supabase.from('bugs').select('id, title').ilike('id', `%${q}%`).limit(1)
+  if (idFallback?.length) return idFallback[0]
+
+  return null
+}
+
 export async function executeSessionActionWithSession(
   action: SessionAction,
   ctx: ActionContext,
@@ -219,6 +245,180 @@ export async function executeSessionActionWithSession(
       }
       window.dispatchEvent(new CustomEvent('sessionDeleted', { detail: { sessionId: sid } }))
       return { action: 'delete_session', success: true, message: `Deleted session "${sessions[0].name}" and all its data` }
+    }
+
+    // ─── Bug Actions ──────────────────────────────────────────
+
+    case 'edit_bug': {
+      const bugQuery = action.bug?.trim()
+      if (!bugQuery) return { action: 'edit_bug', success: false, message: 'Bug reference required' }
+      const bug = await findBugByQuery(bugQuery)
+      if (!bug) return { action: 'edit_bug', success: false, message: `Bug "${bugQuery}" not found` }
+
+      const updates: Record<string, unknown> = {}
+      if (action.title) updates.title = action.title
+      if (action.description) updates.description = action.description
+      if (action.severity) updates.severity = action.severity
+      if (action.tester) {
+        updates.tester = action.tester
+        // Try to resolve tester_id
+        const { data: testerMatch } = await supabase.from('testers').select('id').ilike('name', action.tester).limit(1)
+        if (testerMatch?.length) updates.tester_id = testerMatch[0].id
+      }
+      if (action.device) updates.device = action.device
+      if (action.page) updates.page = action.page
+      if (action.category !== undefined) updates.category = action.category || null
+
+      if (Object.keys(updates).length === 0) return { action: 'edit_bug', success: false, message: 'No fields to update' }
+
+      const { error } = await supabase.from('bugs').update(updates).eq('id', bug.id)
+      if (error) return { action: 'edit_bug', success: false, message: error.message }
+      const fields = Object.keys(updates).join(', ')
+      return { action: 'edit_bug', success: true, message: `Updated ${bug.id} "${bug.title}" — changed: ${fields}` }
+    }
+
+    case 'resolve_bug': {
+      const bugQuery = action.bug?.trim()
+      if (!bugQuery) return { action: 'resolve_bug', success: false, message: 'Bug reference required' }
+      const bug = await findBugByQuery(bugQuery)
+      if (!bug) return { action: 'resolve_bug', success: false, message: `Bug "${bugQuery}" not found` }
+      const { error } = await supabase.from('bugs').update({ reviewed: true }).eq('id', bug.id)
+      if (error) return { action: 'resolve_bug', success: false, message: error.message }
+      return { action: 'resolve_bug', success: true, message: `Marked ${bug.id} "${bug.title}" as completed` }
+    }
+
+    case 'reopen_bug': {
+      const bugQuery = action.bug?.trim()
+      if (!bugQuery) return { action: 'reopen_bug', success: false, message: 'Bug reference required' }
+      const bug = await findBugByQuery(bugQuery)
+      if (!bug) return { action: 'reopen_bug', success: false, message: `Bug "${bugQuery}" not found` }
+      const { error } = await supabase.from('bugs').update({ reviewed: false }).eq('id', bug.id)
+      if (error) return { action: 'reopen_bug', success: false, message: error.message }
+      return { action: 'reopen_bug', success: true, message: `Reopened ${bug.id} "${bug.title}" — it's active again` }
+    }
+
+    case 'delete_bug': {
+      const bugQuery = action.bug?.trim()
+      if (!bugQuery) return { action: 'delete_bug', success: false, message: 'Bug reference required' }
+      const bug = await findBugByQuery(bugQuery)
+      if (!bug) return { action: 'delete_bug', success: false, message: `Bug "${bugQuery}" not found` }
+      // Delete comments and attachments first
+      await supabase.from('comments').delete().eq('bug_id', bug.id)
+      await supabase.from('attachments').delete().eq('bug_id', bug.id)
+      const { error } = await supabase.from('bugs').delete().eq('id', bug.id)
+      if (error) return { action: 'delete_bug', success: false, message: error.message }
+      return { action: 'delete_bug', success: true, message: `Permanently deleted bug ${bug.id} "${bug.title}"` }
+    }
+
+    case 'add_comment': {
+      const bugQuery = action.bug?.trim()
+      const comment = action.comment?.trim()
+      if (!bugQuery) return { action: 'add_comment', success: false, message: 'Bug reference required' }
+      if (!comment) return { action: 'add_comment', success: false, message: 'Comment text required' }
+      const bug = await findBugByQuery(bugQuery)
+      if (!bug) return { action: 'add_comment', success: false, message: `Bug "${bugQuery}" not found` }
+      const { error } = await supabase.from('comments').insert({
+        bug_id: bug.id,
+        text: comment,
+        time: new Date().toLocaleString(),
+      })
+      if (error) return { action: 'add_comment', success: false, message: error.message }
+      return { action: 'add_comment', success: true, message: `Added comment to ${bug.id} "${bug.title}"` }
+    }
+
+    // ─── Scenario Actions ─────────────────────────────────────
+
+    case 'add_scenario': {
+      if (!sessionId) return { action: 'add_scenario', success: false, message: 'No session in context — create or select a session first' }
+      const letter = action.letter?.trim().toUpperCase()
+      const title = action.title?.trim()
+      if (!letter || !title) return { action: 'add_scenario', success: false, message: 'Scenario letter and title are required' }
+
+      // Check if letter already exists
+      const { data: existing } = await supabase.from('scenarios').select('id').eq('session_id', sessionId).ilike('letter', letter).limit(1)
+      if (existing?.length) return { action: 'add_scenario', success: false, message: `Scenario "${letter}" already exists in this session` }
+
+      // Get next sort order
+      const { count } = await supabase.from('scenarios').select('*', { count: 'exact', head: true }).eq('session_id', sessionId)
+      const { error } = await supabase.from('scenarios').insert({
+        session_id: sessionId,
+        letter,
+        title,
+        description: action.description || null,
+        device_requirement: action.device_requirement || null,
+        sort_order: (count ?? 0) + 1,
+      })
+      if (error) return { action: 'add_scenario', success: false, message: error.message }
+      return { action: 'add_scenario', success: true, sessionId, message: `Created scenario ${letter}: "${title}"` }
+    }
+
+    case 'edit_scenario': {
+      if (!sessionId) return { action: 'edit_scenario', success: false, message: 'No session in context' }
+      const letter = action.letter?.trim().toUpperCase()
+      if (!letter) return { action: 'edit_scenario', success: false, message: 'Scenario letter required' }
+
+      const { data: scenarios } = await supabase.from('scenarios').select('id, letter, title').eq('session_id', sessionId).ilike('letter', letter).limit(1)
+      if (!scenarios?.length) return { action: 'edit_scenario', success: false, message: `Scenario "${letter}" not found in this session` }
+
+      const updates: Record<string, unknown> = {}
+      if (action.title) updates.title = action.title
+      if (action.description !== undefined) updates.description = action.description || null
+      if (action.device_requirement !== undefined) updates.device_requirement = action.device_requirement || null
+
+      if (Object.keys(updates).length === 0) return { action: 'edit_scenario', success: false, message: 'No fields to update' }
+
+      const { error } = await supabase.from('scenarios').update(updates).eq('id', scenarios[0].id)
+      if (error) return { action: 'edit_scenario', success: false, message: error.message }
+      const fields = Object.keys(updates).join(', ')
+      return { action: 'edit_scenario', success: true, sessionId, message: `Updated scenario ${scenarios[0].letter} — changed: ${fields}` }
+    }
+
+    // ─── Session Status ───────────────────────────────────────
+
+    case 'set_session_status': {
+      const status = action.status?.trim().toLowerCase()
+      if (!status || !['draft', 'active', 'completed'].includes(status)) {
+        return { action: 'set_session_status', success: false, message: 'Status must be "draft", "active", or "completed"' }
+      }
+
+      let targetId = sessionId
+      let targetName = 'current session'
+
+      if (action.name?.trim()) {
+        const { data: sessions } = await supabase.from('sessions').select('id, name').ilike('name', action.name.trim()).limit(1)
+        if (!sessions?.length) return { action: 'set_session_status', success: false, message: `Session "${action.name}" not found` }
+        targetId = sessions[0].id
+        targetName = sessions[0].name
+      }
+
+      if (!targetId) return { action: 'set_session_status', success: false, message: 'No session in context — specify a session name' }
+
+      const { error } = await supabase.from('sessions').update({ status }).eq('id', targetId)
+      if (error) return { action: 'set_session_status', success: false, message: error.message }
+      return { action: 'set_session_status', success: true, sessionId: targetId, message: `Session "${targetName}" is now ${status}` }
+    }
+
+    // ─── Tester Editing ───────────────────────────────────────
+
+    case 'edit_tester': {
+      const testerName = action.tester?.trim()
+      if (!testerName) return { action: 'edit_tester', success: false, message: 'Tester name required' }
+
+      const { data: matchedTesters } = await supabase.from('testers').select('id, name, devices').ilike('name', testerName).limit(1)
+      if (!matchedTesters?.length) return { action: 'edit_tester', success: false, message: `Tester "${testerName}" not found` }
+
+      const tester = matchedTesters[0]
+      const updates: Record<string, unknown> = {}
+
+      if (action.name && action.name.trim() !== tester.name) updates.name = action.name.trim()
+      if (action.devices) updates.devices = action.devices
+
+      if (Object.keys(updates).length === 0) return { action: 'edit_tester', success: false, message: 'No changes to make' }
+
+      const { error } = await supabase.from('testers').update(updates).eq('id', tester.id)
+      if (error) return { action: 'edit_tester', success: false, message: error.message }
+      const fields = Object.keys(updates).join(', ')
+      return { action: 'edit_tester', success: true, message: `Updated tester "${tester.name}" — changed: ${fields}` }
     }
 
     default:

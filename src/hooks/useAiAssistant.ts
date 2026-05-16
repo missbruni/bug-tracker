@@ -55,6 +55,25 @@ function getPendingConfirmation(action: SessionAction): PendingConfirmation | nu
     }
   }
 
+  if (action.action === 'delete_bug') {
+    const bug = action.bug?.trim()
+    if (!bug) return null
+    return {
+      action,
+      phrase: `confirm delete bug ${bug.toLowerCase()}`,
+      description: `deleting bug "${bug}"`,
+    }
+  }
+
+  if (action.action === 'set_session_status' && action.status === 'completed') {
+    const name = action.name?.trim() || 'current session'
+    return {
+      action,
+      phrase: `confirm complete session ${name.toLowerCase()}`,
+      description: `marking session "${name}" as completed (this locks it permanently)`,
+    }
+  }
+
   return null
 }
 
@@ -167,6 +186,34 @@ export default function useAiAssistant(open: boolean) {
         if (currentTester?.name) {
           parts.push(`The current user is "${currentTester.name}" (tester ID: ${lastTesterId}). Address them by name when appropriate.`)
         }
+      }
+
+      // Recent active bugs for natural language matching
+      const { data: activeBugs } = await supabase
+        .from('bugs')
+        .select('id, title, severity, tester, device, page, category')
+        .eq('reviewed', false)
+        .order('created_at', { ascending: false })
+        .limit(25)
+      if (activeBugs?.length) {
+        const bugList = activeBugs.map((b: { id: string; title: string; severity: string; tester: string; device: string; page: string }) =>
+          `${b.id}: ${b.title} [${b.severity}] (tester: ${b.tester}, device: ${b.device}, page: ${b.page})`
+        )
+        parts.push(`Active bugs (${activeBugs.length}):\n${bugList.join('\n')}`)
+      }
+
+      // Recent completed bugs
+      const { data: completedBugs } = await supabase
+        .from('bugs')
+        .select('id, title, severity, tester')
+        .eq('reviewed', true)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      if (completedBugs?.length) {
+        const bugList = completedBugs.map((b: { id: string; title: string; severity: string; tester: string }) =>
+          `${b.id}: ${b.title} [${b.severity}] (tester: ${b.tester})`
+        )
+        parts.push(`Recent completed bugs (${completedBugs.length}):\n${bugList.join('\n')}`)
       }
 
       setSessionContext(parts.join('\n\n'))
