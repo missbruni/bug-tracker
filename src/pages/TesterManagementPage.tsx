@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, X, Check, Pencil } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
-import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import type { Tester } from '../types'
 
@@ -12,12 +11,20 @@ export default function TesterManagementPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDevices, setNewDevices] = useState<string[]>([])
+  const [addingTester, setAddingTester] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editDevices, setEditDevices] = useState<string[]>([])
-  const [deleteTarget, setDeleteTarget] = useState<Tester | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [pendingDeleteTesterId, setPendingDeleteTesterId] = useState<string | null>(null)
+  const [deletingTesterId, setDeletingTesterId] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
   const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [toast])
 
   const load = useCallback(async () => {
     if (!supabase) return
@@ -29,16 +36,21 @@ export default function TesterManagementPage() {
   useEffect(() => { load() }, [load])
 
   const addTester = async () => {
-    if (!supabase || !newName.trim()) return
-    const { data, error } = await supabase
-      .from('testers')
-      .insert({ name: newName.trim(), devices: newDevices, active: true })
-      .select()
-    if (!error && data?.[0]) {
-      setTesters(prev => [...prev, data[0] as Tester].sort((a, b) => a.name.localeCompare(b.name)))
-      setNewName('')
-      setNewDevices([])
-      setShowAdd(false)
+    if (!supabase || !newName.trim() || addingTester) return
+    setAddingTester(true)
+    try {
+      const { data, error } = await supabase
+        .from('testers')
+        .insert({ name: newName.trim(), devices: newDevices, active: true })
+        .select()
+      if (!error && data?.[0]) {
+        setTesters(prev => [...prev, data[0] as Tester].sort((a, b) => a.name.localeCompare(b.name)))
+        setNewName('')
+        setNewDevices([])
+        setShowAdd(false)
+      }
+    } finally {
+      setAddingTester(false)
     }
   }
 
@@ -48,9 +60,13 @@ export default function TesterManagementPage() {
     if (!error) setTesters(prev => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
   }
 
-  const confirmDeleteTester = async () => {
-    if (!supabase || !deleteTarget) return
-    const tester = deleteTarget
+  const confirmDeleteTester = async (tester: Tester) => {
+    if (!supabase) {
+      setPendingDeleteTesterId(null)
+      return
+    }
+    if (deletingTesterId) return
+    setDeletingTesterId(tester.id)
 
     const { count: assignmentCount, error: assignmentErr } = await supabase
       .from('assignments')
@@ -58,7 +74,9 @@ export default function TesterManagementPage() {
       .eq('tester_id', tester.id)
 
     if (assignmentErr) {
-      setDeleteError(`Failed to verify assignments: ${assignmentErr.message}`)
+      setToast({ message: `Failed to verify assignments: ${assignmentErr.message}`, tone: 'error' })
+      setDeletingTesterId(null)
+      setPendingDeleteTesterId(null)
       return
     }
 
@@ -70,7 +88,9 @@ export default function TesterManagementPage() {
 
     if (bugByIdRes.error) {
       if (!bugByIdRes.error.message.toLowerCase().includes('tester_id')) {
-        setDeleteError(`Failed to verify bug dependencies: ${bugByIdRes.error.message}`)
+        setToast({ message: `Failed to verify bug dependencies: ${bugByIdRes.error.message}`, tone: 'error' })
+        setDeletingTesterId(null)
+        setPendingDeleteTesterId(null)
         return
       }
 
@@ -80,7 +100,9 @@ export default function TesterManagementPage() {
         .ilike('tester', tester.name)
 
       if (legacyBugRes.error) {
-        setDeleteError(`Failed to verify bug dependencies: ${legacyBugRes.error.message}`)
+        setToast({ message: `Failed to verify bug dependencies: ${legacyBugRes.error.message}`, tone: 'error' })
+        setDeletingTesterId(null)
+        setPendingDeleteTesterId(null)
         return
       }
 
@@ -93,18 +115,23 @@ export default function TesterManagementPage() {
       const reasons: string[] = []
       if ((assignmentCount || 0) > 0) reasons.push(`${assignmentCount} assignment(s)`)
       if (bugCount > 0) reasons.push(`${bugCount} bug(s)`)
-      setDeleteError(`Can't delete ${tester.name} — linked to ${reasons.join(' and ')}. Deactivate them instead.`)
+      setToast({ message: `Can't delete ${tester.name} — linked to ${reasons.join(' and ')}. Deactivate instead.`, tone: 'error' })
+      setDeletingTesterId(null)
+      setPendingDeleteTesterId(null)
       return
     }
 
     const { error } = await supabase.from('testers').delete().eq('id', tester.id)
     if (error) {
-      setDeleteError(`Failed to delete tester: ${error.message}`)
+      setToast({ message: `Failed to delete tester: ${error.message}`, tone: 'error' })
+      setDeletingTesterId(null)
+      setPendingDeleteTesterId(null)
       return
     }
     setTesters(prev => prev.filter(t => t.id !== tester.id))
-    setDeleteTarget(null)
-    setDeleteError(null)
+    setDeletingTesterId(null)
+    setPendingDeleteTesterId(null)
+    setToast({ message: `${tester.name} deleted.`, tone: 'success' })
   }
 
   const startEdit = (tester: Tester) => {
@@ -184,13 +211,14 @@ export default function TesterManagementPage() {
             ))}
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setShowAdd(false); setNewName(''); setNewDevices([]) }}
-              className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+            <button onClick={() => { if (addingTester) return; setShowAdd(false); setNewName(''); setNewDevices([]) }}
+              disabled={addingTester}
+              className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer">
               Cancel
             </button>
-            <button onClick={addTester} disabled={!newName.trim()}
+            <button onClick={addTester} disabled={!newName.trim() || addingTester}
               className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default">
-              Add
+              {addingTester ? 'Adding...' : 'Add'}
             </button>
           </div>
         </div>
@@ -210,7 +238,7 @@ export default function TesterManagementPage() {
               tester.active
                 ? 'border-slate-200 dark:border-gray-700'
                 : 'border-slate-200 dark:border-gray-800 opacity-50'
-            }`}
+            } ${deletingTesterId === tester.id ? 'opacity-50' : ''}`}
           >
             {editingId === tester.id ? (
               <div>
@@ -277,25 +305,51 @@ export default function TesterManagementPage() {
                   className="text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer p-1">
                   <Pencil size={14} />
                 </button>
-                <button onClick={() => { setDeleteTarget(tester); setDeleteError(null) }}
-                  className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer p-1">
+                <button
+                  onClick={() => {
+                    if (deletingTesterId) return
+                    setPendingDeleteTesterId(tester.id)
+                  }}
+                  disabled={deletingTesterId === tester.id}
+                  className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer p-1 disabled:opacity-60 disabled:cursor-default"
+                >
                   <Trash2 size={14} />
                 </button>
+                {pendingDeleteTesterId === tester.id && (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-red-500 dark:text-red-400">
+                    <span>Confirm?</span>
+                    {deletingTesterId === tester.id ? (
+                      <span className="text-slate-400 dark:text-gray-500">Deleting...</span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => { void confirmDeleteTester(tester) }}
+                          className="rounded p-0.5 text-green-500 dark:text-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                          title="Confirm delete"
+                        >
+                          <Check size={12} />
+                        </button>
+                        <button
+                          onClick={() => setPendingDeleteTesterId(null)}
+                          className="rounded p-0.5 text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                          title="Cancel delete"
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {deleteTarget && (
-        <DeleteConfirmModal
-          title="Delete tester?"
-          description={`This will permanently delete "${deleteTarget.name}". This action cannot be undone.`}
-          confirmToken={deleteTarget.name}
-          onCancel={() => { setDeleteTarget(null); setDeleteError(null) }}
-          onConfirm={confirmDeleteTester}
-          error={deleteError}
-        />
+      {toast && (
+        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${toast.tone === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {toast.message}
+        </div>
       )}
       </div>
     </>

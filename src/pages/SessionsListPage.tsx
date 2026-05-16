@@ -33,6 +33,8 @@ export default function SessionsListPage() {
 		useState<Session | null>(null);
 	const [deleteConfirmText, setDeleteConfirmText] = useState("");
 	const [search, setSearch] = useState("");
+	const [creatingSession, setCreatingSession] = useState(false);
+	const [deletingSession, setDeletingSession] = useState(false);
 
 	const load = useCallback(async () => {
 		if (!supabase) return;
@@ -86,19 +88,24 @@ export default function SessionsListPage() {
 	}, [load]);
 
 	const createSession = async () => {
-		if (!supabase || !newName.trim()) return;
-		const { data, error } = await supabase
-			.from("sessions")
-			.insert({ name: newName.trim(), date: newDate || null, status: "draft" })
-			.select();
-		if (!error && data?.[0]) {
-			setSessions((prev) => [
-				{ ...data[0], scenario_count: 0, assignment_count: 0 } as Session,
-				...prev,
-			]);
-			setNewName("");
-			setNewDate("");
-			setShowCreate(false);
+		if (!supabase || !newName.trim() || creatingSession) return;
+		setCreatingSession(true);
+		try {
+			const { data, error } = await supabase
+				.from("sessions")
+				.insert({ name: newName.trim(), date: newDate || null, status: "draft" })
+				.select();
+			if (!error && data?.[0]) {
+				setSessions((prev) => [
+					{ ...data[0], scenario_count: 0, assignment_count: 0 } as Session,
+					...prev,
+				]);
+				setNewName("");
+				setNewDate("");
+				setShowCreate(false);
+			}
+		} finally {
+			setCreatingSession(false);
 		}
 	};
 
@@ -122,16 +129,21 @@ export default function SessionsListPage() {
 	};
 
 	const deleteSession = async () => {
-		if (!supabase || !deleteConfirmSession) return;
-		const id = deleteConfirmSession.id;
-		// Delete related data first, then the session
-		await supabase.from("assignments").delete().eq("session_id", id);
-		await supabase.from("scenarios").delete().eq("session_id", id);
-		await supabase.from("session_feedback").delete().eq("session_id", id);
-		const { error } = await supabase.from("sessions").delete().eq("id", id);
-		if (!error) setSessions((prev) => prev.filter((s) => s.id !== id));
-		setDeleteConfirmSession(null);
-		setDeleteConfirmText("");
+		if (!supabase || !deleteConfirmSession || deletingSession) return;
+		setDeletingSession(true);
+		try {
+			const id = deleteConfirmSession.id;
+			// Delete related data first, then the session
+			await supabase.from("assignments").delete().eq("session_id", id);
+			await supabase.from("scenarios").delete().eq("session_id", id);
+			await supabase.from("session_feedback").delete().eq("session_id", id);
+			const { error } = await supabase.from("sessions").delete().eq("id", id);
+			if (!error) setSessions((prev) => prev.filter((s) => s.id !== id));
+			setDeleteConfirmSession(null);
+			setDeleteConfirmText("");
+		} finally {
+			setDeletingSession(false);
+		}
 	};
 
 	const confirmComplete = async () => {
@@ -203,20 +215,22 @@ export default function SessionsListPage() {
 					<div className="flex gap-2 justify-end">
 						<button
 							onClick={() => {
+								if (creatingSession) return;
 								setShowCreate(false);
 								setNewName("");
 								setNewDate("");
 							}}
-							className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+							disabled={creatingSession}
+							className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
 						>
 							Cancel
 						</button>
 						<button
 							onClick={createSession}
-							disabled={!newName.trim()}
+							disabled={!newName.trim() || creatingSession}
 							className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
 						>
-							Create
+							{creatingSession ? "Creating..." : "Create"}
 						</button>
 					</div>
 				</div>
@@ -422,8 +436,10 @@ export default function SessionsListPage() {
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
 					onClick={() => {
+						if (deletingSession) return;
 						setDeleteConfirmSession(null);
 						setDeleteConfirmText("");
+						setDeletingSession(false);
 					}}
 				>
 					<div
@@ -453,19 +469,22 @@ export default function SessionsListPage() {
 						<div className="flex gap-2 justify-end">
 							<button
 								onClick={() => {
+									if (deletingSession) return;
 									setDeleteConfirmSession(null);
 									setDeleteConfirmText("");
+									setDeletingSession(false);
 								}}
-								className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+								disabled={deletingSession}
+								className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default cursor-pointer transition-colors"
 							>
 								Cancel
 							</button>
 							<button
 								onClick={deleteSession}
-								disabled={deleteConfirmText !== deleteConfirmSession.name}
+								disabled={deleteConfirmText !== deleteConfirmSession.name || deletingSession}
 								className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
 							>
-								Delete permanently
+								{deletingSession ? "Deleting..." : "Delete permanently"}
 							</button>
 						</div>
 					</div>

@@ -101,4 +101,21 @@ describe('BugCard', () => {
     // Description should now be visible
     expect(screen.getByText('Detailed steps to reproduce the issue')).toBeInTheDocument()
   })
+
+  test('shows inline confirm when row trash icon is clicked', () => {
+    renderBugCard()
+    fireEvent.click(screen.getByTitle('Delete bug'))
+
+    expect(screen.getByText('Confirm?')).toBeInTheDocument()
+    expect(screen.getByTitle('Confirm delete')).toBeInTheDocument()
+    expect(screen.getByTitle('Cancel delete')).toBeInTheDocument()
+  })
+
+  test('expanded delete button triggers inline row confirm', () => {
+    renderBugCard({ description: 'Detailed steps to reproduce the issue' })
+    fireEvent.click(screen.getByText('Login button broken').closest('button')!)
+    fireEvent.click(screen.getByText('Delete Bug'))
+
+    expect(screen.getByText('Confirm?')).toBeInTheDocument()
+  })
 })

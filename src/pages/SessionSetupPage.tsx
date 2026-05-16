@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, Star, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, AlertCircle } from 'lucide-react'
 import FeedbackModal from '../components/FeedbackModal'
 import { supabase } from '../supabaseClient'
 import { SESSION_STATUS_STYLES } from '../constants'
@@ -19,12 +19,16 @@ export default function SessionSetupPage() {
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deletingSession, setDeletingSession] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [editNameValue, setEditNameValue] = useState('')
   const navigate = useNavigate()
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = useState(false)
+  const [addingScenario, setAddingScenario] = useState(false)
+  const [shufflingAssignments, setShufflingAssignments] = useState(false)
+  const [resettingAssignments, setResettingAssignments] = useState(false)
   const [newLetter, setNewLetter] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -120,7 +124,8 @@ export default function SessionSetupPage() {
   }
 
   const shuffleAssignments = async () => {
-    if (!supabase || !sessionId) return
+    if (!supabase || !sessionId || shufflingAssignments || resettingAssignments) return
+    setShufflingAssignments(true)
     const lockedScenarioIds = new Set(
       scenarios.filter(s => s.device_requirement && ['iPhone Safari', 'Android Chrome', 'iPad Safari'].includes(s.device_requirement))
         .map(s => s.id)
@@ -138,51 +143,65 @@ export default function SessionSetupPage() {
       ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
 
-    // Delete existing non-locked assignments
-    const toDelete = assignments.filter(a => !lockedScenarioIds.has(a.scenario_id))
-    for (const a of toDelete) {
-      await supabase.from('assignments').delete().eq('id', a.id)
-    }
+    try {
+      // Delete existing non-locked assignments
+      const toDelete = assignments.filter(a => !lockedScenarioIds.has(a.scenario_id))
+      for (const a of toDelete) {
+        await supabase.from('assignments').delete().eq('id', a.id)
+      }
 
-    // Create new assignments
-    const newAssignments: Assignment[] = [...lockedAssignments]
-    for (let i = 0; i < unlockedScenarios.length && i < shuffled.length; i++) {
-      const { data } = await supabase
-        .from('assignments')
-        .insert({ session_id: sessionId, scenario_id: unlockedScenarios[i].id, tester_id: shuffled[i].id })
-        .select()
-      if (data?.[0]) newAssignments.push(data[0] as Assignment)
+      // Create new assignments
+      const newAssignments: Assignment[] = [...lockedAssignments]
+      for (let i = 0; i < unlockedScenarios.length && i < shuffled.length; i++) {
+        const { data } = await supabase
+          .from('assignments')
+          .insert({ session_id: sessionId, scenario_id: unlockedScenarios[i].id, tester_id: shuffled[i].id })
+          .select()
+        if (data?.[0]) newAssignments.push(data[0] as Assignment)
+      }
+      setAssignments(newAssignments)
+    } finally {
+      setShufflingAssignments(false)
     }
-    setAssignments(newAssignments)
   }
 
   const resetAssignments = async () => {
-    if (!supabase || !sessionId) return
-    await supabase.from('assignments').delete().eq('session_id', sessionId)
-    setAssignments([])
+    if (!supabase || !sessionId || resettingAssignments || shufflingAssignments) return
+    setResettingAssignments(true)
+    try {
+      await supabase.from('assignments').delete().eq('session_id', sessionId)
+      setAssignments([])
+    } finally {
+      setResettingAssignments(false)
+    }
   }
 
   const addScenario = async () => {
-    if (!supabase || !sessionId || !newLetter.trim() || !newTitle.trim()) return
-    const maxOrder = scenarios.length ? Math.max(...scenarios.map(s => s.sort_order)) : 0
-    const { data, error } = await supabase
-      .from('scenarios')
-      .insert({
-        session_id: sessionId,
-        letter: newLetter.trim().toUpperCase(),
-        title: newTitle.trim(),
-        description: newDesc.trim() || null,
-        device_requirement: newDevice.trim() || null,
-        sort_order: maxOrder + 1,
-      })
-      .select()
-    if (!error && data?.[0]) {
-      setScenarios(prev => [...prev, data[0] as Scenario])
-      setNewLetter('')
-      setNewTitle('')
-      setNewDesc('')
-      setNewDevice('')
-      setShowAddScenario(false)
+    if (!supabase || !sessionId || !newLetter.trim() || !newTitle.trim() || addingScenario) return
+    setAddingScenario(true)
+    try {
+      const maxOrder = scenarios.length ? Math.max(...scenarios.map(s => s.sort_order)) : 0
+      const { data, error } = await supabase
+        .from('scenarios')
+        .insert({
+          session_id: sessionId,
+          letter: newLetter.trim().toUpperCase(),
+          title: newTitle.trim(),
+          description: newDesc.trim() || null,
+          device_requirement: newDevice.trim() || null,
+          sort_order: maxOrder + 1,
+        })
+        .select()
+      if (!error && data?.[0]) {
+        setScenarios(prev => [...prev, data[0] as Scenario])
+        setNewLetter('')
+        setNewTitle('')
+        setNewDesc('')
+        setNewDevice('')
+        setShowAddScenario(false)
+      }
+    } finally {
+      setAddingScenario(false)
     }
   }
 
@@ -265,14 +284,19 @@ export default function SessionSetupPage() {
   }
 
   const deleteSession = async () => {
-    if (!supabase || !session || deleteConfirmText !== session.name) return
-    await supabase.from('assignments').delete().eq('session_id', session.id)
-    await supabase.from('scenarios').delete().eq('session_id', session.id)
-    await supabase.from('session_feedback').delete().eq('session_id', session.id)
-    const { error } = await supabase.from('sessions').delete().eq('id', session.id)
-    if (!error) navigate('/sessions')
-    setShowDeleteConfirm(false)
-    setDeleteConfirmText('')
+    if (!supabase || !session || deleteConfirmText !== session.name || deletingSession) return
+    setDeletingSession(true)
+    try {
+      await supabase.from('assignments').delete().eq('session_id', session.id)
+      await supabase.from('scenarios').delete().eq('session_id', session.id)
+      await supabase.from('session_feedback').delete().eq('session_id', session.id)
+      const { error } = await supabase.from('sessions').delete().eq('id', session.id)
+      if (!error) navigate('/sessions')
+      setShowDeleteConfirm(false)
+      setDeleteConfirmText('')
+    } finally {
+      setDeletingSession(false)
+    }
   }
 
   const getAssignedTester = (scenarioId: string): Tester | null => {
@@ -363,7 +387,7 @@ export default function SessionSetupPage() {
               </div>
             )}
             <button
-              onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText('') }}
+              onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(''); setDeletingSession(false) }}
               className="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
               title="Delete session"
             >
@@ -446,8 +470,20 @@ export default function SessionSetupPage() {
               <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Step-by-step instructions" rows={4}
                 className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y mb-2 focus:border-blue-500" />
               <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowAddScenario(false)} className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 cursor-pointer">Cancel</button>
-                <button onClick={addScenario} disabled={!newLetter.trim() || !newTitle.trim()} className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:bg-slate-400 cursor-pointer disabled:cursor-default">Add</button>
+                <button
+                  onClick={() => { if (!addingScenario) setShowAddScenario(false) }}
+                  disabled={addingScenario}
+                  className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 disabled:opacity-50 disabled:cursor-default cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addScenario}
+                  disabled={!newLetter.trim() || !newTitle.trim() || addingScenario}
+                  className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:bg-slate-400 cursor-pointer disabled:cursor-default"
+                >
+                  {addingScenario ? 'Adding...' : 'Add'}
+                </button>
               </div>
             </div>
           )}
@@ -585,13 +621,19 @@ export default function SessionSetupPage() {
             <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Tester Pool</h2>
             {!isCompleted && (
               <div className="flex gap-1.5">
-                <button onClick={shuffleAssignments}
-                  className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer">
-                  <Shuffle size={12} /> Shuffle
+                <button
+                  onClick={shuffleAssignments}
+                  disabled={shufflingAssignments || resettingAssignments}
+                  className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
+                >
+                  <Shuffle size={12} /> {shufflingAssignments ? 'Shuffling...' : 'Shuffle'}
                 </button>
-                <button onClick={resetAssignments}
-                  className="flex items-center gap-1 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                  <RotateCcw size={12} /> Reset
+                <button
+                  onClick={resetAssignments}
+                  disabled={resettingAssignments || shufflingAssignments}
+                  className="flex items-center gap-1 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={12} /> {resettingAssignments ? 'Resetting...' : 'Reset'}
                 </button>
               </div>
             )}
@@ -685,7 +727,7 @@ export default function SessionSetupPage() {
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && session && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { if (!deletingSession) { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeletingSession(false) } }}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">Delete session?</h3>
             <p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
@@ -703,17 +745,18 @@ export default function SessionSetupPage() {
             />
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
-                className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                onClick={() => { if (!deletingSession) { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeletingSession(false) } }}
+                disabled={deletingSession}
+                className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={deleteSession}
-                disabled={deleteConfirmText !== session.name}
+                disabled={deleteConfirmText !== session.name || deletingSession}
                 className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
               >
-                Delete permanently
+                {deletingSession ? 'Deleting...' : 'Delete permanently'}
               </button>
             </div>
           </div>
