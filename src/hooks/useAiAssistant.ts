@@ -5,7 +5,7 @@ import { supabase } from '../supabaseClient'
 import { filesToAttachments } from '../lib/attachments'
 import { buildSystemPrompt } from '../lib/aiPrompt'
 import { parseBugsFromResponse, parseSessionActions, generateBugId } from '../lib/aiParsers'
-import { executeSessionActionWithSession } from '../lib/aiSessionActions'
+import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
 import { ensureTesterByName } from '../lib/testerLookup'
 import type { Severity } from '../constants'
 import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult } from '../lib/aiTypes'
@@ -28,55 +28,6 @@ function loadPersistedState(): { messages: Message[]; currentSessionId: string |
   }
 }
 
-interface PendingConfirmation {
-  action: SessionAction
-  phrase: string
-  description: string
-}
-
-function getPendingConfirmation(action: SessionAction): PendingConfirmation | null {
-  if (action.action === 'delete_tester') {
-    const name = action.tester?.trim()
-    if (!name) return null
-    return {
-      action,
-      phrase: `confirm delete tester ${name.toLowerCase()}`,
-      description: `deleting tester "${name}"`,
-    }
-  }
-
-  if (action.action === 'delete_session') {
-    const name = action.name?.trim()
-    if (!name) return null
-    return {
-      action,
-      phrase: `confirm delete session ${name.toLowerCase()}`,
-      description: `deleting session "${name}"`,
-    }
-  }
-
-  if (action.action === 'delete_bug') {
-    const bug = action.bug?.trim()
-    if (!bug) return null
-    return {
-      action,
-      phrase: `confirm delete bug ${bug.toLowerCase()}`,
-      description: `deleting bug "${bug}"`,
-    }
-  }
-
-  if (action.action === 'set_session_status' && action.status === 'completed') {
-    const name = action.name?.trim() || 'current session'
-    return {
-      action,
-      phrase: `confirm complete session ${name.toLowerCase()}`,
-      description: `marking session "${name}" as completed (this locks it permanently)`,
-    }
-  }
-
-  return null
-}
-
 // ─── Hook ───────────────────────────────────────────────────
 
 export default function useAiAssistant(open: boolean) {
@@ -93,7 +44,6 @@ export default function useAiAssistant(open: boolean) {
   // Session context
   const [sessionContext, setSessionContext] = useState('')
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(persisted.current.currentSessionId)
-  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null)
 
   // Persist chat state
   useEffect(() => {
@@ -105,7 +55,10 @@ export default function useAiAssistant(open: boolean) {
   }, [messages, currentSessionId])
 
   const scrollToBottom = useCallback(() => {
-    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      inputRef.current?.focus()
+    }, 50)
   }, [])
 
   // ─── Context fetching ─────────────────────────────────────
@@ -243,7 +196,7 @@ export default function useAiAssistant(open: boolean) {
       }
     }
 
-    return executeSessionActionWithSession(action, actionCtx)
+    return executeSessionActionWithCache(action, actionCtx)
   }, [currentSessionId, location.pathname, location.hash])
 
   // ─── Send message ─────────────────────────────────────────
@@ -263,50 +216,7 @@ export default function useAiAssistant(open: boolean) {
     setSending(true)
     scrollToBottom()
 
-    const normalized = text.toLowerCase()
-
     try {
-      // Runtime guard for destructive actions: require explicit confirmation phrase
-      if (pendingConfirmation) {
-        if (normalized === pendingConfirmation.phrase || ['yes', 'confirm', 'do it'].includes(normalized)) {
-          const result = await executeSessionAction(pendingConfirmation.action)
-          const sessionIdsToRefresh = new Set<string>()
-          if (result.success && result.sessionId) sessionIdsToRefresh.add(result.sessionId)
-          if (sessionIdsToRefresh.size > 0) {
-            setTimeout(() => {
-              for (const sid of sessionIdsToRefresh) {
-                window.dispatchEvent(new CustomEvent('sessionDataChanged', { detail: { sessionId: sid } }))
-              }
-            }, 0)
-          }
-
-          const assistantMessage: Message = {
-            role: 'assistant',
-            content: `Confirmed — ${pendingConfirmation.description}.`,
-            sessionActions: [result],
-          }
-          setPendingConfirmation(null)
-          setMessages((prev) => [...prev, assistantMessage])
-          scrollToBottom()
-        } else if (['cancel', 'no', 'stop', 'never mind', 'nevermind'].includes(normalized)) {
-          const assistantMessage: Message = {
-            role: 'assistant',
-            content: `Canceled ${pendingConfirmation.description}.`,
-          }
-          setPendingConfirmation(null)
-          setMessages((prev) => [...prev, assistantMessage])
-          scrollToBottom()
-        } else {
-          const assistantMessage: Message = {
-            role: 'assistant',
-            content: `There is a pending destructive action. Type "${pendingConfirmation.phrase}" to confirm, or "cancel" to abort.`,
-          }
-          setMessages((prev) => [...prev, assistantMessage])
-          scrollToBottom()
-        }
-        return
-      }
-
       const history: ChatMessage[] = [
         { role: 'system', content: buildSystemPrompt(sessionContext) },
         ...messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
@@ -326,26 +236,13 @@ export default function useAiAssistant(open: boolean) {
       const sessionActions = parseSessionActions(response)
       const actionResults: SessionActionResult[] = []
       const sessionIdsToRefresh = new Set<string>()
-      let nextPending: PendingConfirmation | null = null
       for (const sa of sessionActions) {
-        const confirmation = getPendingConfirmation(sa)
-        if (confirmation) {
-          nextPending = confirmation
-          actionResults.push({
-            action: sa.action,
-            success: false,
-            message: `⚠️ Confirmation required before ${confirmation.description}. Type "${confirmation.phrase}" to continue, or "cancel".`,
-          })
-          continue
-        }
-
         const result = await executeSessionAction(sa)
         actionResults.push(result)
         if (result.success && result.sessionId) {
           sessionIdsToRefresh.add(result.sessionId)
         }
       }
-      if (nextPending) setPendingConfirmation(nextPending)
       // Dispatch outside React batch
       if (sessionIdsToRefresh.size > 0) {
         setTimeout(() => {
@@ -367,8 +264,9 @@ export default function useAiAssistant(open: boolean) {
       setError(err instanceof Error ? err.message : 'Failed to get AI response')
     } finally {
       setSending(false)
+      setTimeout(() => inputRef.current?.focus(), 0)
     }
-  }, [input, sending, pendingConfirmation, sessionContext, messages, scrollToBottom, executeSessionAction])
+  }, [input, sending, sessionContext, messages, scrollToBottom, executeSessionAction])
 
   // ─── Bug preview helpers ──────────────────────────────────
   const updateBugPreview = useCallback((messageIndex: number, bugKey: string, field: keyof ParsedBug, value: string) => {
@@ -510,7 +408,6 @@ export default function useAiAssistant(open: boolean) {
     setMessages([])
     setError('')
     setCurrentSessionId(null)
-    setPendingConfirmation(null)
     sessionStorage.removeItem(STORAGE_KEY)
   }, [])
 

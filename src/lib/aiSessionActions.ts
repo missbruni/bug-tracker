@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient'
 import type { SessionAction, SessionActionResult } from './aiTypes'
+import { queryClient } from './queryClient'
 
 interface ActionContext {
   sessionId: string | null
@@ -424,4 +425,21 @@ export async function executeSessionActionWithSession(
     default:
       return { action: action.action, success: false, message: 'Unknown action' }
   }
+}
+
+const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
+const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_tester', 'delete_tester', 'edit_tester'])
+const BUG_ACTIONS = new Set(['edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment'])
+
+export async function executeSessionAction(
+  action: SessionAction,
+  ctx: ActionContext,
+): Promise<SessionActionResult> {
+  const result = await executeSessionActionWithSession(action, ctx)
+  if (result.success) {
+    if (SESSION_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['sessions'] })
+    if (TESTER_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['testers'] })
+    if (BUG_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['bugs-data'] })
+  }
+  return result
 }

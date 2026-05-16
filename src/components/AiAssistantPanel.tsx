@@ -125,6 +125,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                     <Bot size={18} className="text-blue-600 dark:text-blue-400" />
                   </div>
                 )}
+                {(msg.role === 'user' || stripJsonBlock(msg.content).trim()) && (
                 <div
                   className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                     msg.role === 'user'
@@ -134,6 +135,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                 >
                   {msg.role === 'assistant' ? stripJsonBlock(msg.content) : msg.content}
                 </div>
+                )}
               </div>
 
               {/* Bug preview cards */}
@@ -234,7 +236,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                 }
               }}
               placeholder={configured ? 'Describe bugs or ask to create a session...' : 'Configure AI provider in Settings first'}
-              disabled={!configured || sending}
+              disabled={!configured}
               rows={2}
               className="flex-1 resize-none rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all disabled:opacity-50"
             />

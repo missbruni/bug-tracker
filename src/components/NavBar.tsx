@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useRef, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bug, Presentation, Users, Settings, Sparkles } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
@@ -23,6 +23,19 @@ export default function NavBar({
 	onOpenSettings?: () => void;
 }) {
 	const location = useLocation();
+	const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+	const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+
+	const activeIndex = NAV_ITEMS.findIndex(({ to }) =>
+		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
+	);
+
+	useEffect(() => {
+		const el = tabRefs.current[activeIndex];
+		if (el) {
+			setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
+		}
+	}, [activeIndex]);
 
 	return (
 		<nav className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 relative overflow-hidden">
@@ -49,20 +62,18 @@ export default function NavBar({
 					</span>
 				</div>
 				{/* Tabs */}
-				<div className="flex items-center gap-1">
-					{NAV_ITEMS.map(({ to, label, icon: Icon }) => {
-						const active =
-							to === "/"
-								? location.pathname === "/"
-								: location.pathname.startsWith(to);
+				<div className="relative flex items-center gap-1">
+					{NAV_ITEMS.map(({ to, label, icon: Icon }, i) => {
+						const active = i === activeIndex;
 						return (
 							<Link
 								key={to}
 								to={to}
-								className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 transition-colors ${
+								ref={(el) => { tabRefs.current[i] = el; }}
+								className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 border-transparent transition-colors ${
 									active
-										? "border-blue-500 text-blue-600 dark:text-blue-400"
-										: "border-transparent text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
+										? "text-blue-600 dark:text-blue-400"
+										: "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
 								}`}
 							>
 								<Icon size={14} />
@@ -70,6 +81,11 @@ export default function NavBar({
 							</Link>
 						);
 					})}
+					{/* Sliding indicator */}
+					<div
+						className="absolute bottom-0 h-0.5 bg-blue-500 rounded-full transition-all duration-200 ease-out"
+						style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+					/>
 				</div>
 				{children && (
 					<div className="ml-auto flex items-center gap-2">

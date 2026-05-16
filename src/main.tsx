@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import App from "./App";
 import PinGate from "./components/PinGate";
 import NavBar from "./components/NavBar";
@@ -15,7 +17,7 @@ import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { playAiSound } from "./lib/audio";
 import "./index.css";
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Layout() {
 	const [showBugs, setShowBugs] = useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
@@ -82,7 +84,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 					aiPanelOpen ? "lg:mr-[420px]" : ""
 				}`}
 			>
-				{children}
+				<Outlet />
 			</div>
 			<SettingsSidebar
 				open={settingsOpen}
@@ -102,44 +104,20 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
 	<React.StrictMode>
+		<QueryClientProvider client={queryClient}>
 		<PinGate>
 			<HashRouter>
 				<Routes>
-					<Route
-						path="/"
-						element={
-							<Layout>
-								<App />
-							</Layout>
-						}
-					/>
-					<Route
-						path="/sessions"
-						element={
-							<Layout>
-								<SessionsListPage />
-							</Layout>
-						}
-					/>
-					<Route
-						path="/sessions/:id"
-						element={
-							<Layout>
-								<SessionSetupPage />
-							</Layout>
-						}
-					/>
+					<Route element={<Layout />}>
+						<Route path="/" element={<App />} />
+						<Route path="/sessions" element={<SessionsListPage />} />
+						<Route path="/sessions/:id" element={<SessionSetupPage />} />
+						<Route path="/testers" element={<TesterManagementPage />} />
+					</Route>
 					<Route path="/sessions/:id/present" element={<PresentationPage />} />
-					<Route
-						path="/testers"
-						element={
-							<Layout>
-								<TesterManagementPage />
-							</Layout>
-						}
-					/>
 				</Routes>
 			</HashRouter>
 		</PinGate>
+		</QueryClientProvider>
 	</React.StrictMode>,
 );

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { findTesterByName } from '../lib/testerLookup'
 import type { Bug, Question, Attachment, SessionOption, Tester } from '../types'
@@ -44,61 +45,78 @@ export interface NewBugInput {
 }
 
 export function useBugs(): UseBugsReturn {
-  const [bugs, setBugs] = useState<Bug[]>([])
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [sessions, setSessions] = useState<SessionOption[]>([])
-  const [registeredTesters, setRegisteredTesters] = useState<Array<Pick<Tester, 'id' | 'name'>>>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load data from Supabase
-  useEffect(() => {
-    async function load() {
-      if (!supabase) {
-        setLoading(false)
-        return
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['bugs-data'],
+    queryFn: async () => {
+      if (!supabase) return { bugs: [], questions: [], sessions: [], testers: [] }
+      const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes, testersRes] = await Promise.all([
+        supabase.from('bugs').select('*').order('id'),
+        supabase.from('comments').select('*').order('created_at'),
+        supabase.from('attachments').select('*').order('created_at'),
+        supabase.from('open_questions').select('*').order('id'),
+        supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
+        supabase.from('testers').select('id, name').eq('active', true).order('name'),
+      ])
+
+      const commentsMap: Record<string, Bug['comments']> = {}
+      ;((commentsRes.data || []) as Array<Bug['comments'][number] & { bug_id: string }>).forEach((c) => {
+        if (!commentsMap[c.bug_id]) commentsMap[c.bug_id] = []
+        commentsMap[c.bug_id].push(c)
+      })
+
+      const attachmentsMap: Record<string, Attachment[]> = {}
+      ;((attachmentsRes.data || []) as Array<Attachment & { bug_id: string }>).forEach((a) => {
+        if (!attachmentsMap[a.bug_id]) attachmentsMap[a.bug_id] = []
+        attachmentsMap[a.bug_id].push(a)
+      })
+
+      const mergedBugs = (bugsRes.data || []).map((b: Bug) => ({
+        ...b,
+        comments: commentsMap[b.id] || [],
+        attachments: attachmentsMap[b.id] || [],
+      }))
+
+      return {
+        bugs: mergedBugs as Bug[],
+        questions: (questionsRes.data || []) as Question[],
+        sessions: (sessionsRes.data || []) as SessionOption[],
+        testers: (testersRes.data || []) as Array<Pick<Tester, 'id' | 'name'>>,
       }
-      try {
-        const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes, testersRes] = await Promise.all([
-          supabase.from('bugs').select('*').order('id'),
-          supabase.from('comments').select('*').order('created_at'),
-          supabase.from('attachments').select('*').order('created_at'),
-          supabase.from('open_questions').select('*').order('id'),
-          supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
-          supabase.from('testers').select('id, name').eq('active', true).order('name'),
-        ])
+    },
+  })
 
-        const commentsMap: Record<string, Bug['comments']> = {}
-        ;((commentsRes.data || []) as Array<Bug['comments'][number] & { bug_id: string }>).forEach((c) => {
-          if (!commentsMap[c.bug_id]) commentsMap[c.bug_id] = []
-          commentsMap[c.bug_id].push(c)
-        })
+  const bugs = data?.bugs || []
+  const questions = data?.questions || []
+  const sessions = data?.sessions || []
+  const registeredTesters = data?.testers || []
 
-        const attachmentsMap: Record<string, Attachment[]> = {}
-        ;((attachmentsRes.data || []) as Array<Attachment & { bug_id: string }>).forEach((a) => {
-          if (!attachmentsMap[a.bug_id]) attachmentsMap[a.bug_id] = []
-          attachmentsMap[a.bug_id].push(a)
-        })
+  // Helper to update bugs in the query cache
+  const setBugs = useCallback((updater: (prev: Bug[]) => Bug[]) => {
+    queryClient.setQueryData(['bugs-data'], (old: typeof data) => {
+      if (!old) return old
+      return { ...old, bugs: updater(old.bugs) }
+    })
+  }, [queryClient])
 
-        const mergedBugs = (bugsRes.data || []).map((b: Bug) => ({
-          ...b,
-          comments: commentsMap[b.id] || [],
-          attachments: attachmentsMap[b.id] || [],
-        }))
+  const setQuestions = useCallback((updater: React.SetStateAction<Question[]>) => {
+    queryClient.setQueryData(['bugs-data'], (old: typeof data) => {
+      if (!old) return old
+      const next = typeof updater === 'function' ? updater(old.questions) : updater
+      return { ...old, questions: next }
+    })
+  }, [queryClient])
 
-        setBugs(mergedBugs)
-        setQuestions(questionsRes.data as Question[] || [])
-        setSessions((sessionsRes.data || []) as SessionOption[])
-        setRegisteredTesters((testersRes.data || []) as Array<Pick<Tester, 'id' | 'name'>>)
-      } catch (err) {
-        console.error('Failed to load data:', err)
-      }
-      setLoading(false)
-    }
-    load()
-  }, [])
+  const setRegisteredTesters = useCallback((updater: (prev: Array<Pick<Tester, 'id' | 'name'>>) => Array<Pick<Tester, 'id' | 'name'>>) => {
+    queryClient.setQueryData(['bugs-data'], (old: typeof data) => {
+      if (!old) return old
+      return { ...old, testers: updater(old.testers) }
+    })
+  }, [queryClient])
 
   // Real-time subscriptions so all users stay in sync
   useEffect(() => {
@@ -158,7 +176,7 @@ export function useBugs(): UseBugsReturn {
 
   const updateBug = useCallback((updated: Bug) => {
     setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
-  }, [])
+  }, [setBugs])
 
   const showPersistError = useCallback(() => {
     setSnackbar({ message: 'It was not possible to update the bug.' })
@@ -167,7 +185,7 @@ export function useBugs(): UseBugsReturn {
 
   const deleteBugFromState = useCallback((bugId: string) => {
     setBugs((prev) => prev.filter((b) => b.id !== bugId))
-  }, [])
+  }, [setBugs])
 
   const clearSnackbar = useCallback(() => {
     if (snackbarTimer.current) clearTimeout(snackbarTimer.current)

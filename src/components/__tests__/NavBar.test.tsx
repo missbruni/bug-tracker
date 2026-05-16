@@ -34,7 +34,7 @@ describe('NavBar', () => {
       </MemoryRouter>,
     )
     const bugsLinks = screen.getAllByText('Bugs')
-    const activeLink = bugsLinks.find(el => el.closest('a')?.className.includes('border-blue-500'))
+    const activeLink = bugsLinks.find(el => el.closest('a')?.className.includes('text-blue-600'))
     expect(activeLink).toBeTruthy()
   })
 
@@ -45,7 +45,7 @@ describe('NavBar', () => {
       </MemoryRouter>,
     )
     const sessionsLinks = screen.getAllByText('Sessions')
-    const activeLink = sessionsLinks.find(el => el.closest('a')?.className.includes('border-blue-500'))
+    const activeLink = sessionsLinks.find(el => el.closest('a')?.className.includes('text-blue-600'))
     expect(activeLink).toBeTruthy()
   })
 

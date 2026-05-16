@@ -1,13 +1,23 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, X, Check, Pencil } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import type { Tester } from '../types'
 
+async function fetchTesters(): Promise<Tester[]> {
+  if (!supabase) return []
+  const { data } = await supabase.from('testers').select('*').order('name')
+  return (data || []) as Tester[]
+}
+
 export default function TesterManagementPage() {
-  const [testers, setTesters] = useState<Tester[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const { data: testers = [], isLoading: loading } = useQuery({
+    queryKey: ['testers'],
+    queryFn: fetchTesters,
+  })
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDevices, setNewDevices] = useState<string[]>([])
@@ -26,15 +36,6 @@ export default function TesterManagementPage() {
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  const load = useCallback(async () => {
-    if (!supabase) return
-    const { data } = await supabase.from('testers').select('*').order('name')
-    setTesters((data || []) as Tester[])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { load() }, [load])
-
   const addTester = async () => {
     if (!supabase || !newName.trim() || addingTester) return
     setAddingTester(true)
@@ -44,7 +45,7 @@ export default function TesterManagementPage() {
         .insert({ name: newName.trim(), devices: newDevices, active: true })
         .select()
       if (!error && data?.[0]) {
-        setTesters(prev => [...prev, data[0] as Tester].sort((a, b) => a.name.localeCompare(b.name)))
+        queryClient.setQueryData(['testers'], (prev: Tester[]) => [...prev, data[0] as Tester].sort((a, b) => a.name.localeCompare(b.name)))
         setNewName('')
         setNewDevices([])
         setShowAdd(false)
@@ -57,7 +58,7 @@ export default function TesterManagementPage() {
   const toggleActive = async (tester: Tester) => {
     if (!supabase) return
     const { error } = await supabase.from('testers').update({ active: !tester.active }).eq('id', tester.id)
-    if (!error) setTesters(prev => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
+    if (!error) queryClient.setQueryData(['testers'], (prev: Tester[]) => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
   }
 
   const confirmDeleteTester = async (tester: Tester) => {
@@ -128,7 +129,7 @@ export default function TesterManagementPage() {
       setPendingDeleteTesterId(null)
       return
     }
-    setTesters(prev => prev.filter(t => t.id !== tester.id))
+    queryClient.setQueryData(['testers'], (prev: Tester[]) => prev.filter(t => t.id !== tester.id))
     setDeletingTesterId(null)
     setPendingDeleteTesterId(null)
     setToast({ message: `${tester.name} deleted.`, tone: 'success' })
@@ -147,7 +148,7 @@ export default function TesterManagementPage() {
       .update({ name: editName.trim(), devices: editDevices })
       .eq('id', editingId)
     if (!error) {
-      setTesters(prev =>
+      queryClient.setQueryData(['testers'], (prev: Tester[]) =>
         prev.map(t => t.id === editingId ? { ...t, name: editName.trim(), devices: editDevices } : t)
           .sort((a, b) => a.name.localeCompare(b.name))
       )

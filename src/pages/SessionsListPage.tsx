@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
 	Plus,
@@ -11,6 +11,7 @@ import {
 	ChevronDown,
 	Trash2,
 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabaseClient";
 import { SESSION_STATUS_STYLES } from "../constants";
 import FeedbackModal from "../components/FeedbackModal";
@@ -19,9 +20,58 @@ import type { SessionWithStats } from "../types";
 
 type Session = SessionWithStats;
 
+async function fetchSessions(): Promise<Session[]> {
+	if (!supabase) return [];
+	const { data: sessionsData } = await supabase
+		.from("sessions")
+		.select("*")
+		.order("created_at", { ascending: false });
+
+	if (!sessionsData) return [];
+
+	const enriched: Session[] = [];
+	for (const s of sessionsData) {
+		const { count: scCount } = await supabase
+			.from("scenarios")
+			.select("*", { count: "exact", head: true })
+			.eq("session_id", s.id);
+		const { count: asCount } = await supabase
+			.from("assignments")
+			.select("*", { count: "exact", head: true })
+			.eq("session_id", s.id);
+		let feedbackAvg = 0;
+		let feedbackCount = 0;
+		if (s.status === "completed") {
+			const { data: fbData } = await supabase
+				.from("session_feedback")
+				.select("rating")
+				.eq("session_id", s.id);
+			if (fbData && fbData.length) {
+				feedbackCount = fbData.length;
+				feedbackAvg =
+					fbData.reduce(
+						(sum: number, f: { rating: number }) => sum + f.rating,
+						0,
+					) / fbData.length;
+			}
+		}
+		enriched.push({
+			...s,
+			scenario_count: scCount ?? 0,
+			assignment_count: asCount ?? 0,
+			feedback_avg: feedbackAvg,
+			feedback_count: feedbackCount,
+		} as Session);
+	}
+	return enriched;
+}
+
 export default function SessionsListPage() {
-	const [sessions, setSessions] = useState<Session[]>([]);
-	const [loading, setLoading] = useState(true);
+	const queryClient = useQueryClient();
+	const { data: sessions = [], isLoading: loading } = useQuery({
+		queryKey: ['sessions'],
+		queryFn: fetchSessions,
+	});
 	const [showCreate, setShowCreate] = useState(false);
 	const [newName, setNewName] = useState("");
 	const [newDate, setNewDate] = useState("");
@@ -36,57 +86,6 @@ export default function SessionsListPage() {
 	const [creatingSession, setCreatingSession] = useState(false);
 	const [deletingSession, setDeletingSession] = useState(false);
 
-	const load = useCallback(async () => {
-		if (!supabase) return;
-		const { data: sessionsData } = await supabase
-			.from("sessions")
-			.select("*")
-			.order("created_at", { ascending: false });
-
-		if (sessionsData) {
-			const enriched: Session[] = [];
-			for (const s of sessionsData) {
-				const { count: scCount } = await supabase
-					.from("scenarios")
-					.select("*", { count: "exact", head: true })
-					.eq("session_id", s.id);
-				const { count: asCount } = await supabase
-					.from("assignments")
-					.select("*", { count: "exact", head: true })
-					.eq("session_id", s.id);
-				let feedbackAvg = 0;
-				let feedbackCount = 0;
-				if (s.status === "completed") {
-					const { data: fbData } = await supabase
-						.from("session_feedback")
-						.select("rating")
-						.eq("session_id", s.id);
-					if (fbData && fbData.length) {
-						feedbackCount = fbData.length;
-						feedbackAvg =
-							fbData.reduce(
-								(sum: number, f: { rating: number }) => sum + f.rating,
-								0,
-							) / fbData.length;
-					}
-				}
-				enriched.push({
-					...s,
-					scenario_count: scCount ?? 0,
-					assignment_count: asCount ?? 0,
-					feedback_avg: feedbackAvg,
-					feedback_count: feedbackCount,
-				} as Session);
-			}
-			setSessions(enriched);
-		}
-		setLoading(false);
-	}, []);
-
-	useEffect(() => {
-		load();
-	}, [load]);
-
 	const createSession = async () => {
 		if (!supabase || !newName.trim() || creatingSession) return;
 		setCreatingSession(true);
@@ -96,9 +95,9 @@ export default function SessionsListPage() {
 				.insert({ name: newName.trim(), date: newDate || null, status: "draft" })
 				.select();
 			if (!error && data?.[0]) {
-				setSessions((prev) => [
+				queryClient.setQueryData(['sessions'], (prev: Session[]) => [
 					{ ...data[0], scenario_count: 0, assignment_count: 0 } as Session,
-					...prev,
+					...(prev || []),
 				]);
 				setNewName("");
 				setNewDate("");
@@ -121,8 +120,8 @@ export default function SessionsListPage() {
 			.update({ status: next })
 			.eq("id", session.id);
 		if (!error)
-			setSessions((prev) =>
-				prev.map((s) =>
+			queryClient.setQueryData(['sessions'], (prev: Session[]) =>
+				(prev || []).map((s) =>
 					s.id === session.id ? { ...s, status: next as Session["status"] } : s,
 				),
 			);
@@ -138,7 +137,7 @@ export default function SessionsListPage() {
 			await supabase.from("scenarios").delete().eq("session_id", id);
 			await supabase.from("session_feedback").delete().eq("session_id", id);
 			const { error } = await supabase.from("sessions").delete().eq("id", id);
-			if (!error) setSessions((prev) => prev.filter((s) => s.id !== id));
+			if (!error) queryClient.setQueryData(['sessions'], (prev: Session[]) => (prev || []).filter((s) => s.id !== id));
 			setDeleteConfirmSession(null);
 			setDeleteConfirmText("");
 		} finally {
@@ -153,8 +152,8 @@ export default function SessionsListPage() {
 			.update({ status: "completed" })
 			.eq("id", completeConfirmSession.id);
 		if (!error)
-			setSessions((prev) =>
-				prev.map((s) =>
+			queryClient.setQueryData(['sessions'], (prev: Session[]) =>
+				(prev || []).map((s) =>
 					s.id === completeConfirmSession.id
 						? { ...s, status: "completed" }
 						: s,
@@ -391,7 +390,7 @@ export default function SessionsListPage() {
 					sessionName={feedbackSession.name}
 					onClose={() => {
 						setFeedbackSession(null);
-						load();
+						queryClient.invalidateQueries({ queryKey: ['sessions'] });
 					}}
 				/>
 			)}
