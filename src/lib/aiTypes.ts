@@ -42,6 +42,19 @@ export type SessionActionType =
   | 'set_session_status'
   // Tester editing
   | 'edit_tester'
+  // Bug filters (UI only)
+  | 'set_bug_filters'
+
+export interface BugFiltersActionPayload {
+  severity?: string | string[]
+  severities?: string[]
+  tester?: string
+  date?: string
+  session?: string
+  sort?: string
+  search?: string
+  clear?: boolean
+}
 
 export interface SessionAction {
   action: SessionActionType
@@ -66,6 +79,12 @@ export interface SessionAction {
   page?: string
   category?: string
   comment?: string
+  // Bug filters fields
+  session?: string
+  severities?: string[]
+  sort?: string
+  search?: string
+  clear?: boolean
   // Session status
   status?: string
 }
@@ -73,6 +92,7 @@ export interface SessionAction {
 export interface SessionActionResult {
   action: SessionActionType
   success: boolean
+  level?: 'success' | 'warning' | 'error'
   sessionId?: string
   sessionName?: string
   message: string

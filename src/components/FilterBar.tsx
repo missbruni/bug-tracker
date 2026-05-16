@@ -7,15 +7,15 @@ interface FilterBarProps {
   activeBugs: Bug[]
   counts: Record<Severity, number>
   severityFilter: string
-  setSeverityFilter: (v: string) => void
+  setSeverityFilter: (value: string) => void
   testerFilter: string
-  setTesterFilter: (v: string) => void
+  setTesterFilter: (value: string) => void
   dateFilter: string
-  setDateFilter: (v: string) => void
+  setDateFilter: (value: string) => void
   sessionFilter: string
-  setSessionFilter: (v: string) => void
+  setSessionFilter: (value: string) => void
   sortOrder: string
-  setSortOrder: (v: string) => void
+  setSortOrder: (value: string) => void
   testers: string[]
   sessions: SessionOption[]
 }
@@ -37,43 +37,56 @@ export default function FilterBar({
   testers,
   sessions,
 }: FilterBarProps) {
+  const selectedActiveSeverities = new Set(
+    severityFilter
+      .split(',')
+      .map((token) => token.trim().toLowerCase())
+      .filter(Boolean),
+  )
+
   const filters = [
-    { k: 'all', l: `Active (${activeBugs.length})` },
-    { k: 'critical', l: `Critical (${counts.critical})` },
-    { k: 'high', l: `High (${counts.high})` },
-    { k: 'low', l: `Low (${counts.low})` },
-    { k: 'completed', l: `Completed (${bugs.filter(b => b.reviewed).length})` },
+    { key: 'all', label: `Active (${activeBugs.length})` },
+    { key: 'critical', label: `Critical (${counts.critical})` },
+    { key: 'high', label: `High (${counts.high})` },
+    { key: 'low', label: `Low (${counts.low})` },
+    { key: 'completed', label: `Completed (${bugs.filter((bug) => bug.reviewed).length})` },
   ]
 
   return (
     <div className="border-b border-slate-200 dark:border-gray-800">
       <div className="max-w-screen-2xl mx-auto flex flex-wrap items-center gap-2 px-7 py-3.5">
-        {filters.map((f) => (
-          <button
-            key={f.k}
-            onClick={() => setSeverityFilter(f.k)}
-            className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-              severityFilter === f.k
-                ? 'bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100'
-                : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            {f.l}
-          </button>
-        ))}
+        {filters.map((filterOption) => {
+          const isSelected = filterOption.key === 'all' || filterOption.key === 'completed'
+            ? severityFilter === filterOption.key
+            : selectedActiveSeverities.has(filterOption.key)
+
+          return (
+            <button
+              key={filterOption.key}
+              onClick={() => setSeverityFilter(filterOption.key)}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                isSelected
+                  ? 'bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100'
+                  : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              {filterOption.label}
+            </button>
+          )
+        })}
         <select
           value={testerFilter}
-          onChange={(e) => setTesterFilter(e.target.value)}
+          onChange={(event) => setTesterFilter(event.target.value)}
           className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
         >
           <option value="all">All testers</option>
-          {testers.map((t) => (
-            <option key={t} value={t}>{t}</option>
+          {testers.map((testerName) => (
+            <option key={testerName} value={testerName}>{testerName}</option>
           ))}
         </select>
         <select
           value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
+          onChange={(event) => setDateFilter(event.target.value)}
           className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
         >
           <option value="all">All dates</option>
@@ -85,13 +98,13 @@ export default function FilterBar({
         {sessions.length > 0 && (
           <select
             value={sessionFilter}
-            onChange={(e) => setSessionFilter(e.target.value)}
+            onChange={(event) => setSessionFilter(event.target.value)}
             className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
           >
             <option value="all">All sessions</option>
             <option value="none">No session</option>
-            {sessions.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+            {sessions.map((session) => (
+              <option key={session.id} value={session.id}>{session.name}</option>
             ))}
           </select>
         )}

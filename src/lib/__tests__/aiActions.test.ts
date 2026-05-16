@@ -83,6 +83,21 @@ describe('parseSessionActions — new action types', () => {
     expect(actions[0].devices).toEqual(['Desktop Chrome', 'iPhone Safari'])
   })
 
+  test('parses set_bug_filters action', () => {
+    const text = '```session_action\n{"action":"set_bug_filters","severity":"critical","severities":["high","low"],"tester":"Bruna","date":"7d","session":"Sprint 5","sort":"newest","search":"payment","clear":false}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('set_bug_filters')
+    expect(actions[0].severity).toBe('critical')
+    expect(actions[0].severities).toEqual(['high', 'low'])
+    expect(actions[0].tester).toBe('Bruna')
+    expect(actions[0].date).toBe('7d')
+    expect(actions[0].session).toBe('Sprint 5')
+    expect(actions[0].sort).toBe('newest')
+    expect(actions[0].search).toBe('payment')
+    expect(actions[0].clear).toBe(false)
+  })
+
   test('parses multiple actions in one response', () => {
     const text = `I'll resolve those two bugs.
 \`\`\`session_action
@@ -120,6 +135,8 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('edit_scenario')
     expect(prompt).toContain('set_session_status')
     expect(prompt).toContain('edit_tester')
+    expect(prompt).toContain('set_bug_filters')
+    expect(prompt).toContain('severities')
   })
 
   test('appends context when provided', () => {

@@ -8,11 +8,19 @@ import { parseBugsFromResponse, parseSessionActions, generateBugId } from '../li
 import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
 import { ensureTesterByName } from '../lib/testerLookup'
 import type { Severity } from '../constants'
-import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult } from '../lib/aiTypes'
+import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult, BugFiltersActionPayload } from '../lib/aiTypes'
 
 // ─── Persistence ────────────────────────────────────────────
 
 const STORAGE_KEY = 'ai-assistant-chat'
+
+function getPathnameWithHash(location: { pathname: string; hash: string }): string {
+  return location.pathname + location.hash.replace('#', '')
+}
+
+function isBugMainPage(path: string): boolean {
+  return !path.includes('/sessions') && !path.includes('/testers')
+}
 
 function loadPersistedState(): { messages: Message[]; currentSessionId: string | null } {
   try {
@@ -40,6 +48,7 @@ export default function useAiAssistant(open: boolean) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const location = useLocation()
+  const { pathname, hash } = location
 
   // Session context
   const [sessionContext, setSessionContext] = useState('')
@@ -113,7 +122,7 @@ export default function useAiAssistant(open: boolean) {
       }
 
       // Current page context
-      const path = location.pathname + location.hash.replace('#', '')
+      const path = getPathnameWithHash({ pathname, hash })
       const sessionMatch = path.match(/\/sessions\/([^/]+)/)
       if (sessionMatch) {
         const { data: viewedSession } = await supabase.from('sessions').select('name').eq('id', sessionMatch[1]).limit(1).single()
@@ -171,7 +180,7 @@ export default function useAiAssistant(open: boolean) {
 
       setSessionContext(parts.join('\n\n'))
     })()
-  }, [open, currentSessionId, location.pathname, location.hash])
+  }, [open, currentSessionId, pathname, hash])
 
   // ─── Focus & keyboard ─────────────────────────────────────
   useEffect(() => {
@@ -180,7 +189,38 @@ export default function useAiAssistant(open: boolean) {
 
   // ─── Session action executor ──────────────────────────────
   const executeSessionAction = useCallback(async (action: SessionAction): Promise<SessionActionResult> => {
-    if (!supabase) return { action: action.action, success: false, message: 'Database not connected' }
+    if (action.action === 'set_bug_filters') {
+      const path = getPathnameWithHash({ pathname, hash })
+      if (!isBugMainPage(path)) {
+        return {
+          action: 'set_bug_filters',
+          success: true,
+          level: 'warning',
+          message: 'I can apply filters from the Bugs page. Open the main bug tracker page and ask again.',
+        }
+      }
+
+      const payload: BugFiltersActionPayload = {
+        severity: action.severity,
+        severities: action.severities,
+        tester: action.tester,
+        date: action.date,
+        session: action.session,
+        sort: action.sort,
+        search: action.search,
+        clear: action.clear,
+      }
+
+      window.dispatchEvent(new CustomEvent<BugFiltersActionPayload>('setBugFiltersFromAi', { detail: payload }))
+      return {
+        action: 'set_bug_filters',
+        success: true,
+        level: 'success',
+        message: 'Applied bug filters from your request.',
+      }
+    }
+
+    if (!supabase) return { action: action.action, success: false, level: 'error', message: 'Database not connected' }
 
     const actionCtx = {
       sessionId: currentSessionId,
@@ -188,7 +228,7 @@ export default function useAiAssistant(open: boolean) {
     }
 
     if (!currentSessionId) {
-      const path = location.pathname + location.hash.replace('#', '')
+      const path = getPathnameWithHash({ pathname, hash })
       const match = path.match(/\/sessions\/([^/]+)/)
       if (match) {
         setCurrentSessionId(match[1])
@@ -196,8 +236,12 @@ export default function useAiAssistant(open: boolean) {
       }
     }
 
-    return executeSessionActionWithCache(action, actionCtx)
-  }, [currentSessionId, location.pathname, location.hash])
+    const result = await executeSessionActionWithCache(action, actionCtx)
+    return {
+      ...result,
+      level: result.level ?? (result.success ? 'success' : 'error'),
+    }
+  }, [currentSessionId, pathname, hash])
 
   // ─── Send message ─────────────────────────────────────────
   const sendMessage = useCallback(async (overrideText?: string) => {

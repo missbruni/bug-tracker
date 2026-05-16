@@ -13,6 +13,23 @@ interface AiAssistantPanelProps {
   onOpenSettings: () => void
 }
 
+const BUG_FIELD_BLOCK_PATTERNS = [
+  /(?:^|\s)[-*•]\s*\*\*(title|description|severity|tester|device|page|category)\*\*:/i,
+  /(?:^|\n)\s*\*\*(title|description|severity|tester|device|page|category)\*\*:/i,
+  /(?:^|\s)[-*•]\s*(title|description|severity|tester|device|page|category)\s*:/i,
+]
+
+function stripBugFieldEcho(text: string): string {
+  const matchIndexes = BUG_FIELD_BLOCK_PATTERNS
+    .map((pattern) => text.search(pattern))
+    .filter((index) => index >= 0)
+
+  if (matchIndexes.length === 0) return text.trim()
+
+  const firstMatchIndex = Math.min(...matchIndexes)
+  return text.slice(0, firstMatchIndex).trim()
+}
+
 export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAssistantPanelProps) {
   const {
     messages, input, setInput, sending, error, configured,
@@ -116,89 +133,145 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
             </div>
           )}
 
-          {messages.map((msg, mi) => (
-            <div key={mi}>
-              {/* Message bubble */}
-              <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
-                {msg.role === 'assistant' && (
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mt-0.5">
-                    <Bot size={18} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                )}
-                {(msg.role === 'user' || stripJsonBlock(msg.content).trim()) && (
-                <div
-                  className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-200'
-                  }`}
-                >
-                  {msg.role === 'assistant' ? stripJsonBlock(msg.content) : msg.content}
-                </div>
-                )}
-              </div>
+          {messages.map((msg, mi) => {
+            const plainAssistantText = msg.role === 'assistant' ? stripJsonBlock(msg.content).trim() : ''
+            const pendingBugs = (msg.bugs ?? []).filter((bug) => !bug._created)
+            const createdBugs = (msg.bugs ?? []).filter((bug) => bug._created)
+            const createdBugIds = createdBugs
+              .map((bug) => bug._createdId)
+              .filter((bugId): bugId is string => Boolean(bugId))
+            const hasBugPreviews = msg.role === 'assistant' && Boolean(msg.bugs?.length)
+            const hasPendingBugPreviews = msg.role === 'assistant' && pendingBugs.length > 0
+            const hasCreatedOnlyBugPreviews = msg.role === 'assistant' && createdBugs.length > 0 && pendingBugs.length === 0
+            const bugReviewPrompt = (msg.bugs?.length ?? 0) > 1
+              ? 'Heads up — these are draft bug cards based on your message. Review or edit anything you want, then tap Create All to log them.'
+              : 'Heads up — this is a draft bug card based on your message. Review or edit anything you want, then tap Create Bug to log it.'
+            const bugCreatedPrompt = createdBugs.length > 1
+              ? createdBugIds.length > 0
+                ? `All set — your bugs are logged (${createdBugIds.join(', ')}).`
+                : 'All set — your bugs are logged.'
+              : createdBugIds[0]
+                ? `All set — your bug is logged as ${createdBugIds[0]}.`
+                : 'All set — your bug is logged.'
+            const assistantText = msg.role === 'assistant'
+              ? hasPendingBugPreviews
+                ? bugReviewPrompt
+                : hasCreatedOnlyBugPreviews
+                  ? bugCreatedPrompt
+                : hasBugPreviews
+                  ? stripBugFieldEcho(plainAssistantText)
+                  : plainAssistantText
+              : msg.content
 
-              {/* Bug preview cards */}
-              {msg.bugs && msg.bugs.length > 0 && (
-                <div className="mt-3 space-y-2.5">
-                  {msg.bugs.map((bug) => (
-                    <AiBugPreviewCard
-                      key={bug._key}
-                      bug={bug}
-                      onUpdate={(field, value) => updateBugPreview(mi, bug._key, field, value)}
-                      onCreate={() => createBug(mi, bug._key)}
-                      onAddFiles={(files) => addAttachment(mi, bug._key, files)}
-                      onRemoveFile={(idx) => removeAttachment(mi, bug._key, idx)}
-                    />
-                  ))}
-                  {msg.bugs.some((b) => !b._created) && (
-                    <button
-                      onClick={() => createAllBugs(mi)}
-                      disabled={msg.bugs.every((b) => b._created || b._creating)}
-                      className="w-full rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
-                    >
-                      Create All ({msg.bugs.filter((b) => !b._created).length})
-                    </button>
+            const shouldRenderBubble = msg.role === 'user' || Boolean(assistantText)
+            const visibleSessionActions = (msg.sessionActions ?? []).filter((result) => {
+              const level = result.level ?? (result.success ? 'success' : 'error')
+              return level !== 'success'
+            })
+
+            return (
+              <div key={mi}>
+                {/* Message bubble */}
+                <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
+                  {msg.role === 'assistant' && (
+                    <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mt-0.5">
+                      <Bot size={18} className="text-blue-600 dark:text-blue-400" />
+                    </div>
                   )}
-                </div>
-              )}
-
-              {/* Session action results */}
-              {msg.sessionActions && msg.sessionActions.length > 0 && (
-                <div className="mt-2 space-y-1.5">
-                  {msg.sessionActions.map((result, ri) => (
+                  {shouldRenderBubble && (
                     <div
-                      key={ri}
-                      className={`rounded-lg px-3.5 py-2.5 text-xs flex items-center gap-2 ${
-                        result.success
-                          ? 'border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                          : 'border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                      className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                        msg.role === 'user'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-200'
                       }`}
                     >
-                      {result.success ? <Check size={14} className="shrink-0" /> : <AlertCircle size={14} className="shrink-0" />}
-                      <span className="flex-1">{result.message}</span>
-                      {result.success && result.sessionId && result.action === 'create_session' && (
-                        <Link
-                          to={`/sessions/${result.sessionId}`}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 dark:text-green-400 hover:underline shrink-0"
-                        >
-                          Open <ExternalLink size={10} />
-                        </Link>
-                      )}
-                      {['remove_tester', 'reactivate_tester', 'add_tester', 'delete_tester'].includes(result.action) && (
-                        <Link
-                          to="/testers"
-                          className={`inline-flex items-center gap-1 text-[11px] font-semibold hover:underline shrink-0 ${result.success ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}
-                        >
-                          Testers <ExternalLink size={10} />
-                        </Link>
-                      )}
+                      {assistantText}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Bug preview cards */}
+                {pendingBugs.length > 0 && (
+                  <div className="mt-3 space-y-2.5">
+                    {pendingBugs.map((bug) => (
+                      <AiBugPreviewCard
+                        key={bug._key}
+                        bug={bug}
+                        onUpdate={(field, value) => updateBugPreview(mi, bug._key, field, value)}
+                        onCreate={() => createBug(mi, bug._key)}
+                        onAddFiles={(files) => addAttachment(mi, bug._key, files)}
+                        onRemoveFile={(idx) => removeAttachment(mi, bug._key, idx)}
+                      />
+                    ))}
+                    {pendingBugs.length > 0 && (
+                      <button
+                        onClick={() => createAllBugs(mi)}
+                        disabled={pendingBugs.every((bug) => bug._creating)}
+                        className="w-full rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                      >
+                        Create All ({pendingBugs.length})
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Session action results */}
+                {visibleSessionActions.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {visibleSessionActions.map((result, resultIndex) => {
+                      const level = result.level ?? (result.success ? 'success' : 'error')
+                      const isProminent = level === 'warning' || level === 'error'
+
+                      const containerClass = isProminent
+                        ? level === 'warning'
+                          ? 'rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-3.5 py-2.5 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2'
+                          : 'rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-3.5 py-2.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-2'
+                        : 'inline-flex w-fit max-w-full items-center gap-1.5 rounded-md bg-slate-100 dark:bg-gray-800 px-2.5 py-1 text-[11px] text-slate-600 dark:text-gray-300'
+
+                      const iconClass = level === 'warning'
+                        ? 'shrink-0 text-amber-500 dark:text-amber-400'
+                        : level === 'error'
+                          ? 'shrink-0 text-red-500 dark:text-red-400'
+                          : 'shrink-0 text-slate-500 dark:text-gray-400'
+
+                      const linkClass = level === 'warning'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : level === 'error'
+                          ? 'text-red-500 dark:text-red-400'
+                          : 'text-blue-600 dark:text-blue-400'
+
+                      return (
+                        <div key={resultIndex} className={containerClass}>
+                          {level === 'error' || level === 'warning'
+                            ? <AlertCircle size={14} className={iconClass} />
+                            : <Check size={12} className={iconClass} />
+                          }
+                          <span className={isProminent ? 'flex-1' : 'truncate'}>{result.message}</span>
+                          {result.success && result.sessionId && result.action === 'create_session' && (
+                            <Link
+                              to={`/sessions/${result.sessionId}`}
+                              className={`inline-flex items-center gap-1 text-[11px] font-semibold hover:underline shrink-0 ${linkClass}`}
+                            >
+                              Open <ExternalLink size={10} />
+                            </Link>
+                          )}
+                          {['remove_tester', 'reactivate_tester', 'add_tester', 'delete_tester'].includes(result.action) && (
+                            <Link
+                              to="/testers"
+                              className={`inline-flex items-center gap-1 text-[11px] font-semibold hover:underline shrink-0 ${linkClass}`}
+                            >
+                              Testers <ExternalLink size={10} />
+                            </Link>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
           {sending && (
             <div className="flex justify-start gap-2">
