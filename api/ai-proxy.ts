@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any): Promise<void> {
   const upstreamBody =
     req.body == null
       ? undefined
-      : typeof req.body === 'string' || Buffer.isBuffer(req.body)
+      : typeof req.body === 'string' || req.body instanceof Uint8Array
         ? req.body
         : JSON.stringify(req.body)
 
@@ -59,8 +59,8 @@ export default async function handler(req: any, res: any): Promise<void> {
     res.status(upstream.status)
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json')
 
-    const data = Buffer.from(await upstream.arrayBuffer())
-    res.send(data)
+    const data = await upstream.arrayBuffer()
+    res.send(new Uint8Array(data))
   } catch (error) {
     setCorsHeaders(res)
     const message = error instanceof Error ? error.message : String(error)
