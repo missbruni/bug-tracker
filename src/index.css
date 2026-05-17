@@ -300,8 +300,8 @@ h1, h2, h3, h4 {
   background-color: color-mix(in srgb, var(--color-red-500) 8%, transparent);
 }
 @utility badge-slate {
-  border-color: var(--color-gray-600);
-  color: var(--color-gray-300);
-  background-color: color-mix(in srgb, var(--color-gray-500) 8%, transparent);
+  border-color: var(--color-slate-300);
+  color: var(--color-slate-500);
+  background-color: color-mix(in srgb, var(--color-slate-500) 8%, transparent);
 }
 
