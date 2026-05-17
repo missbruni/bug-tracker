@@ -5,6 +5,7 @@ import type { Severity } from '../constants'
 export interface Attachment {
   id?: number
   bug_id?: string
+  team_id?: string
   name: string
   url: string
   type: string
@@ -15,12 +16,14 @@ export interface Attachment {
 export interface Comment {
   id?: number
   bug_id?: string
+  team_id?: string
   text: string
   time?: string
 }
 
 export interface Bug {
   id: string
+  team_id?: string
   title: string
   description: string
   severity: Severity
@@ -40,8 +43,37 @@ export interface Bug {
 
 export interface Question {
   id: string
+  team_id?: string
   text: string
   tester: string
+  created_at?: string
+}
+
+// ─── Teams ─────────────────────────────────────────────────────
+
+export interface Organization {
+  id: string
+  name: string
+  created_at?: string
+}
+
+export interface Team {
+  id: string
+  organization_id: string
+  name: string
+  slug: string
+  created_by?: string | null
+  created_at?: string
+}
+
+export type TeamRole = 'team_admin' | 'member'
+
+export interface TeamMember {
+  id: string
+  team_id: string
+  user_id: string
+  role: TeamRole
+  status: 'active' | 'invited' | 'disabled'
   created_at?: string
 }
 
@@ -57,6 +89,8 @@ export type SessionStatus = 'draft' | 'active' | 'completed'
 
 export interface Session {
   id: string
+  team_id?: string
+  product_id?: string | null
   name: string
   date: string | null
   status: SessionStatus
@@ -78,6 +112,7 @@ export interface SessionOption {
 
 export interface Scenario {
   id: string
+  team_id?: string
   session_id: string
   letter: string
   title: string
@@ -88,6 +123,7 @@ export interface Scenario {
 
 export interface Assignment {
   id: string
+  team_id?: string
   session_id: string
   scenario_id: string
   tester_id: string
@@ -97,6 +133,7 @@ export interface Assignment {
 
 export interface Tester {
   id: string
+  team_id?: string
   name: string
   devices: string[]
   active?: boolean
@@ -109,6 +146,7 @@ export type Helpfulness = 'not_at_all' | 'somewhat' | 'very'
 
 export interface Feedback {
   id: string
+  team_id?: string
   session_id: string
   name: string | null
   rating: number

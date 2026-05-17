@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
+import { useTeamAccess } from '../lib/teamAccess'
+import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
 import type { Bug, Question, Attachment, SessionOption, Tester } from '../types'
 import type { Severity } from '../constants'
@@ -46,21 +48,27 @@ export interface NewBugInput {
 
 export function useBugs(): UseBugsReturn {
   const queryClient = useQueryClient()
+  const { activeTeamId } = useTeamAccess()
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bugsQueryKey = ['bugs-data', activeTeamId] as const
 
   const { data, isLoading: loading } = useQuery({
-    queryKey: ['bugs-data'],
+    queryKey: bugsQueryKey,
     queryFn: async () => {
       if (!supabase) return { bugs: [], questions: [], sessions: [], testers: [] }
+
       const [bugsRes, commentsRes, attachmentsRes, questionsRes, sessionsRes, testersRes] = await Promise.all([
-        supabase.from('bugs').select('*').order('id'),
-        supabase.from('comments').select('*').order('created_at'),
-        supabase.from('attachments').select('*').order('created_at'),
-        supabase.from('open_questions').select('*').order('id'),
-        supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
-        supabase.from('testers').select('id, name').eq('active', true).order('name'),
+        scopeToTeam(supabase.from('bugs').select('*').order('id'), activeTeamId),
+        scopeToTeam(supabase.from('comments').select('*').order('created_at'), activeTeamId),
+        scopeToTeam(supabase.from('attachments').select('*').order('created_at'), activeTeamId),
+        scopeToTeam(supabase.from('open_questions').select('*').order('id'), activeTeamId),
+        scopeToTeam(
+          supabase.from('sessions').select('id, name, status').order('created_at', { ascending: false }),
+          activeTeamId,
+        ),
+        scopeToTeam(supabase.from('testers').select('id, name').eq('active', true).order('name'), activeTeamId),
       ])
 
       const commentsMap: Record<string, Bug['comments']> = {}
@@ -97,34 +105,42 @@ export function useBugs(): UseBugsReturn {
 
   // Helper to update bugs in the query cache
   const setBugs = useCallback((updater: (prev: Bug[]) => Bug[]) => {
-    queryClient.setQueryData(['bugs-data'], (old: typeof data) => {
+    queryClient.setQueryData(bugsQueryKey, (old: typeof data) => {
       if (!old) return old
       return { ...old, bugs: updater(old.bugs) }
     })
-  }, [queryClient])
+  }, [bugsQueryKey, queryClient])
 
   const setQuestions = useCallback((updater: React.SetStateAction<Question[]>) => {
-    queryClient.setQueryData(['bugs-data'], (old: typeof data) => {
+    queryClient.setQueryData(bugsQueryKey, (old: typeof data) => {
       if (!old) return old
       const next = typeof updater === 'function' ? updater(old.questions) : updater
       return { ...old, questions: next }
     })
-  }, [queryClient])
+  }, [bugsQueryKey, queryClient])
 
   const setRegisteredTesters = useCallback((updater: (prev: Array<Pick<Tester, 'id' | 'name'>>) => Array<Pick<Tester, 'id' | 'name'>>) => {
-    queryClient.setQueryData(['bugs-data'], (old: typeof data) => {
+    queryClient.setQueryData(bugsQueryKey, (old: typeof data) => {
       if (!old) return old
       return { ...old, testers: updater(old.testers) }
     })
-  }, [queryClient])
+  }, [bugsQueryKey, queryClient])
 
   // Real-time subscriptions so all users stay in sync
   useEffect(() => {
     if (!supabase) return
 
     const sb = supabase
+
+    const scopeConfig = (event: '*' | 'INSERT' | 'DELETE', table: 'bugs' | 'comments' | 'attachments') => ({
+      event,
+      schema: 'public' as const,
+      table,
+      ...(activeTeamId ? { filter: `team_id=eq.${activeTeamId}` } : {}),
+    })
+
     const channel = sb.channel('bugs-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bugs' }, (payload) => {
+      .on('postgres_changes', scopeConfig('*', 'bugs'), (payload) => {
         if (payload.eventType === 'INSERT') {
           const newBug = payload.new as Bug
           setBugs((prev) => {
@@ -139,7 +155,7 @@ export function useBugs(): UseBugsReturn {
           setBugs((prev) => prev.filter(b => b.id !== deleted.id))
         }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+      .on('postgres_changes', scopeConfig('INSERT', 'comments'), (payload) => {
         const c = payload.new as { id: number; bug_id: string; text: string; time?: string }
         setBugs((prev) => prev.map(b => {
           if (b.id !== c.bug_id) return b
@@ -147,14 +163,14 @@ export function useBugs(): UseBugsReturn {
           return { ...b, comments: [...b.comments, c] }
         }))
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, (payload) => {
+      .on('postgres_changes', scopeConfig('DELETE', 'comments'), (payload) => {
         const c = payload.old as { id: number; bug_id: string }
         setBugs((prev) => prev.map(b => {
           if (b.id !== c.bug_id) return b
           return { ...b, comments: b.comments.filter(cm => cm.id !== c.id) }
         }))
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attachments' }, (payload) => {
+      .on('postgres_changes', scopeConfig('INSERT', 'attachments'), (payload) => {
         const a = payload.new as Attachment & { bug_id: string }
         setBugs((prev) => prev.map(b => {
           if (b.id !== a.bug_id) return b
@@ -162,7 +178,7 @@ export function useBugs(): UseBugsReturn {
           return { ...b, attachments: [...b.attachments, a] }
         }))
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'attachments' }, (payload) => {
+      .on('postgres_changes', scopeConfig('DELETE', 'attachments'), (payload) => {
         const a = payload.old as { id: number; bug_id: string }
         setBugs((prev) => prev.map(b => {
           if (b.id !== a.bug_id) return b
@@ -172,7 +188,7 @@ export function useBugs(): UseBugsReturn {
       .subscribe()
 
     return () => { sb.removeChannel(channel) }
-  }, [])
+  }, [activeTeamId, setBugs])
 
   const updateBug = useCallback((updated: Bug) => {
     setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
@@ -197,11 +213,14 @@ export function useBugs(): UseBugsReturn {
     const normalized = name.trim()
     if (!normalized) return null
 
-    const { data: existing, error: existingErr } = await supabase
-      .from('testers')
-      .select('id, name, active')
-      .ilike('name', normalized)
-      .limit(1)
+    const { data: existing, error: existingErr } = await scopeToTeam(
+      supabase
+        .from('testers')
+        .select('id, name, active')
+        .ilike('name', normalized)
+        .limit(1),
+      activeTeamId,
+    )
 
     if (existingErr) {
       console.error('Failed to check existing tester:', existingErr)
@@ -213,10 +232,12 @@ export function useBugs(): UseBugsReturn {
       if (!row.active) {
         const updatePayload: { active: boolean; devices?: string[] } = { active: true }
         if (devices.length) updatePayload.devices = devices
-        const { error: reactivateErr } = await supabase
+        let reactivateQuery = supabase
           .from('testers')
           .update(updatePayload)
           .eq('id', row.id)
+        reactivateQuery = scopeToTeam(reactivateQuery, activeTeamId)
+        const { error: reactivateErr } = await reactivateQuery
         if (reactivateErr) {
           console.error('Failed to reactivate tester:', reactivateErr)
           return null
@@ -233,7 +254,7 @@ export function useBugs(): UseBugsReturn {
 
     const { data: created, error: createErr } = await supabase
       .from('testers')
-      .insert({ name: normalized, devices, active: true })
+      .insert(withTeamPayload({ name: normalized, devices, active: true }, activeTeamId))
       .select('id, name')
       .single()
 
@@ -251,11 +272,11 @@ export function useBugs(): UseBugsReturn {
     const filesToUpload = newBug.attachments.filter((a) => a.file)
     let resolvedTesterId = newBug.tester_id || null
     if (!resolvedTesterId) {
-      const matchedTester = await findTesterByName(newBug.tester)
+      const matchedTester = await findTesterByName(newBug.tester, activeTeamId)
       resolvedTesterId = matchedTester?.id || null
     }
 
-    const bugData: Record<string, unknown> = {
+    const bugData = withTeamPayload({
       id: newBug.id,
       title: newBug.title,
       description: newBug.description,
@@ -265,7 +286,7 @@ export function useBugs(): UseBugsReturn {
       device: newBug.device,
       page: newBug.page,
       category: newBug.category,
-    }
+    }, activeTeamId) as Record<string, unknown>
     if (newBug.session_id) bugData.session_id = newBug.session_id
 
     if (supabase) {
@@ -308,13 +329,13 @@ export function useBugs(): UseBugsReturn {
       if (filesToUpload.length) {
         const results = await Promise.all(
           filesToUpload.map(async (att) => {
-            const path = `${finalId}/${Date.now()}-${att.name}`
-            const { error: upErr } = await sb.storage.from('attachments').upload(path, att.file!)
+            const storagePath = buildAttachmentPath(activeTeamId, finalId, att.name)
+            const { error: upErr } = await sb.storage.from('attachments').upload(storagePath, att.file!)
             if (upErr) return null
-            const { data: urlData } = sb.storage.from('attachments').getPublicUrl(path)
+            const { data: urlData } = sb.storage.from('attachments').getPublicUrl(storagePath)
             const { data: row } = await sb
               .from('attachments')
-              .insert({ bug_id: finalId, name: att.name, url: urlData.publicUrl, type: att.type })
+              .insert(withTeamPayload({ bug_id: finalId, name: att.name, url: urlData.publicUrl, type: att.type }, activeTeamId))
               .select()
             return row?.[0] as Attachment | undefined
           })
@@ -332,7 +353,9 @@ export function useBugs(): UseBugsReturn {
 
   const deleteQuestion = async (q: Question) => {
     if (supabase) {
-      const { error } = await supabase.from('open_questions').delete().eq('id', q.id)
+      let deleteQuery = supabase.from('open_questions').delete().eq('id', q.id)
+      deleteQuery = scopeToTeam(deleteQuery, activeTeamId)
+      const { error } = await deleteQuery
       if (error) { console.error('Failed to delete question:', error); return }
     }
     setQuestions((prev) => prev.filter((x) => x.id !== q.id))

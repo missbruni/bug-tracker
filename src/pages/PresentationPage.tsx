@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Package } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useTeamAccess } from '../lib/teamAccess'
+import { scopeToTeam } from '../lib/teamScope'
 import type { Session, Scenario, Tester, Assignment } from '../types'
 
 interface Slide {
@@ -44,18 +46,21 @@ const TIPS = [
 export default function PresentationPage() {
   const { id: sessionId } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { activeTeamId } = useTeamAccess()
   const [session, setSession] = useState<Session | null>(null)
   const [slides, setSlides] = useState<Slide[]>([])
   const [current, setCurrent] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [teamName, setTeamName] = useState<string | null>(null)
+  const [productName, setProductName] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!supabase || !sessionId) return
     const [sessRes, scenRes, assignRes, testRes] = await Promise.all([
-      supabase.from('sessions').select('*').eq('id', sessionId).single(),
-      supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'),
-      supabase.from('assignments').select('*').eq('session_id', sessionId),
-      supabase.from('testers').select('*'),
+      scopeToTeam(supabase.from('sessions').select('*').eq('id', sessionId).single(), activeTeamId),
+      scopeToTeam(supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'), activeTeamId),
+      scopeToTeam(supabase.from('assignments').select('*').eq('session_id', sessionId), activeTeamId),
+      scopeToTeam(supabase.from('testers').select('*'), activeTeamId),
     ])
 
     const sess = sessRes.data as Session | null
@@ -64,6 +69,18 @@ export default function PresentationPage() {
     const allTesters = (testRes.data || []) as Tester[]
 
     setSession(sess)
+
+    // Fetch team + product names
+    if (supabase && sess?.team_id) {
+      supabase.from('teams').select('name').eq('id', sess.team_id).single().then(({ data: t }) => {
+        if (t) setTeamName((t as { name: string }).name)
+      })
+    }
+    if (supabase && sess?.product_id) {
+      supabase.from('products').select('name').eq('id', sess.product_id).single().then(({ data: p }) => {
+        if (p) setProductName((p as { name: string }).name)
+      })
+    }
 
     const testerMap = new Map(allTesters.map(t => [t.id, t]))
     const assignMap = new Map(assigns.map(a => [a.scenario_id, testerMap.get(a.tester_id) || null]))
@@ -86,7 +103,7 @@ export default function PresentationPage() {
 
     setSlides(builtSlides)
     setLoading(false)
-  }, [sessionId])
+  }, [sessionId, activeTeamId])
 
   useEffect(() => { load() }, [load])
 
@@ -158,9 +175,18 @@ export default function PresentationPage() {
           {/* TITLE */}
           {slide.type === 'title' && (
             <div className="text-center">
-              <h1 className="text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
-                EVO IBE
-              </h1>
+              {(teamName || productName) && (
+                <div className="flex items-center justify-center gap-3 mb-3 text-lg text-gray-500">
+                  {teamName && <span className="font-semibold text-blue-400">{teamName}</span>}
+                  {teamName && productName && <span className="text-gray-600">·</span>}
+                  {productName && (
+                    <span className="flex items-center gap-1.5 font-medium text-amber-400">
+                      <Package size={16} />
+                      {productName}
+                    </span>
+                  )}
+                </div>
+              )}
               <h2 className="text-xl text-gray-400 font-medium mb-8">{session.name}</h2>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <span className="inline-block bg-gray-800 border border-gray-700 rounded-full px-4 py-1.5 text-sm font-semibold">

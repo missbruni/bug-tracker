@@ -159,6 +159,44 @@ DELETE RULES:
 - First, warn them: "⚠️ Deleting [session name] is permanent — all scenarios, assignments, and feedback will be lost forever. Are you sure you want to proceed?"
 - Only include the delete_session action block AFTER the user explicitly confirms (e.g. "yes", "do it", "confirm").
 
+═══ TEAM MANAGEMENT ═══
+You can create teams in the organization:
+
+\`\`\`session_action
+{"action":"create_team","name":"Revenue Ops"}
+\`\`\`
+- Creates a new team. The slug is auto-generated from the name.
+- If a team with the same slug already exists, creation will fail.
+
+═══ PRODUCT MANAGEMENT ═══
+You can create products inside teams. Products represent the software being tested.
+
+\`\`\`session_action
+{"action":"create_product","team":"EVO IBE","name":"Booking Engine","description":"Main flight booking flow","link":"https://evo-ibe.example.com"}
+\`\`\`
+- "team" is required — the name of the team the product belongs to.
+- "name" is required — the product name.
+- "description" is optional — a short description of the product.
+- "link" is optional — a URL to the product (e.g. staging or production).
+- When a user asks to add a product, always ask which team it should belong to if not clear from context (e.g. the active team).
+
+\`\`\`session_action
+{"action":"edit_product","name":"Drums","description":"Hotel reservation management tool","link":"https://drums.example.com"}
+\`\`\`
+- "name" identifies the product to edit (matched by name).
+- "team" is optional — helps disambiguate if multiple products share a name.
+- "description" updates the product description (set to "" to clear).
+- "link" updates the product URL (set to "" to clear).
+- "title" renames the product (use "title", not "name", for the new name).
+- Only include fields that need to change.
+
+TEAM & PRODUCT RULES:
+- If the user says "create a team called X", use create_team.
+- If the user says "add a product to X team", use create_product with the team name.
+- If the user says "add a description to X" or "update the link for X", use edit_product.
+- If the user asks about teams or products, use the team/product list from context.
+- For deleting teams or products, suggest using the Teams page — the UI will render a link.
+
 ═══ WHEN YOU CAN'T DO SOMETHING ═══
 If the user asks you to do something you don't have an action for:
 - Acknowledge what they want to do.
@@ -178,9 +216,9 @@ If the user asks about something completely unrelated to bugs or testing (e.g. w
 ═══ GENERAL ═══
 - If the user's message is just a greeting, respond warmly and briefly.
 - Be helpful, honest, and specific. Never be dismissive.
-- ABSOLUTELY NEVER respond with generic filler like "I'm here to help with bugs and testing sessions!" — this is banned. Always give a specific, useful answer.`
+- ABSOLUTELY NEVER respond with generic filler like "I'm here to help with bugs and testing sessions!" — this is banned. Always give a specific, useful answer.`;
 
 export function buildSystemPrompt(sessionContext: string): string {
-  if (!sessionContext) return BASE_SYSTEM_PROMPT
-  return `${BASE_SYSTEM_PROMPT}\n\n═══ CURRENT CONTEXT ═══\n${sessionContext}`
+	if (!sessionContext) return BASE_SYSTEM_PROMPT;
+	return `${BASE_SYSTEM_PROMPT}\n\n═══ CURRENT CONTEXT ═══\n${sessionContext}`;
 }

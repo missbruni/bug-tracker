@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
-
-type PinAccessLevel = "team" | "god";
+import { type PinAccessLevel } from "../lib/teamScope";
 
 interface PinGateProps {
   teamPin: string | undefined;

@@ -98,6 +98,63 @@ describe('parseSessionActions — new action types', () => {
     expect(actions[0].clear).toBe(false)
   })
 
+  test('parses create_team action', () => {
+    const text = '```session_action\n{"action":"create_team","name":"Revenue Ops"}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('create_team')
+    expect(actions[0].name).toBe('Revenue Ops')
+  })
+
+  test('parses create_product action with all fields', () => {
+    const text = '```session_action\n{"action":"create_product","team":"EVO IBE","name":"Booking Engine","description":"Main flight booking flow","link":"https://example.com"}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('create_product')
+    expect(actions[0].team).toBe('EVO IBE')
+    expect(actions[0].name).toBe('Booking Engine')
+    expect(actions[0].description).toBe('Main flight booking flow')
+    expect(actions[0].link).toBe('https://example.com')
+  })
+
+  test('parses create_product action with only required fields', () => {
+    const text = '```session_action\n{"action":"create_product","team":"EVO IBE","name":"Drums"}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('create_product')
+    expect(actions[0].team).toBe('EVO IBE')
+    expect(actions[0].name).toBe('Drums')
+    expect(actions[0].description).toBeUndefined()
+    expect(actions[0].link).toBeUndefined()
+  })
+
+  test('parses edit_product action', () => {
+    const text = '```session_action\n{"action":"edit_product","name":"Drums","description":"Hotel reservation tool","link":"https://drums.example.com"}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('edit_product')
+    expect(actions[0].name).toBe('Drums')
+    expect(actions[0].description).toBe('Hotel reservation tool')
+    expect(actions[0].link).toBe('https://drums.example.com')
+  })
+
+  test('parses edit_product with team disambiguation', () => {
+    const text = '```session_action\n{"action":"edit_product","name":"Drums","team":"EVO IBE","description":"Updated desc"}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('edit_product')
+    expect(actions[0].team).toBe('EVO IBE')
+  })
+
+  test('parses edit_product rename via title field', () => {
+    const text = '```session_action\n{"action":"edit_product","name":"Drums","title":"Drums Pro"}\n```'
+    const actions = parseSessionActions(text)
+    expect(actions).toHaveLength(1)
+    expect(actions[0].action).toBe('edit_product')
+    expect(actions[0].name).toBe('Drums')
+    expect(actions[0].title).toBe('Drums Pro')
+  })
+
   test('parses multiple actions in one response', () => {
     const text = `I'll resolve those two bugs.
 \`\`\`session_action
@@ -137,6 +194,21 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('edit_tester')
     expect(prompt).toContain('set_bug_filters')
     expect(prompt).toContain('severities')
+  })
+
+  test('includes team management instructions', () => {
+    const prompt = buildSystemPrompt('')
+    expect(prompt).toContain('create_team')
+    expect(prompt).toContain('TEAM MANAGEMENT')
+  })
+
+  test('includes product management instructions', () => {
+    const prompt = buildSystemPrompt('')
+    expect(prompt).toContain('create_product')
+    expect(prompt).toContain('edit_product')
+    expect(prompt).toContain('PRODUCT MANAGEMENT')
+    expect(prompt).toContain('description')
+    expect(prompt).toContain('link')
   })
 
   test('appends context when provided', () => {

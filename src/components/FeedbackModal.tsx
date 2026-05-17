@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { X, Star, Send, MessageSquareHeart } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useTeamAccess } from '../lib/teamAccess'
+import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Feedback } from '../types'
 
 interface Props {
@@ -35,6 +37,7 @@ const LENGTH_COLORS: Record<string, string> = {
 }
 
 export default function FeedbackModal({ sessionId, sessionName, onClose, inline }: Props) {
+  const { activeTeamId } = useTeamAccess()
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [submitted, setSubmitted] = useState(() => {
@@ -56,18 +59,21 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return }
-    supabase.from('session_feedback').select('*').eq('session_id', sessionId).order('created_at').then(({ data }) => {
+    scopeToTeam(
+      supabase.from('session_feedback').select('*').eq('session_id', sessionId).order('created_at'),
+      activeTeamId,
+    ).then(({ data }) => {
       setFeedbacks((data || []) as Feedback[])
       setLoading(false)
     })
-  }, [sessionId])
+  }, [sessionId, activeTeamId])
 
   const canSubmit = rating > 0 && lengthFeel && clarity > 0 && helpfulness
 
   const submit = async () => {
     if (!supabase || !canSubmit || submitting) return
     setSubmitting(true)
-    const { error } = await supabase.from('session_feedback').insert({
+    const { error } = await supabase.from('session_feedback').insert(withTeamPayload({
       session_id: sessionId,
       name: name.trim() || null,
       rating,
@@ -76,13 +82,16 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
       helpfulness,
       worked_well: workedWell.trim() || null,
       to_improve: toImprove.trim() || null,
-    })
+    }, activeTeamId))
     if (!error) {
       setSubmitted(true)
       const done = JSON.parse(localStorage.getItem('feedback_submitted') || '[]') as string[]
       if (!done.includes(sessionId)) localStorage.setItem('feedback_submitted', JSON.stringify([...done, sessionId]))
       // Reload feedbacks
-      const { data } = await supabase.from('session_feedback').select('*').eq('session_id', sessionId).order('created_at')
+      const { data } = await scopeToTeam(
+        supabase.from('session_feedback').select('*').eq('session_id', sessionId).order('created_at'),
+        activeTeamId,
+      )
       setFeedbacks((data || []) as Feedback[])
     }
     setSubmitting(false)

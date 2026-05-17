@@ -2,21 +2,28 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, X, Check, Pencil } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
+import { useTeamAccess } from '../lib/teamAccess'
+import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import type { Tester } from '../types'
 
-async function fetchTesters(): Promise<Tester[]> {
+async function fetchTesters(activeTeamId: string | null): Promise<Tester[]> {
   if (!supabase) return []
-  const { data } = await supabase.from('testers').select('*').order('name')
+  const { data } = await scopeToTeam(
+    supabase.from('testers').select('*').order('name'),
+    activeTeamId,
+  )
   return (data || []) as Tester[]
 }
 
 export default function TesterManagementPage() {
   const queryClient = useQueryClient()
+  const { activeTeamId } = useTeamAccess()
+  const testersQueryKey = ['testers', activeTeamId] as const
   const { data: testers = [], isLoading: loading } = useQuery({
-    queryKey: ['testers'],
-    queryFn: fetchTesters,
+    queryKey: testersQueryKey,
+    queryFn: () => fetchTesters(activeTeamId),
   })
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
@@ -42,10 +49,10 @@ export default function TesterManagementPage() {
     try {
       const { data, error } = await supabase
         .from('testers')
-        .insert({ name: newName.trim(), devices: newDevices, active: true })
+        .insert(withTeamPayload({ name: newName.trim(), devices: newDevices, active: true }, activeTeamId))
         .select()
       if (!error && data?.[0]) {
-        queryClient.setQueryData(['testers'], (prev: Tester[]) => [...prev, data[0] as Tester].sort((a, b) => a.name.localeCompare(b.name)))
+        queryClient.setQueryData(testersQueryKey, (prev: Tester[]) => [...prev, data[0] as Tester].sort((a, b) => a.name.localeCompare(b.name)))
         setNewName('')
         setNewDevices([])
         setShowAdd(false)
@@ -57,8 +64,12 @@ export default function TesterManagementPage() {
 
   const toggleActive = async (tester: Tester) => {
     if (!supabase) return
-    const { error } = await supabase.from('testers').update({ active: !tester.active }).eq('id', tester.id)
-    if (!error) queryClient.setQueryData(['testers'], (prev: Tester[]) => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
+    const toggleQuery = scopeToTeam(
+      supabase.from('testers').update({ active: !tester.active }).eq('id', tester.id),
+      activeTeamId,
+    )
+    const { error } = await toggleQuery
+    if (!error) queryClient.setQueryData(testersQueryKey, (prev: Tester[]) => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
   }
 
   const confirmDeleteTester = async (tester: Tester) => {
@@ -69,10 +80,13 @@ export default function TesterManagementPage() {
     if (deletingTesterId) return
     setDeletingTesterId(tester.id)
 
-    const { count: assignmentCount, error: assignmentErr } = await supabase
-      .from('assignments')
-      .select('*', { count: 'exact', head: true })
-      .eq('tester_id', tester.id)
+    const { count: assignmentCount, error: assignmentErr } = await scopeToTeam(
+      supabase
+        .from('assignments')
+        .select('*', { count: 'exact', head: true })
+        .eq('tester_id', tester.id),
+      activeTeamId,
+    )
 
     if (assignmentErr) {
       setToast({ message: `Failed to verify assignments: ${assignmentErr.message}`, tone: 'error' })
@@ -82,10 +96,13 @@ export default function TesterManagementPage() {
     }
 
     let bugCount = 0
-    const bugByIdRes = await supabase
-      .from('bugs')
-      .select('*', { count: 'exact', head: true })
-      .eq('tester_id', tester.id)
+    const bugByIdRes = await scopeToTeam(
+      supabase
+        .from('bugs')
+        .select('*', { count: 'exact', head: true })
+        .eq('tester_id', tester.id),
+      activeTeamId,
+    )
 
     if (bugByIdRes.error) {
       if (!bugByIdRes.error.message.toLowerCase().includes('tester_id')) {
@@ -95,19 +112,22 @@ export default function TesterManagementPage() {
         return
       }
 
-      const legacyBugRes = await supabase
-        .from('bugs')
-        .select('*', { count: 'exact', head: true })
-        .ilike('tester', tester.name)
+      const scopedLegacyBugRes = await scopeToTeam(
+        supabase
+          .from('bugs')
+          .select('*', { count: 'exact', head: true })
+          .ilike('tester', tester.name),
+        activeTeamId,
+      )
 
-      if (legacyBugRes.error) {
-        setToast({ message: `Failed to verify bug dependencies: ${legacyBugRes.error.message}`, tone: 'error' })
+      if (scopedLegacyBugRes.error) {
+        setToast({ message: `Failed to verify bug dependencies: ${scopedLegacyBugRes.error.message}`, tone: 'error' })
         setDeletingTesterId(null)
         setPendingDeleteTesterId(null)
         return
       }
 
-      bugCount = legacyBugRes.count || 0
+      bugCount = scopedLegacyBugRes.count || 0
     } else {
       bugCount = bugByIdRes.count || 0
     }
@@ -122,14 +142,18 @@ export default function TesterManagementPage() {
       return
     }
 
-    const { error } = await supabase.from('testers').delete().eq('id', tester.id)
+    const deleteQuery = scopeToTeam(
+      supabase.from('testers').delete().eq('id', tester.id),
+      activeTeamId,
+    )
+    const { error } = await deleteQuery
     if (error) {
       setToast({ message: `Failed to delete tester: ${error.message}`, tone: 'error' })
       setDeletingTesterId(null)
       setPendingDeleteTesterId(null)
       return
     }
-    queryClient.setQueryData(['testers'], (prev: Tester[]) => prev.filter(t => t.id !== tester.id))
+    queryClient.setQueryData(testersQueryKey, (prev: Tester[]) => prev.filter(t => t.id !== tester.id))
     setDeletingTesterId(null)
     setPendingDeleteTesterId(null)
     setToast({ message: `${tester.name} deleted.`, tone: 'success' })
@@ -143,12 +167,16 @@ export default function TesterManagementPage() {
 
   const saveEdit = async () => {
     if (!supabase || !editingId || !editName.trim()) return
-    const { error } = await supabase
-      .from('testers')
-      .update({ name: editName.trim(), devices: editDevices })
-      .eq('id', editingId)
+    const saveQuery = scopeToTeam(
+      supabase
+        .from('testers')
+        .update({ name: editName.trim(), devices: editDevices })
+        .eq('id', editingId),
+      activeTeamId,
+    )
+    const { error } = await saveQuery
     if (!error) {
-      queryClient.setQueryData(['testers'], (prev: Tester[]) =>
+      queryClient.setQueryData(testersQueryKey, (prev: Tester[]) =>
         prev.map(t => t.id === editingId ? { ...t, name: editName.trim(), devices: editDevices } : t)
           .sort((a, b) => a.name.localeCompare(b.name))
       )

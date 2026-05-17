@@ -29,6 +29,6 @@ export const PAGES = ['Home', 'Availability', 'Add ons', 'Summary', 'Payment', '
 
 export const SESSION_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: 'bg-slate-100 dark:bg-gray-800', text: 'text-slate-600 dark:text-gray-400' },
-  active: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400' },
-  completed: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400' },
+  active: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400' },
+  completed: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400' },
 }

@@ -1,13 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../lib/useAuth";
+import {
+  PIN_ROLE_SESSION_KEY,
+  PIN_SESSION_KEY,
+  type PinAccessLevel,
+} from "../lib/teamScope";
 import LoginScreen from "./LoginScreen";
 
 const TEAM_PIN = (import.meta.env.VITE_TEAM_PIN as string | undefined)?.trim();
 const GOD_PIN = (import.meta.env.VITE_GOD_PIN as string | undefined)?.trim();
-const PIN_SESSION_KEY = "bug-tracker-auth";
-const PIN_ROLE_SESSION_KEY = "bug-tracker-auth-role";
-type PinAccessLevel = "team" | "god";
 
 interface AuthGateProps {
   children: ReactNode;
@@ -49,6 +51,9 @@ export default function AuthGate({ children }: AuthGateProps) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem(PIN_SESSION_KEY, "true");
       sessionStorage.setItem(PIN_ROLE_SESSION_KEY, accessLevel);
+      window.dispatchEvent(
+        new CustomEvent("pin-unlocked", { detail: { role: accessLevel } }),
+      );
     }
     clearAuthError();
     setPinUnlocked(true);

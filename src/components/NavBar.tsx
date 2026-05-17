@@ -1,8 +1,9 @@
 import { type ReactNode, useRef, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock } from "lucide-react";
+import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock, Building2 } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
 import { playBugSound } from "../lib/audio";
+import type { TeamRecord } from "../lib/teamScope";
 
 const NAV_ITEMS = [
 	{ to: "/", label: "Bugs", icon: Bug },
@@ -15,6 +16,12 @@ export default function NavBar({
 	showBugs,
 	onToggleBugs,
 	bugCount,
+	activeTeamName,
+	isGodMode,
+	teamOptions,
+	activeTeamId,
+	onTeamChange,
+	showTeamsNav,
 	onOpenSettings,
 	userLabel,
 	onLogout,
@@ -24,16 +31,26 @@ export default function NavBar({
 	showBugs?: boolean;
 	onToggleBugs?: () => void;
 	bugCount?: number;
+	activeTeamName?: string;
+	isGodMode?: boolean;
+	teamOptions?: TeamRecord[];
+	activeTeamId?: string | null;
+	onTeamChange?: (teamId: string) => void;
+	showTeamsNav?: boolean;
 	onOpenSettings?: () => void;
 	userLabel?: string;
 	onLogout?: () => void;
 	onLock?: () => void;
 }) {
+	const navItems = showTeamsNav
+		? [...NAV_ITEMS, { to: "/teams", label: "Teams", icon: Building2 }]
+		: NAV_ITEMS;
+
 	const location = useLocation();
 	const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 	const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
-	const activeIndex = NAV_ITEMS.findIndex(({ to }) =>
+	const activeIndex = navItems.findIndex(({ to }) =>
 		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
 	);
 
@@ -75,7 +92,7 @@ export default function NavBar({
 					</div>
 					{/* Desktop Tabs — hidden on mobile */}
 					<div className="relative hidden sm:flex items-center gap-1">
-						{NAV_ITEMS.map(({ to, label, icon: Icon }, i) => {
+						{navItems.map(({ to, label, icon: Icon }, i) => {
 							const active = i === activeIndex;
 							return (
 								<Link
@@ -101,6 +118,28 @@ export default function NavBar({
 					</div>
 					{children && (
 						<div className="ml-auto flex items-center gap-2">
+							{activeTeamName && (
+								<span
+									className="hidden md:inline rounded-full border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-gray-300"
+									title={`Active team: ${activeTeamName}`}
+								>
+									Team: {activeTeamName}
+								</span>
+							)}
+							{isGodMode && teamOptions && teamOptions.length > 1 && onTeamChange && (
+								<select
+									value={activeTeamId ?? ""}
+									onChange={(event) => onTeamChange(event.target.value)}
+									className="max-w-[180px] rounded-lg border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-xs text-slate-700 dark:text-gray-200"
+									title="Switch active team"
+								>
+									{teamOptions.map((team) => (
+										<option key={team.id} value={team.id}>
+											{team.name}
+										</option>
+									))}
+								</select>
+							)}
 							<button
 								onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
 								className="flex items-center gap-1.5 rounded-full border border-indigo-400 dark:border-amber-500 px-3 py-1 text-indigo-600 dark:text-amber-500 hover:bg-indigo-500/10 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
@@ -155,7 +194,7 @@ export default function NavBar({
 			{/* ─── Mobile Bottom Tab Bar ─── */}
 			<div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800">
 				<div className="flex items-center justify-around">
-					{NAV_ITEMS.map(({ to, label, icon: Icon }, i) => {
+					{navItems.map(({ to, label, icon: Icon }, i) => {
 						const active = i === activeIndex;
 						return (
 							<Link
