@@ -31,8 +31,6 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key
    VITE_ALLOWED_EMAIL_DOMAIN=theaccessgroup.com
-   VITE_TEAM_PIN=your-team-pin
-   VITE_GOD_PIN=your-god-pin
    ```
 
 3. Run the app:
@@ -53,9 +51,16 @@ This app is hosted on Vercel and uses a Vercel Function for AI proxying.
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_ALLOWED_EMAIL_DOMAIN`
-   - `VITE_TEAM_PIN`
-   - `VITE_GOD_PIN`
+   - `TEAM_PIN`
+   - `GOD_PIN`
+   - `PIN_SESSION_SECRET`
 4. In Supabase Auth settings, add your Vercel production URL to allowed redirect URLs.
+
+## PIN Auth
+
+- PIN access is verified server-side by Vercel Functions (`api/auth/pin.ts`, `api/auth/session.ts`, `api/auth/logout.ts`).
+- PIN values are read from server-only environment variables: `TEAM_PIN` and `GOD_PIN`.
+- Session cookies are signed with `PIN_SESSION_SECRET` and stored as `HttpOnly` cookies.
 
 ## AI Proxy
 

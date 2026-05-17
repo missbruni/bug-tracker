@@ -1,38 +1,53 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../lib/useAuth";
-import {
-  PIN_ROLE_SESSION_KEY,
-  PIN_SESSION_KEY,
-  type PinAccessLevel,
-} from "../lib/teamScope";
+import { type PinAccessLevel } from "../lib/teamScope";
+import { cachePinRole, fetchPinSession, logoutPinSession } from "../lib/pinAuth";
 import LoginScreen from "./LoginScreen";
-
-const TEAM_PIN = (import.meta.env.VITE_TEAM_PIN as string | undefined)?.trim();
-const GOD_PIN = (import.meta.env.VITE_GOD_PIN as string | undefined)?.trim();
 
 interface AuthGateProps {
   children: ReactNode;
 }
 
 export default function AuthGate({ children }: AuthGateProps) {
-  const [pinUnlocked, setPinUnlocked] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const role = sessionStorage.getItem(PIN_ROLE_SESSION_KEY);
-    return (
-      sessionStorage.getItem(PIN_SESSION_KEY) === "true" ||
-      role === "team" ||
-      role === "god"
-    );
-  });
+  const [pinUnlocked, setPinUnlocked] = useState(false);
+  const [pinConfigured, setPinConfigured] = useState(true);
+  const [pinChecking, setPinChecking] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshPinSession = async () => {
+      setPinChecking(true);
+      try {
+        const session = await fetchPinSession();
+        if (cancelled) return;
+        setPinUnlocked(session.authenticated);
+        setPinConfigured(session.configured);
+        cachePinRole(session.authenticated ? session.role : null);
+      } catch {
+        if (cancelled) return;
+        setPinUnlocked(false);
+        setPinConfigured(false);
+        cachePinRole(null);
+      } finally {
+        if (!cancelled) setPinChecking(false);
+      }
+    };
+
+    void refreshPinSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const handlePinLock = () => {
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem(PIN_SESSION_KEY);
-        sessionStorage.removeItem(PIN_ROLE_SESSION_KEY);
-      }
+      void logoutPinSession();
+      cachePinRole(null);
       setPinUnlocked(false);
+      setPinChecking(false);
     };
 
     window.addEventListener("pin-lock", handlePinLock);
@@ -48,15 +63,13 @@ export default function AuthGate({ children }: AuthGateProps) {
   } = useAuth();
 
   const handlePinUnlock = (accessLevel: PinAccessLevel) => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(PIN_SESSION_KEY, "true");
-      sessionStorage.setItem(PIN_ROLE_SESSION_KEY, accessLevel);
-      window.dispatchEvent(
-        new CustomEvent("pin-unlocked", { detail: { role: accessLevel } }),
-      );
-    }
+    cachePinRole(accessLevel);
+    window.dispatchEvent(
+      new CustomEvent("pin-unlocked", { detail: { role: accessLevel } }),
+    );
     clearAuthError();
     setPinUnlocked(true);
+    setPinChecking(false);
   };
 
   if (!supabase) {
@@ -80,7 +93,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
     return <>{children}</>;
   }
 
-  if (loading) {
+  if (loading || pinChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-gray-950">
         <div className="text-sm text-slate-500 dark:text-gray-500">
@@ -92,9 +105,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
 
   return (
     <LoginScreen
-      teamPin={TEAM_PIN}
-      godPin={GOD_PIN}
       onPinUnlock={handlePinUnlock}
+      pinConfigured={pinConfigured}
       error={authError}
       allowedEmailDomain={allowedEmailDomain}
     />
