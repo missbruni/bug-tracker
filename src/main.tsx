@@ -11,6 +11,7 @@ import { playAiSound } from "./lib/audio";
 import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth } from "./lib/useAuth";
+import PageLoader from "./components/PageLoader";
 import "./index.css";
 
 const AppPage = lazy(() => import("./App"));
@@ -23,11 +24,7 @@ const SettingsSidebar = lazy(() => import("./components/SettingsSidebar"));
 const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel"));
 
 function RouteFallback() {
-	return (
-		<div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500 dark:text-gray-500">
-			Loading page...
-		</div>
-	);
+	return <PageLoader />;
 }
 
 function Layout() {

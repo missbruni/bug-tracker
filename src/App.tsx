@@ -8,7 +8,9 @@ import AddBugForm from './components/AddBugForm'
 import FilterBar from './components/FilterBar'
 import QuestionsSection from './components/QuestionsSection'
 import SecondaryAppBar from './components/SecondaryAppBar'
+import PageLoader from './components/PageLoader'
 import { BugListSkeleton } from './components/Skeleton'
+import { useKonamiLoader } from './hooks/useKonamiLoader'
 import { useBugs } from './hooks/useBugs'
 import { useBugFilters } from './hooks/useBugFilters'
 import type { LightboxState } from './types'
@@ -63,6 +65,9 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [setShowAddForm])
+
+  const showLoader = useKonamiLoader()
+  if (showLoader) return <PageLoader />
 
   if (!supabase) {
     return (
