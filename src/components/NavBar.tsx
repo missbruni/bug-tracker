@@ -66,7 +66,7 @@ export default function NavBar({
 			{/* ─── Top Nav Bar ─── */}
 			<nav className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 relative overflow-hidden">
 				{showBugs && <CrawlingBugs count={bugCount} />}
-				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-4 sm:gap-6 relative z-10">
+				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-3 sm:gap-4 relative z-10">
 					{/* Branding */}
 					<div className="flex items-center gap-3 py-3 shrink-0">
 						<h1
@@ -85,12 +85,12 @@ export default function NavBar({
 								<Bug size={18} />
 							</button>
 						</h1>
-						<span className="hidden sm:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
+						<span className="hidden lg:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
 							Catch every bug before your users do.
 						</span>
 					</div>
 					{/* Desktop Tabs — hidden on mobile */}
-					<div className="relative hidden sm:flex items-center gap-1">
+					<div className="relative hidden md:flex items-center gap-1">
 						{navItems.map(({ to, label, icon: Icon }, i) => {
 							const active = i === activeIndex;
 							return (
@@ -119,7 +119,7 @@ export default function NavBar({
 						<div className="ml-auto flex items-center gap-2">
 							{activeTeamName && (
 								<span
-									className="hidden md:inline rounded-full border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-gray-300"
+									className="hidden lg:inline whitespace-nowrap rounded-full border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-gray-300"
 									title={`Active team: ${activeTeamName}`}
 								>
 									Team: {activeTeamName}
@@ -162,7 +162,7 @@ export default function NavBar({
 									title="Logout"
 								>
 									<LogOut size={14} />
-									<span className="hidden sm:inline text-xs font-semibold">Logout</span>
+									<span className="hidden md:inline text-xs font-semibold">Logout</span>
 								</button>
 							)}
 							{onLock && (
@@ -172,7 +172,7 @@ export default function NavBar({
 									title="Lock"
 								>
 									<Lock size={14} />
-									<span className="hidden sm:inline text-xs font-semibold">Lock</span>
+									<span className="hidden md:inline text-xs font-semibold">Lock</span>
 								</button>
 							)}
 							{children}
@@ -191,7 +191,7 @@ export default function NavBar({
 			</nav>
 
 			{/* ─── Mobile Bottom Tab Bar ─── */}
-			<div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800">
+			<div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800">
 				<div className="flex items-center justify-around">
 					{navItems.map(({ to, label, icon: Icon }, i) => {
 						const active = i === activeIndex;

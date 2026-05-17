@@ -121,7 +121,7 @@ export default function BugCard({
 
 	return (
 		<div
-			className={`group mb-2 rounded-lg border border-slate-200 dark:border-gray-700 transition-shadow hover:shadow-sm dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60 dark:bg-gray-900/60 opacity-60" : "bg-white dark:bg-gray-900"} ${isDeleting ? "opacity-50" : ""}`}
+			className={`group mb-2 rounded-lg border border-slate-200 dark:border-gray-700 transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60 dark:bg-gray-900/60 opacity-60" : "bg-white dark:bg-gray-900"} ${isDeleting ? "opacity-50" : ""}`}
 			style={{
 				borderLeft: `4px solid ${bug.reviewed ? "#94a3b8" : style.badge}`,
 			}}
@@ -167,7 +167,7 @@ export default function BugCard({
 							{bug.device ? ` \u00b7 ${bug.device}` : ""}
 						</span>
 					</div>
-					<div className="hidden sm:flex items-center gap-3 shrink-0 ml-3">
+					<div className="hidden md:flex items-center gap-3 shrink-0 ml-3">
 						{bug.attachments.length > 0 && (
 							<span className="flex items-center gap-1 text-xs text-slate-400 dark:text-gray-500">
 								<Paperclip size={12} />
@@ -295,7 +295,7 @@ export default function BugCard({
 						)}
 					</div>
 					{/* Mobile: show tester name inline */}
-					<span className="sm:hidden shrink-0 text-[11px] text-slate-400 dark:text-gray-500 ml-1 max-w-[80px] truncate">
+					<span className="md:hidden shrink-0 text-[11px] text-slate-400 dark:text-gray-500 ml-1 max-w-[80px] truncate">
 						{bug.tester}
 					</span>
 				</button>
@@ -430,7 +430,7 @@ export default function BugCard({
 								Comment
 							</button>
 						)}
-						<div className="hidden sm:block flex-1" />
+						<div className="hidden md:block flex-1" />
 						{backlogUrl && (
 							<a
 								href={backlogUrl}

@@ -128,7 +128,7 @@ function Layout() {
 				<ThemeToggle />
 			</NavBar>
 			<div
-				className={`pb-16 sm:pb-0 transition-[margin] duration-200 ease-in-out ${
+				className={`pb-16 md:pb-0 transition-[margin] duration-200 ease-in-out ${
 					aiPanelOpen ? "lg:mr-[420px]" : ""
 				}`}
 			>

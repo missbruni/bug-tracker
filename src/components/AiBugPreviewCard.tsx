@@ -65,7 +65,7 @@ export default function AiBugPreviewCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm" onPaste={handlePaste}>
+    <div className="rounded-lg border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-xs" onPaste={handlePaste}>
       {/* Header — severity badge + title + edit toggle */}
       <div className="flex items-center gap-2 px-3 py-2">
         <span

@@ -1,6 +1,27 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-mushi-bg:        #0a0e14;
+  --color-mushi-surface:   #1c2026;
+  --color-mushi-primary:   #00ffcc;
+  --color-mushi-accent:    #ff007a;
+  --color-mushi-secondary: #ff00ff;
+  --color-mushi-tertiary:  #7000ff;
+  --color-mushi-neutral:   #10141a;
+  --color-mushi-outline:   rgba(0, 255, 204, 0.2);
+
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-sans:    "Inter", sans-serif;
+
+  --radius:       8px;
+
+  --shadow-mushi-glow: 0 0 15px rgba(0, 255, 204, 0.3);
+
+  --animate-scale-in: scaleIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.25s ease-out;
+}
 
 :root {
   --navbar-h: 49px;
@@ -97,5 +118,14 @@
   60% {
     transform: scale(1) rotate(0deg);
   }
+}
+
+@utility glass {
+  background-color: color-mix(in srgb, var(--color-mushi-surface) 10%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+@utility border-active {
+  border: 1px solid var(--color-mushi-primary);
 }
 

@@ -13,7 +13,7 @@ export default function AttachmentCard({ att, onRemove, onImageClick }: Attachme
   const hasPreview = (isImage || isVideo) && att.url
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs shadow-sm" style={{ width: 180 }}>
+    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs shadow-xs" style={{ width: 180 }}>
       {hasPreview ? (
         <button
           onClick={() => onImageClick?.(att.url, att.name, isVideo ? 'video' : 'image')}
