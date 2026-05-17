@@ -176,7 +176,7 @@ export default function AiBugPreviewCard({
         <button
           onClick={onCreate}
           disabled={bug._creating}
-          className="flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-blue-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+          className="flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:text-mushi-bg hover:bg-blue-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
         >
           {bug._creating ? (
             <>

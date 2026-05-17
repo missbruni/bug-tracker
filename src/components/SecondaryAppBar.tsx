@@ -33,7 +33,7 @@ export default function SecondaryAppBar({
 }: SecondaryAppBarProps) {
   return (
     <>
-      <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
+      <div className="sticky top-[var(--navbar-h,49px)] z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800/50 text-slate-900 dark:text-white">
         <div className="max-w-screen-2xl mx-auto px-4 md:px-7 py-3 flex flex-wrap items-center justify-between gap-x-4 md:gap-x-8 gap-y-2">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-slate-400 dark:text-gray-500 truncate">
@@ -60,8 +60,8 @@ export default function SecondaryAppBar({
             {actionButton}
           </div>
         </div>
+        <AiBanner />
       </div>
-      <AiBanner />
     </>
   )
 }

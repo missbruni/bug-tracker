@@ -14,21 +14,21 @@ export const SEVERITIES: Severity[] = ['critical', 'high', 'low']
 
 export const SEVERITY_STYLES: { light: SeverityStyleMap; dark: SeverityStyleMap } = {
   light: {
-    critical: { badge: '#dc2626', bg: '#fef2f2', text: '#991b1b' },
-    high: { badge: '#f59e0b', bg: '#fffbeb', text: '#92400e' },
-    low: { badge: '#3b82f6', bg: '#eff6ff', text: '#1e40af' },
+    critical: { badge: '#D63384', bg: '#fdf2f8', text: '#9d174d' },
+    high: { badge: '#00A38C', bg: '#e6f7f5', text: '#065f53' },
+    low: { badge: '#6366f1', bg: '#eef2ff', text: '#4338ca' },
   },
   dark: {
-    critical: { badge: '#dc2626', bg: '#450a0a', text: '#fca5a5' },
-    high: { badge: '#f59e0b', bg: '#451a03', text: '#fcd34d' },
-    low: { badge: '#3b82f6', bg: '#172554', text: '#93c5fd' },
+    critical: { badge: '#FF007A', bg: 'rgba(255, 0, 122, 0.08)', text: '#ff6aaf' },
+    high: { badge: '#00FFCC', bg: 'rgba(0, 255, 204, 0.08)', text: '#00ffcc' },
+    low: { badge: '#818cf8', bg: 'rgba(129, 140, 248, 0.08)', text: '#a5b4fc' },
   },
 }
 
 export const PAGES = ['Home', 'Availability', 'Add ons', 'Summary', 'Payment', 'Confirmation'] as const
 
 export const SESSION_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: 'bg-slate-100 dark:bg-gray-800', text: 'text-slate-600 dark:text-gray-400' },
-  active: { bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-400' },
-  completed: { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-400' },
+  draft: { bg: 'badge-slate', text: '' },
+  active: { bg: 'badge-blue', text: '' },
+  completed: { bg: 'badge-green', text: '' },
 }

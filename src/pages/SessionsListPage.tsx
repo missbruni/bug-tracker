@@ -235,7 +235,7 @@ export default function SessionsListPage() {
 				actionButton={
 					<button
 						onClick={() => setShowCreate(true)}
-						className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+						className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
 					>
 						<Plus size={14} />
 						New Session
@@ -336,7 +336,7 @@ export default function SessionsListPage() {
 															);
 													}}
 													disabled={session.status === "completed"}
-													className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${st.bg} ${st.text} ${session.status === "completed" ? "cursor-default" : "cursor-pointer hover:opacity-80"} transition-opacity`}
+													className={`badge ${st.bg} ${session.status === "completed" ? "cursor-default" : "cursor-pointer hover:opacity-80"} transition-opacity`}
 												>
 													{session.status}
 													{session.status !== "completed" && (
@@ -365,7 +365,7 @@ export default function SessionsListPage() {
 																			}}
 																			className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
 																				session.status === s
-																					? `${sty.bg} ${sty.text}`
+																					? sty.bg
 																					: "text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800"
 																			}`}
 																		>
@@ -497,7 +497,7 @@ export default function SessionsListPage() {
 							</button>
 							<button
 								onClick={confirmComplete}
-								className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 cursor-pointer transition-colors"
+								className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer transition-colors"
 							>
 								Yes, complete session
 							</button>

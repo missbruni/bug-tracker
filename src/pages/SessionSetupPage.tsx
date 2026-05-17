@@ -444,7 +444,7 @@ export default function SessionSetupPage() {
               <button
                 onClick={() => !isCompleted && setShowStatusMenu(!showStatusMenu)}
                 disabled={isCompleted}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${st.bg} ${st.text} ${isCompleted ? 'cursor-default' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
+                className={`badge ${st.bg} ${isCompleted ? 'cursor-default' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
               >
                 {session.status}
                 {!isCompleted && <ChevronDown size={10} />}
@@ -461,7 +461,7 @@ export default function SessionSetupPage() {
                           onClick={() => setStatus(s)}
                           className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
                             session.status === s
-                              ? `${sty.bg} ${sty.text}`
+                              ? sty.bg
                               : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800'
                           }`}
                         >
@@ -507,7 +507,7 @@ export default function SessionSetupPage() {
             {!isCompleted && (
               <button
                 onClick={() => setShowAddScenario(true)}
-                className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+                className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 <Plus size={12} /> Add
               </button>
@@ -537,7 +537,7 @@ export default function SessionSetupPage() {
                 <button
                   onClick={addScenario}
                   disabled={!newLetter.trim() || !newTitle.trim() || addingScenario}
-                  className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:bg-slate-400 cursor-pointer disabled:cursor-default"
+                  className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 disabled:bg-slate-400 cursor-pointer disabled:cursor-default"
                 >
                   {addingScenario ? 'Adding...' : 'Add'}
                 </button>
@@ -596,7 +596,7 @@ export default function SessionSetupPage() {
                       ? <ChevronDown size={14} className={`text-slate-400 dark:text-gray-500 shrink-0 transition-transform ${expandedScenarioId === scenario.id ? 'rotate-180' : ''}`} />
                       : <GripVertical size={14} className="text-slate-300 dark:text-gray-600 shrink-0" />
                     }
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white text-xs font-bold shrink-0">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white dark:text-mushi-bg text-xs font-bold shrink-0">
                       {scenario.letter}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -611,7 +611,7 @@ export default function SessionSetupPage() {
                       </div>
                     </div>
                     {assigned ? (
-                      <span className="inline-flex items-center rounded-full bg-blue-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                      <span className="badge badge-blue">
                         {assigned.name}
                       </span>
                     ) : (
@@ -681,7 +681,7 @@ export default function SessionSetupPage() {
                 <button
                   onClick={shuffleAssignments}
                   disabled={shufflingAssignments || resettingAssignments}
-                  className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
+                  className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
                 >
                   <Shuffle size={12} /> {shufflingAssignments ? 'Shuffling...' : 'Shuffle'}
                 </button>
@@ -774,7 +774,7 @@ export default function SessionSetupPage() {
                 Cancel
               </button>
               <button onClick={confirmComplete}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 cursor-pointer transition-colors">
+                className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer transition-colors">
                 Yes, complete session
               </button>
             </div>

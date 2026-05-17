@@ -275,7 +275,7 @@ export default function BugCard({
 								target="_blank"
 								rel="noopener noreferrer"
 								onClick={(e) => e.stopPropagation()}
-								className="flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/70 transition-colors"
+								className="badge badge-green hover:brightness-110"
 							>
 								<ExternalLink size={10} />
 								View in Backlog
@@ -287,7 +287,7 @@ export default function BugCard({
 								target="_blank"
 								rel="noopener noreferrer"
 								onClick={(e) => e.stopPropagation()}
-								className="flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/50 px-2.5 py-0.5 text-[10px] font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
+								className="badge badge-purple hover:brightness-110"
 							>
 								<Rocket size={10} />
 								View Devin
@@ -416,7 +416,7 @@ export default function BugCard({
 								/>
 								<button
 									onClick={handleAddComment}
-									className="rounded-md bg-blue-500 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+									className="rounded-md bg-blue-500 px-3.5 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
 								>
 									Add
 								</button>
@@ -436,7 +436,7 @@ export default function BugCard({
 								href={backlogUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="flex items-center justify-center gap-1.5 rounded-md border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/40 px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/60 transition-colors"
+								className="badge badge-green hover:brightness-110 px-3 py-1.5 text-xs"
 							>
 								<ExternalLink size={12} />
 								View in Backlog

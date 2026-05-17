@@ -15,6 +15,6 @@ describe('TesterBadge', () => {
     render(<TesterBadge>Bob</TesterBadge>)
     const el = screen.getByText('Bob')
     expect(el.tagName).toBe('SPAN')
-    expect(el.className).toContain('rounded-full')
+    expect(el.className).toContain('badge')
   })
 })

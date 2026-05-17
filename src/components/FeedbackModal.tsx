@@ -261,7 +261,7 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
               </div>
 
               <button onClick={submit} disabled={!canSubmit || submitting}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-600 disabled:bg-slate-400 dark:disabled:bg-gray-600 transition-colors cursor-pointer disabled:cursor-default">
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-bold text-white dark:text-mushi-bg hover:bg-blue-600 disabled:bg-slate-400 dark:disabled:bg-gray-600 transition-colors cursor-pointer disabled:cursor-default">
                 <Send size={14} />
                 {submitting ? 'Submitting…' : 'Submit Feedback'}
               </button>

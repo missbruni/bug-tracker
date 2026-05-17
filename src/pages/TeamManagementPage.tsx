@@ -184,7 +184,7 @@ export default function TeamManagementPage() {
         actionButton={
           <button
             onClick={() => { setShowAdd(true); setError(null) }}
-            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
           >
             <Plus size={14} />
             Create Team
@@ -213,7 +213,7 @@ export default function TeamManagementPage() {
               <button
                 onClick={handleCreateTeam}
                 disabled={!newTeamName.trim() || creating}
-                className="rounded-lg border border-blue-500 bg-blue-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
+                className="rounded-lg border border-blue-500 bg-blue-500 px-3 py-1.5 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
               >
                 {creating ? 'Creating...' : 'Create'}
               </button>

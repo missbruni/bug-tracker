@@ -64,7 +64,7 @@ export default function NavBar({
 	return (
 		<>
 			{/* ─── Top Nav Bar ─── */}
-			<nav className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 relative overflow-hidden">
+			<nav className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 overflow-hidden">
 				{showBugs && <CrawlingBugs count={bugCount} />}
 				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-3 sm:gap-4 relative z-10">
 					{/* Branding */}
@@ -79,7 +79,7 @@ export default function NavBar({
 									playBugSound();
 									onToggleBugs?.();
 								}}
-								className={`transition-colors cursor-pointer ${showBugs ? "text-green-500 hover:text-green-600" : "text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400"}`}
+								className={`transition-colors cursor-pointer ${showBugs ? "text-blue-500 hover:text-blue-600" : "text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400"}`}
 								title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
 							>
 								<Bug size={18} />
@@ -98,7 +98,7 @@ export default function NavBar({
 									key={to}
 									to={to}
 									ref={(el) => { tabRefs.current[i] = el; }}
-									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 border-transparent transition-colors ${
+									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold uppercase tracking-wide border-b-2 border-transparent transition-colors ${
 										active
 											? "text-blue-600 dark:text-blue-400"
 											: "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
@@ -119,7 +119,7 @@ export default function NavBar({
 						<div className="ml-auto flex items-center gap-2">
 							{activeTeamName && (
 								<span
-									className="hidden lg:inline whitespace-nowrap rounded-full border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-gray-300"
+									className="hidden lg:inline whitespace-nowrap badge badge-slate"
 									title={`Active team: ${activeTeamName}`}
 								>
 									Team: {activeTeamName}
@@ -141,7 +141,7 @@ export default function NavBar({
 							)}
 							<button
 								onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
-								className="flex items-center gap-1.5 rounded-full border border-indigo-400 dark:border-amber-500 px-3 py-1 text-indigo-600 dark:text-amber-500 hover:bg-indigo-500/10 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
+								className="flex items-center gap-1.5 rounded-full border border-blue-500 dark:border-mushi-primary bg-blue-50 dark:bg-mushi-primary/10 px-3 py-1 text-blue-600 dark:text-mushi-primary hover:bg-blue-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
 								title="AI Assistant (⌘I)"
 							>
 								<Sparkles size={14} />
@@ -206,7 +206,7 @@ export default function NavBar({
 								}`}
 							>
 								<Icon size={20} />
-								<span className="text-[10px] font-semibold">{label}</span>
+								<span className="text-[10px] font-semibold uppercase">{label}</span>
 							</Link>
 						);
 					})}

@@ -25,6 +25,60 @@
 
 :root {
   --navbar-h: 49px;
+
+  /* ─── Pastel Pixel (light mode) colour remap ─── */
+  --color-slate-50:  #F0F4F8;
+  --color-slate-900: #1A1B20;
+
+  /* Primary: blue → teal */
+  --color-blue-50:  #e6f7f5;
+  --color-blue-100: #b3ece5;
+  --color-blue-200: #80e0d5;
+  --color-blue-300: #4dd4c5;
+  --color-blue-400: #1ac8b5;
+  --color-blue-500: #00A38C;
+  --color-blue-600: #008f7a;
+  --color-blue-700: #007b68;
+
+  /* Accent: indigo → rose */
+  --color-indigo-400: #D63384;
+  --color-indigo-500: #D63384;
+  --color-indigo-600: #c12a76;
+}
+
+/* ─── Mushi (dark mode) colour remap ─── */
+.dark {
+  /* Backgrounds & surfaces → mushi tokens */
+  --color-gray-950: #0a0e14;
+  --color-gray-900: #1c2026;
+  --color-gray-800: #252a31;
+  --color-gray-700: #2f353d;
+  --color-gray-600: #404750;
+  --color-gray-500: #5a6270;
+  --color-gray-400: #8891a0;
+  --color-gray-300: #b0b8c4;
+  --color-gray-200: #d1d7e0;
+  --color-gray-100: #e8ecf0;
+
+  /* Primary: blue → mint neon */
+  --color-blue-50:  rgba(0, 255, 204, 0.05);
+  --color-blue-100: rgba(0, 255, 204, 0.1);
+  --color-blue-200: rgba(0, 255, 204, 0.2);
+  --color-blue-300: rgba(0, 255, 204, 0.4);
+  --color-blue-400: #00ffcc;
+  --color-blue-500: #00ffcc;
+  --color-blue-600: #00ddb3;
+  --color-blue-700: #00bb99;
+  --color-blue-900: rgba(0, 255, 204, 0.08);
+
+  /* Accent aliases → mint */
+  --color-amber-400: #00ffcc;
+  --color-amber-500: #00ffcc;
+  --color-amber-600: #00ddb3;
+  --color-indigo-400: #00ffcc;
+  --color-indigo-500: rgba(0, 255, 204, 0.1);
+  --color-indigo-600: #00ffcc;
+  --color-yellow-400: #00ffcc;
 }
 
 @keyframes slideUp {
@@ -127,5 +181,51 @@
 
 @utility border-active {
   border: 1px solid var(--color-mushi-primary);
+}
+
+/* ─── Outlined badge base ─── */
+@utility badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.5rem;
+  border-width: 1.5px;
+  padding: 0.2rem 0.625rem;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  transition: background-color 0.15s;
+}
+@utility badge-green {
+  border-color: var(--color-blue-500);
+  color: var(--color-blue-500);
+  background-color: color-mix(in srgb, var(--color-blue-500) 8%, transparent);
+}
+@utility badge-purple {
+  border-color: var(--color-purple-500);
+  color: var(--color-purple-500);
+  background-color: color-mix(in srgb, var(--color-purple-500) 8%, transparent);
+}
+@utility badge-blue {
+  border-color: var(--color-blue-500);
+  color: var(--color-blue-500);
+  background-color: color-mix(in srgb, var(--color-blue-500) 8%, transparent);
+}
+@utility badge-amber {
+  border-color: var(--color-amber-500);
+  color: var(--color-amber-500);
+  background-color: color-mix(in srgb, var(--color-amber-500) 8%, transparent);
+}
+@utility badge-red {
+  border-color: var(--color-red-500);
+  color: var(--color-red-500);
+  background-color: color-mix(in srgb, var(--color-red-500) 8%, transparent);
+}
+@utility badge-slate {
+  border-color: var(--color-slate-400);
+  color: var(--color-slate-500);
+  background-color: color-mix(in srgb, var(--color-slate-400) 8%, transparent);
 }
 

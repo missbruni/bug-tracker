@@ -144,7 +144,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
                   onClick={() => toggleNewTesterDevice(d)}
                   className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
                     newTesterDevices.includes(d)
-                      ? 'bg-blue-500 text-white border-blue-500'
+                      ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
                       : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
                   }`}
                 >
@@ -209,8 +209,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
           Cancel
         </button>
         <button onClick={submit} disabled={!canSubmit || submitting}
-          className="rounded-md px-5 py-1.5 text-xs font-semibold text-white transition-colors cursor-pointer disabled:cursor-default"
-          style={{ background: canSubmit && !submitting ? '#3b82f6' : '#94a3b8' }}>
+          className={`rounded-md px-5 py-1.5 text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${canSubmit && !submitting ? 'bg-blue-500 text-white dark:text-mushi-bg hover:bg-blue-600' : 'bg-slate-400 text-white'}`}>
           {submitting ? 'Adding…' : 'Add Bug'}
         </button>
       </div>

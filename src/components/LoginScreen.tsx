@@ -34,7 +34,7 @@ export default function LoginScreen({
         <button
           type="button"
           disabled
-          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-400 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed transition-colors cursor-not-allowed"
+          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-400 py-2.5 text-sm font-bold text-white dark:text-mushi-bg disabled:cursor-not-allowed transition-colors cursor-not-allowed"
         >
           <LogIn size={16} />
           Sign in with Microsoft (Coming Soon)

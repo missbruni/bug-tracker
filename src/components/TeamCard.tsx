@@ -155,7 +155,7 @@ export default function TeamCard({
               <Pencil size={13} />
             </button>
             {isActive && (
-              <span className="rounded-full bg-blue-500 px-3 py-1 text-xs font-bold text-white">
+              <span className="badge badge-blue">
                 Active
               </span>
             )}
@@ -311,7 +311,7 @@ export default function TeamCard({
                       </button>
                       <button onClick={saveEditProduct}
                         disabled={!editProductName.trim()}
-                        className="rounded-md bg-blue-500 px-3 py-1 text-xs font-semibold text-white cursor-pointer hover:bg-blue-600 disabled:bg-slate-400 disabled:cursor-default">
+                        className="rounded-md bg-blue-500 px-3 py-1 text-xs font-semibold text-white dark:text-mushi-bg cursor-pointer hover:bg-blue-600 disabled:bg-slate-400 disabled:cursor-default">
                         Save
                       </button>
                     </div>
@@ -418,7 +418,7 @@ export default function TeamCard({
                   <button
                     onClick={handleAddProduct}
                     disabled={!newProductName.trim() || creatingProduct}
-                    className="rounded-md bg-blue-500 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
+                    className="rounded-md bg-blue-500 px-3 py-1 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
                   >
                     {creatingProduct ? 'Adding...' : 'Add Product'}
                   </button>

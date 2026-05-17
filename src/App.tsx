@@ -104,7 +104,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         actionButton={
           <button
             onClick={() => setShowAddForm(true)}
-            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
           >
             <Plus size={14} />
             New Bug

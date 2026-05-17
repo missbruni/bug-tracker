@@ -61,9 +61,9 @@ describe('FilterBar', () => {
     props.severityFilter = 'high,low'
     render(<FilterBar {...props} />)
 
-    expect(screen.getByText('High (1)').className).toContain('bg-slate-900')
-    expect(screen.getByText('Low (0)').className).toContain('bg-slate-900')
-    expect(screen.getByText('Active (2)').className).not.toContain('bg-slate-900')
+    expect(screen.getByText('High (1)').className).toContain('bg-blue-500')
+    expect(screen.getByText('Low (0)').className).toContain('bg-blue-500')
+    expect(screen.getByText('Active (2)').className).not.toContain('bg-blue-500')
   })
 
   test('renders tester dropdown with options', () => {

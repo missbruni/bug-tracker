@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { X, Sparkles, Send, Check, AlertCircle, Settings, Trash2, ExternalLink, Bug, CalendarPlus, Bot } from 'lucide-react'
+import { X, Send, Check, AlertCircle, Settings, Trash2, ExternalLink, Bug, CalendarPlus, Bot } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { stripJsonBlock } from '../lib/aiParsers'
 import AiBugPreviewCard from './AiBugPreviewCard'
@@ -58,16 +58,20 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
 
       {/* Panel — overlay on mobile, push on desktop */}
       <div
-        className={`fixed right-0 z-50 w-[420px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border-l border-slate-200 dark:border-gray-800 shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col top-0 h-full lg:top-[var(--navbar-h,49px)] lg:h-[calc(100vh-var(--navbar-h,49px))] ${
+        className={`fixed right-0 z-50 lg:z-30 w-[420px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border-l border-slate-200 dark:border-gray-800 shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col top-0 h-full lg:top-[var(--navbar-h,49px)] lg:h-[calc(100vh-var(--navbar-h,49px))] ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-800 shrink-0">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-            <Sparkles size={16} className="text-amber-500" />
-            AI Assistant
-            <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none text-white tracking-wide">New</span>
+          <h2 className="flex items-center gap-2.5 text-sm font-bold text-slate-900 dark:text-white">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-mushi-primary/15">
+              <Bot size={16} className="text-blue-600 dark:text-mushi-primary" />
+            </span>
+            <span className="flex flex-col">
+              <span>AI Assistant</span>
+              <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-blue-500 dark:text-mushi-primary"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-mushi-primary animate-pulse" />Active Listening</span>
+            </span>
           </h2>
           <div className="flex items-center gap-1.5">
             {messages.length > 0 && (
@@ -108,7 +112,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
 
           {configured && messages.length === 0 && (
             <div className="text-center pt-8">
-              <Sparkles size={28} className="mx-auto mb-3 text-amber-400 opacity-60" />
+              <Bot size={28} className="mx-auto mb-3 text-blue-400 dark:text-mushi-primary opacity-60" />
               <p className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                 Bugs & Sessions
               </p>
@@ -174,15 +178,18 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                 {/* Message bubble */}
                 <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
                   {msg.role === 'assistant' && (
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mt-0.5">
-                      <Bot size={18} className="text-blue-600 dark:text-blue-400" />
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-mushi-primary/15 flex items-center justify-center mt-0.5">
+                        <Bot size={16} className="text-blue-600 dark:text-mushi-primary" />
+                      </div>
+                      <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Mushi-Bot</span>
                     </div>
                   )}
                   {shouldRenderBubble && (
                     <div
                       className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         msg.role === 'user'
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-blue-500 text-white dark:text-mushi-bg'
                           : 'bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-200'
                       }`}
                     >
@@ -208,7 +215,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                       <button
                         onClick={() => createAllBugs(mi)}
                         disabled={pendingBugs.every((bug) => bug._creating)}
-                        className="w-full rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                        className="w-full rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
                       >
                         Create All ({pendingBugs.length})
                       </button>
@@ -275,8 +282,8 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
 
           {sending && (
             <div className="flex justify-start gap-2">
-              <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mt-0.5">
-                <Bot size={18} className="text-blue-600 dark:text-blue-400" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-100 dark:bg-mushi-primary/15 flex items-center justify-center mt-0.5">
+                <Bot size={16} className="text-blue-600 dark:text-mushi-primary" />
               </div>
               <div className="rounded-xl bg-slate-100 dark:bg-gray-800 px-4 py-3 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -316,7 +323,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
             <button
               onClick={() => sendMessage()}
               disabled={!input.trim() || !configured || sending}
-              className="rounded-lg bg-blue-500 p-2.5 text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
+              className="rounded-full bg-blue-500 p-2.5 text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
             >
               <Send size={16} />
             </button>

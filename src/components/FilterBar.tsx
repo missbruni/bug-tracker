@@ -87,9 +87,9 @@ export default function FilterBar({
 					<button
 						key={filterOption.key}
 						onClick={() => setSeverityFilter(filterOption.key)}
-						className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer text-center ${
+						className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer text-center whitespace-nowrap ${
 							isSelected
-								? "bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100"
+								? "bg-blue-500 dark:bg-mushi-primary text-white dark:text-mushi-bg border-blue-500 dark:border-mushi-primary"
 								: "bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700"
 						}`}
 					>
@@ -147,7 +147,7 @@ export default function FilterBar({
 				}
 				className={`sm:ml-auto flex items-center justify-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
 					sortOrder !== "default"
-						? "bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100"
+						? "bg-blue-500 dark:bg-mushi-primary text-white dark:text-mushi-bg border-blue-500 dark:border-mushi-primary"
 						: "bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700"
 				}`}
 				title={
@@ -184,7 +184,7 @@ export default function FilterBar({
 					<SlidersHorizontal size={14} />
 					Filters
 					{activeFilterCount > 0 && (
-						<span className="ml-1 rounded-full bg-blue-500 text-white px-1.5 py-0.5 text-[10px] leading-none">
+						<span className="ml-1 rounded-full bg-blue-500 text-white dark:text-mushi-bg px-1.5 py-0.5 text-[10px] leading-none">
 							{activeFilterCount}
 						</span>
 					)}
@@ -235,7 +235,7 @@ export default function FilterBar({
 												onClick={() => setSeverityFilter(filterOption.key)}
 												className={`rounded-md border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer text-center ${
 													isSelected
-														? "bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100"
+														? "bg-blue-500 dark:bg-mushi-primary text-white dark:text-mushi-bg border-blue-500 dark:border-mushi-primary"
 														: "bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700"
 												}`}
 											>
@@ -322,7 +322,7 @@ export default function FilterBar({
 									}
 									className={`w-full flex items-center justify-center gap-1 rounded-md border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
 										sortOrder !== "default"
-											? "bg-slate-900 dark:bg-gray-100 text-white dark:text-gray-900 border-slate-900 dark:border-gray-100"
+											? "bg-blue-500 dark:bg-mushi-primary text-white dark:text-mushi-bg border-blue-500 dark:border-mushi-primary"
 											: "bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700"
 									}`}
 								>
@@ -338,7 +338,7 @@ export default function FilterBar({
 
 						<button
 							onClick={closeSheet}
-							className="mt-5 w-full rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 transition-colors"
+							className="mt-5 w-full rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors"
 						>
 							Done
 						</button>

@@ -62,9 +62,9 @@ describe('AddBugForm', () => {
   test('Add Bug button is disabled when title is empty', () => {
     renderForm()
     expect(screen.getByText('Add Bug')).toBeInTheDocument()
-    // Button should be visually disabled (style-based, not HTML disabled attr)
+    // Button should be visually disabled (class-based, not HTML disabled attr)
     const btn = screen.getByText('Add Bug')
-    expect(btn.closest('button')?.style.background).toBe('#94a3b8')
+    expect(btn.closest('button')?.className).toContain('bg-slate-400')
   })
 
   test('Add Bug button is enabled when title has value', () => {
@@ -72,7 +72,7 @@ describe('AddBugForm', () => {
     fireEvent.change(screen.getByPlaceholderText('Bug title *'), { target: { value: 'A real bug' } })
     fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 't1' } })
     const btn = screen.getByText('Add Bug')
-    expect(btn.closest('button')?.style.background).toBe('#3b82f6')
+    expect(btn.closest('button')?.className).toContain('bg-blue-500')
   })
 
   test('calls onCancel when Cancel is clicked', () => {

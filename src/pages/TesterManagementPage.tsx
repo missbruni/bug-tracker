@@ -203,7 +203,7 @@ export default function TesterManagementPage() {
         actionButton={
           <button
             onClick={() => setShowAdd(true)}
-            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+            className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
           >
             <Plus size={14} />
             Add Tester
@@ -231,7 +231,7 @@ export default function TesterManagementPage() {
                 onClick={() => toggleDevice(d, newDevices, setNewDevices)}
                 className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
                   newDevices.includes(d)
-                    ? 'bg-blue-500 text-white border-blue-500'
+                    ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
                     : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
                 }`}
               >
@@ -285,7 +285,7 @@ export default function TesterManagementPage() {
                       onClick={() => toggleDevice(d, editDevices, setEditDevices)}
                       className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
                         editDevices.includes(d)
-                          ? 'bg-blue-500 text-white border-blue-500'
+                          ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
                           : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
                       }`}
                     >

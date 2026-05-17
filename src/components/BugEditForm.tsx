@@ -48,7 +48,7 @@ export default function BugEditForm({ initial, onSave, onCancel }: BugEditFormPr
         <button
           onClick={handleSave}
           disabled={!fields.title.trim() || saving}
-          className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+          className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
         >
           {saving ? 'Saving\u2026' : 'Save'}
         </button>
