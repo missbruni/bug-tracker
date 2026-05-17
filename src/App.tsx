@@ -8,6 +8,7 @@ import AddBugForm from './components/AddBugForm'
 import FilterBar from './components/FilterBar'
 import QuestionsSection from './components/QuestionsSection'
 import SecondaryAppBar from './components/SecondaryAppBar'
+import { BugListSkeleton } from './components/Skeleton'
 import { useBugs } from './hooks/useBugs'
 import { useBugFilters } from './hooks/useBugFilters'
 import type { LightboxState } from './types'
@@ -62,14 +63,6 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [setShowAddForm])
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-gray-950">
-        <div className="text-sm text-slate-500 dark:text-gray-500">Loading bugs...</div>
-      </div>
-    )
-  }
 
   if (!supabase) {
     return (
@@ -138,51 +131,57 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Track, triage, and resolve bugs across all active sessions.</p>
         </div>
 
-        {showAddForm && (
-          <AddBugForm
-            onAdd={addBug}
-            onAddTester={addTester}
-            onCancel={() => setShowAddForm(false)}
-            nextIds={nextIds}
-            testers={registeredTesters}
-            sessions={sessions}
-            activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
-          />
-        )}
+        {loading ? (
+          <BugListSkeleton />
+        ) : (
+          <>
+            {showAddForm && (
+              <AddBugForm
+                onAdd={addBug}
+                onAddTester={addTester}
+                onCancel={() => setShowAddForm(false)}
+                nextIds={nextIds}
+                testers={registeredTesters}
+                sessions={sessions}
+                activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+              />
+            )}
 
-        {SEVERITIES.map((s) => {
-          const items = grouped[s]
-          if (!items || !items.length) return null
-          const style = sevStyles[s]
-          return (
-            <div key={s} className="mb-5">
-              <div
-                className="mb-2 inline-block rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wide"
-                style={{ background: style.bg, color: style.text }}
-              >
-                {s} ({items.length})
-              </div>
-              {items.map((bug) => (
-                <BugCard
-                  key={bug.id}
-                  bug={bug}
-                  onUpdate={updateBug}
-                  onDelete={deleteBugFromState}
-                  onPersistError={showPersistError}
-                  onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
-                  onReviewed={(b, undo) => {
-                    if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
-                    setSnackbar({ message: `${b.id} marked as completed`, undo })
-                    snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
-                  }}
-                />
-              ))}
-            </div>
-          )
-        })}
+            {SEVERITIES.map((s) => {
+              const items = grouped[s]
+              if (!items || !items.length) return null
+              const style = sevStyles[s]
+              return (
+                <div key={s} className="mb-5">
+                  <div
+                    className="mb-2 inline-block rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                    style={{ background: style.bg, color: style.text }}
+                  >
+                    {s} ({items.length})
+                  </div>
+                  {items.map((bug) => (
+                    <BugCard
+                      key={bug.id}
+                      bug={bug}
+                      onUpdate={updateBug}
+                      onDelete={deleteBugFromState}
+                      onPersistError={showPersistError}
+                      onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
+                      onReviewed={(b, undo) => {
+                        if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+                        setSnackbar({ message: `${b.id} marked as completed`, undo })
+                        snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
+                      }}
+                    />
+                  ))}
+                </div>
+              )
+            })}
 
-        {severityFilter === 'all' && testerFilter === 'all' && !search && filteredQuestions.length > 0 && (
-          <QuestionsSection questions={filteredQuestions} onDelete={deleteQuestion} />
+            {severityFilter === 'all' && testerFilter === 'all' && !search && filteredQuestions.length > 0 && (
+              <QuestionsSection questions={filteredQuestions} onDelete={deleteQuestion} />
+            )}
+          </>
         )}
       </div>
       {snackbar && (

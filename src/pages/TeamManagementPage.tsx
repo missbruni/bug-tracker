@@ -5,6 +5,7 @@ import TeamCard, { type Product, type TeamStats } from '../components/TeamCard'
 import { useTeamAccess } from '../lib/teamAccess'
 import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
 import { supabase } from '../supabaseClient'
+import { TeamListSkeleton } from '../components/Skeleton'
 
 export default function TeamManagementPage() {
   const {
@@ -192,14 +193,14 @@ export default function TeamManagementPage() {
         }
       />
 
-      <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6 space-y-4">
-        <div>
+      <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
+        <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Teams</h1>
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Create and manage teams across the organization.</p>
         </div>
 
         {showAdd && (
-          <div className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+          <div className="mb-4 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
             <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">New team name</label>
             <input
               autoFocus
@@ -233,7 +234,7 @@ export default function TeamManagementPage() {
         )}
 
         {loading ? (
-          <div className="text-sm text-slate-500 dark:text-gray-500">Loading teams...</div>
+          <TeamListSkeleton />
         ) : filteredTeams.length === 0 ? (
           <div className="text-sm text-slate-500 dark:text-gray-500">No teams found yet.</div>
         ) : (

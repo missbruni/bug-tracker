@@ -118,7 +118,7 @@ export default function TeamCard({
       className={`rounded-xl border px-5 py-4 transition-colors ${
         isActive
           ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
-          : 'border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+          : 'border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm'
       } ${deleting ? 'opacity-50' : ''}`}
     >
       {isEditing ? (
@@ -227,7 +227,7 @@ export default function TeamCard({
             </Link>
             <button
               onClick={() => setProductsExpanded(!productsExpanded)}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors cursor-pointer"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-red-400 dark:hover:border-mushi-threat/50 hover:bg-red-50 dark:hover:bg-mushi-threat/10 transition-colors cursor-pointer"
             >
               <div className="rounded-lg bg-red-100 dark:bg-mushi-threat/15 p-2">
                 <Package size={16} className="text-red-500 dark:text-mushi-threat" />
@@ -302,7 +302,7 @@ export default function TeamCard({
                 ) : (
                   <div
                     key={product.id}
-                    className="group rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                    className="group rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-red-400 dark:hover:border-mushi-threat/50 transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <div className="rounded-md bg-red-100 dark:bg-mushi-threat/15 p-1.5 mt-0.5">

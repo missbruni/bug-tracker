@@ -7,6 +7,7 @@ import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
 import SecondaryAppBar from '../components/SecondaryAppBar'
+import { TesterListSkeleton } from '../components/Skeleton'
 import type { Tester } from '../types'
 
 async function fetchTesters(activeTeamId: string | null): Promise<Tester[]> {
@@ -189,10 +190,6 @@ export default function TesterManagementPage() {
     setter(list.includes(device) ? list.filter(d => d !== device) : [...list, device])
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20 text-sm text-gray-500">Loading testers...</div>
-  }
-
   return (
     <>
       <SecondaryAppBar
@@ -219,6 +216,9 @@ export default function TesterManagementPage() {
         <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Manage your QA squad roster and device assignments.</p>
       </div>
 
+      {loading ? (
+        <TesterListSkeleton />
+      ) : (<>
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
           <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Tester</h2>
@@ -362,6 +362,8 @@ export default function TesterManagementPage() {
           </div>
         ))}
       </div>
+
+      </>)}
 
       {toast && (
         <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${toast.tone === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>

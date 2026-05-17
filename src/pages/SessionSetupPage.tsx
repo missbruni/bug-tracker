@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, AlertCircle, Package } from 'lucide-react'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package } from 'lucide-react'
 import FeedbackModal from '../components/FeedbackModal'
+import StatusMenu from '../components/StatusMenu'
+import ConfirmModal from '../components/ConfirmModal'
+import ScenarioCard from '../components/ScenarioCard'
+import ScenarioForm from '../components/ScenarioForm'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
-import { SESSION_STATUS_STYLES } from '../constants'
 import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../types'
 
 export default function SessionSetupPage() {
@@ -377,7 +380,6 @@ export default function SessionSetupPage() {
   }
 
   const isCompleted = session.status === 'completed'
-  const st = SESSION_STATUS_STYLES[session.status] || SESSION_STATUS_STYLES.draft
 
   return (
     <div className="max-w-screen-2xl mx-auto px-4 sm:px-7 py-6">
@@ -440,39 +442,14 @@ export default function SessionSetupPage() {
             >
               <Trash2 size={15} />
             </button>
-            <div className="relative">
-              <button
-                onClick={() => !isCompleted && setShowStatusMenu(!showStatusMenu)}
-                disabled={isCompleted}
-                className={`badge ${st.bg} ${isCompleted ? 'cursor-default' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
-              >
-                {session.status}
-                {!isCompleted && <ChevronDown size={10} />}
-              </button>
-              {showStatusMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowStatusMenu(false)} />
-                  <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
-                    {(['draft', 'active', 'completed'] as const).map(s => {
-                      const sty = SESSION_STATUS_STYLES[s]
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => setStatus(s)}
-                          className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
-                            session.status === s
-                              ? sty.bg
-                              : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800'
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
+            <StatusMenu
+              currentStatus={session.status}
+              open={showStatusMenu}
+              onToggle={() => setShowStatusMenu(!showStatusMenu)}
+              onSelect={setStatus}
+              onClose={() => setShowStatusMenu(false)}
+              disabled={isCompleted}
+            />
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-500 mb-0.5">
             {teamName && <span className="inline-flex items-center rounded-full border border-slate-300 dark:border-gray-600 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">Team: {teamName}</span>}
@@ -515,34 +492,21 @@ export default function SessionSetupPage() {
           </div>
 
           {showAddScenario && (
-            <div className="mb-3 rounded-lg border-2 border-blue-500 bg-white dark:bg-gray-900 p-4">
-              <div className="grid grid-cols-[60px_1fr_1fr] gap-2 mb-2">
-                <input value={newLetter} onChange={e => setNewLetter(e.target.value)} placeholder="Letter" maxLength={2}
-                  className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-center font-bold text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500 uppercase" />
-                <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Scenario title *"
-                  className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500" />
-                <input value={newDevice} onChange={e => setNewDevice(e.target.value)} placeholder="Device requirement (optional)"
-                  className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500" />
-              </div>
-              <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Step-by-step instructions" rows={4}
-                className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y mb-2 focus:border-blue-500" />
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => { if (!addingScenario) setShowAddScenario(false) }}
-                  disabled={addingScenario}
-                  className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 disabled:opacity-50 disabled:cursor-default cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={addScenario}
-                  disabled={!newLetter.trim() || !newTitle.trim() || addingScenario}
-                  className="rounded-md bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 disabled:bg-slate-400 cursor-pointer disabled:cursor-default"
-                >
-                  {addingScenario ? 'Adding...' : 'Add'}
-                </button>
-              </div>
-            </div>
+            <ScenarioForm
+              mode="add"
+              letter={newLetter}
+              title={newTitle}
+              description={newDesc}
+              device={newDevice}
+              onLetterChange={setNewLetter}
+              onTitleChange={setNewTitle}
+              onDescriptionChange={setNewDesc}
+              onDeviceChange={setNewDevice}
+              onSave={addScenario}
+              onCancel={() => { if (!addingScenario) setShowAddScenario(false) }}
+              saveDisabled={!newLetter.trim() || !newTitle.trim()}
+              saving={addingScenario}
+            />
           )}
 
           <div className="space-y-1.5">
@@ -554,28 +518,34 @@ export default function SessionSetupPage() {
 
               if (isEditing) {
                 return (
-                  <div key={scenario.id} className="rounded-lg border-2 border-blue-500 bg-white dark:bg-gray-900 p-4">
-                    <div className="grid grid-cols-[60px_1fr_1fr] gap-2 mb-2">
-                      <input value={editLetter} onChange={e => setEditLetter(e.target.value)} maxLength={2}
-                        className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-center font-bold text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500 uppercase" />
-                      <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                        className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500" />
-                      <input value={editDevice} onChange={e => setEditDevice(e.target.value)} placeholder="Device requirement"
-                        className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500" />
-                    </div>
-                    <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={4}
-                      className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y mb-2 focus:border-blue-500" />
-                    <div className="flex gap-2 justify-end">
-                      <button onClick={() => setEditScenarioId(null)} className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 cursor-pointer"><X size={14} /></button>
-                      <button onClick={saveEditScenario} className="rounded-md bg-green-500 px-3 py-1.5 text-xs text-white font-semibold cursor-pointer hover:bg-green-600"><Check size={14} /></button>
-                    </div>
-                  </div>
+                  <ScenarioForm
+                    key={scenario.id}
+                    mode="edit"
+                    letter={editLetter}
+                    title={editTitle}
+                    description={editDesc}
+                    device={editDevice}
+                    onLetterChange={setEditLetter}
+                    onTitleChange={setEditTitle}
+                    onDescriptionChange={setEditDesc}
+                    onDeviceChange={setEditDevice}
+                    onSave={saveEditScenario}
+                    onCancel={() => setEditScenarioId(null)}
+                  />
                 )
               }
 
               return (
-                <div
+                <ScenarioCard
                   key={scenario.id}
+                  scenario={scenario}
+                  index={idx}
+                  totalCount={scenarios.length}
+                  assigned={assigned}
+                  isSelected={isSelected}
+                  isExpanded={expandedScenarioId === scenario.id}
+                  isCompleted={isCompleted}
+                  isDeviceLocked={locked}
                   onClick={() => {
                     if (isCompleted) {
                       setExpandedScenarioId(expandedScenarioId === scenario.id ? null : scenario.id)
@@ -583,90 +553,11 @@ export default function SessionSetupPage() {
                       setSelectedScenarioId(isSelected ? null : scenario.id)
                     }
                   }}
-                  className={`rounded-lg border bg-white dark:bg-gray-900 p-3 cursor-pointer transition-all ${
-                    isSelected
-                      ? 'border-blue-500 ring-1 ring-blue-500/30'
-                      : expandedScenarioId === scenario.id
-                      ? 'border-blue-500/50 ring-1 ring-blue-500/20'
-                      : 'border-slate-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {isCompleted
-                      ? <ChevronDown size={14} className={`text-slate-400 dark:text-gray-500 shrink-0 transition-transform ${expandedScenarioId === scenario.id ? 'rotate-180' : ''}`} />
-                      : <GripVertical size={14} className="text-slate-300 dark:text-gray-600 shrink-0" />
-                    }
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white dark:text-mushi-bg text-xs font-bold shrink-0">
-                      {scenario.letter}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-gray-100 truncate">{scenario.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {scenario.device_requirement && (
-                          <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                            {locked && <Lock size={10} />}
-                            {scenario.device_requirement}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {assigned ? (
-                      <span className="badge badge-blue">
-                        {assigned.name}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full border border-dashed border-slate-300 dark:border-gray-600 px-2.5 py-0.5 text-[11px] text-slate-400 dark:text-gray-500">
-                        Unassigned
-                      </span>
-                    )}
-                    {!isCompleted && (
-                      <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => moveScenario(scenario.id, 'up')} disabled={idx === 0}
-                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
-                          <ChevronUp size={14} />
-                        </button>
-                        <button onClick={() => moveScenario(scenario.id, 'down')} disabled={idx === scenarios.length - 1}
-                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
-                          <ChevronDown size={14} />
-                        </button>
-                        <button onClick={() => startEditScenario(scenario)}
-                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => deleteScenario(scenario.id)}
-                          className="p-1 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 cursor-pointer">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  {expandedScenarioId === scenario.id && scenario.description && (
-                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 space-y-1.5">
-                      {scenario.description.split('\n').filter(l => l.trim()).map((line, i) => {
-                        const trimmed = line.trim()
-                        const numberedMatch = trimmed.match(/^(\d+)\.\s+(.*)/)
-                        const isCheck = trimmed.startsWith('✓') || trimmed.startsWith('✔')
-                        if (numberedMatch) {
-                          return (
-                            <div key={i} className="flex gap-2.5 items-start">
-                              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/10 dark:bg-blue-400/10 text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">{numberedMatch[1]}</span>
-                              <span className="text-[13px] text-slate-700 dark:text-gray-300 leading-relaxed">{numberedMatch[2]}</span>
-                            </div>
-                          )
-                        }
-                        if (isCheck) {
-                          return (
-                            <div key={i} className="flex gap-2 items-center mt-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 px-3 py-2">
-                              <span className="text-green-500 shrink-0 leading-none">✓</span>
-                              <span className="text-[13px] font-medium text-green-700 dark:text-green-400">{trimmed.replace(/^[✓✔]\s*/, '')}</span>
-                            </div>
-                          )
-                        }
-                        return <p key={i} className="text-[13px] text-slate-600 dark:text-gray-400 leading-relaxed">{trimmed}</p>
-                      })}
-                    </div>
-                  )}
-                </div>
+                  onMoveUp={() => moveScenario(scenario.id, 'up')}
+                  onMoveDown={() => moveScenario(scenario.id, 'down')}
+                  onEdit={() => startEditScenario(scenario)}
+                  onDelete={() => deleteScenario(scenario.id)}
+                />
               )
             })}
           </div>
@@ -762,62 +653,43 @@ export default function SessionSetupPage() {
         </div>
       </div>
       {showCompleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCompleteConfirm(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-2">Complete session?</h3>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
-              This will lock the session. You will no longer be able to edit scenarios, reassign testers, or change the status. This action cannot be undone.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowCompleteConfirm(false)}
-                className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                Cancel
-              </button>
-              <button onClick={confirmComplete}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer transition-colors">
-                Yes, complete session
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Complete session?"
+          confirmLabel="Yes, complete session"
+          onConfirm={confirmComplete}
+          onCancel={() => setShowCompleteConfirm(false)}
+        >
+          <p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
+            This will lock the session. You will no longer be able to edit scenarios, reassign testers, or change the status. This action cannot be undone.
+          </p>
+        </ConfirmModal>
       )}
 
-      {/* Delete confirmation modal */}
       {showDeleteConfirm && session && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { if (!deletingSession) { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeletingSession(false) } }}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">Delete session?</h3>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
-              This will permanently delete this session and all its scenarios, assignments, and feedback. This action cannot be undone.
-            </p>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
-              Type <span className="font-mono font-bold text-red-500">{session.name}</span> to confirm:
-            </p>
-            <input
-              value={deleteConfirmText}
-              onChange={e => setDeleteConfirmText(e.target.value)}
-              placeholder={session.name}
-              autoFocus
-              className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { if (!deletingSession) { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeletingSession(false) } }}
-                disabled={deletingSession}
-                className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={deleteSession}
-                disabled={deleteConfirmText !== session.name || deletingSession}
-                className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
-              >
-                {deletingSession ? 'Deleting...' : 'Delete permanently'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Delete session?"
+          titleClassName="text-sm font-bold text-red-600 dark:text-red-400 mb-2"
+          confirmLabel="Delete permanently"
+          confirmClassName="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 cursor-pointer transition-colors"
+          onConfirm={deleteSession}
+          onCancel={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeletingSession(false) }}
+          disabled={deleteConfirmText !== session.name}
+          loading={deletingSession}
+        >
+          <p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
+            This will permanently delete this session and all its scenarios, assignments, and feedback. This action cannot be undone.
+          </p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
+            Type <span className="font-mono font-bold text-red-500">{session.name}</span> to confirm:
+          </p>
+          <input
+            value={deleteConfirmText}
+            onChange={e => setDeleteConfirmText(e.target.value)}
+            placeholder={session.name}
+            autoFocus
+            className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
+          />
+        </ConfirmModal>
       )}
     </div>
   )

@@ -8,7 +8,6 @@ import {
 	Presentation,
 	MessageSquareHeart,
 	Star,
-	ChevronDown,
 	Trash2,
 	Package,
 } from "lucide-react";
@@ -19,7 +18,10 @@ import { scopeToTeam, withTeamPayload } from "../lib/teamScope";
 import type { Product } from "../components/TeamCard";
 import { SESSION_STATUS_STYLES } from "../constants";
 import FeedbackModal from "../components/FeedbackModal";
+import StatusMenu from "../components/StatusMenu";
+import ConfirmModal from "../components/ConfirmModal";
 import SecondaryAppBar from "../components/SecondaryAppBar";
+import { SessionListSkeleton } from "../components/Skeleton";
 import type { SessionWithStats } from "../types";
 
 type Session = SessionWithStats;
@@ -216,14 +218,6 @@ export default function SessionsListPage() {
 		setCompleteConfirmSession(null);
 	};
 
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center py-20 text-sm text-gray-500">
-				Loading sessions...
-			</div>
-		);
-	}
-
 	return (
 		<>
 			<SecondaryAppBar
@@ -250,6 +244,9 @@ export default function SessionsListPage() {
 				<p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Initialize squad deployments and scenario parameters.</p>
 			</div>
 
+			{loading ? (
+				<SessionListSkeleton />
+			) : (<>
 			{showCreate && (
 				<div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
 					<h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">
@@ -332,58 +329,14 @@ export default function SessionsListPage() {
 											<h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate sm:truncate break-words sm:break-normal whitespace-normal sm:whitespace-nowrap">
 												{session.name}
 											</h2>
-											<div className="relative">
-												<button
-													onClick={(e) => {
-														e.preventDefault();
-														if (session.status !== "completed")
-															setStatusMenuId(
-																statusMenuId === session.id ? null : session.id,
-															);
-													}}
-													disabled={session.status === "completed"}
-													className={`badge ${st.bg} ${session.status === "completed" ? "cursor-default" : "cursor-pointer hover:opacity-80"} transition-opacity`}
-												>
-													{session.status}
-													{session.status !== "completed" && (
-														<ChevronDown size={10} />
-													)}
-												</button>
-												{statusMenuId === session.id && (
-													<>
-														<div
-															className="fixed inset-0 z-40"
-															onClick={(e) => {
-																e.preventDefault();
-																setStatusMenuId(null);
-															}}
-														/>
-														<div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
-															{(["draft", "active", "completed"] as const).map(
-																(s) => {
-																	const sty = SESSION_STATUS_STYLES[s];
-																	return (
-																		<button
-																			key={s}
-																			onClick={(e) => {
-																				e.preventDefault();
-																				setSessionStatus(session, s);
-																			}}
-																			className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
-																				session.status === s
-																					? sty.bg
-																					: "text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800"
-																			}`}
-																		>
-																			{s}
-																		</button>
-																	);
-																},
-															)}
-														</div>
-													</>
-												)}
-											</div>
+											<StatusMenu
+												currentStatus={session.status}
+												open={statusMenuId === session.id}
+												onToggle={() => setStatusMenuId(statusMenuId === session.id ? null : session.id)}
+												onSelect={(s) => setSessionStatus(session, s)}
+												onClose={() => setStatusMenuId(null)}
+												disabled={session.status === "completed"}
+											/>
 										</div>
 										<div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-gray-500">
 											{session.date && (
@@ -464,6 +417,7 @@ export default function SessionsListPage() {
 					})}
 				</div>
 			)}
+			</>)}
 			{feedbackSession && (
 				<FeedbackModal
 					sessionId={feedbackSession.id}
@@ -475,99 +429,51 @@ export default function SessionsListPage() {
 				/>
 			)}
 			{completeConfirmSession && (
-				<div
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-					onClick={() => setCompleteConfirmSession(null)}
+				<ConfirmModal
+					title="Complete session?"
+					confirmLabel="Yes, complete session"
+					onConfirm={confirmComplete}
+					onCancel={() => setCompleteConfirmSession(null)}
 				>
-					<div
-						className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-2">
-							Complete session?
-						</h2>
-						<p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
-							This will lock{" "}
-							<span className="font-semibold text-slate-700 dark:text-gray-300">
-								{completeConfirmSession.name}
-							</span>
-							. You will no longer be able to edit scenarios, reassign testers,
-							or change the status. This action cannot be undone.
-						</p>
-						<div className="flex gap-2 justify-end">
-							<button
-								onClick={() => setCompleteConfirmSession(null)}
-								className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-							>
-								Cancel
-							</button>
-							<button
-								onClick={confirmComplete}
-								className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer transition-colors"
-							>
-								Yes, complete session
-							</button>
-						</div>
-					</div>
-				</div>
+					<p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
+						This will lock{" "}
+						<span className="font-semibold text-slate-700 dark:text-gray-300">
+							{completeConfirmSession.name}
+						</span>
+						. You will no longer be able to edit scenarios, reassign testers,
+						or change the status. This action cannot be undone.
+					</p>
+				</ConfirmModal>
 			)}
 			{deleteConfirmSession && (
-				<div
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-					onClick={() => {
-						if (deletingSession) return;
-						setDeleteConfirmSession(null);
-						setDeleteConfirmText("");
-						setDeletingSession(false);
-					}}
+				<ConfirmModal
+					title="Delete session?"
+					titleClassName="text-sm font-bold text-red-600 dark:text-red-400 mb-2"
+					confirmLabel="Delete permanently"
+					confirmClassName="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 cursor-pointer transition-colors"
+					onConfirm={deleteSession}
+					onCancel={() => { setDeleteConfirmSession(null); setDeleteConfirmText(""); setDeletingSession(false) }}
+					disabled={deleteConfirmText !== deleteConfirmSession.name}
+					loading={deletingSession}
 				>
-					<div
-						className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<h2 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">
-							Delete session?
-						</h2>
-						<p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
-							This will permanently delete this session
-							and all its scenarios, assignments, and feedback. This action
-							cannot be undone.
-						</p>
-						<p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
-							Type{" "}
-							<span className="font-mono font-bold text-red-500">{deleteConfirmSession.name}</span>{" "}
-							to confirm:
-						</p>
-						<input
-							value={deleteConfirmText}
-							onChange={(e) => setDeleteConfirmText(e.target.value)}
-							placeholder={deleteConfirmSession.name}
-							autoFocus
-							className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
-						/>
-						<div className="flex gap-2 justify-end">
-							<button
-								onClick={() => {
-									if (deletingSession) return;
-									setDeleteConfirmSession(null);
-									setDeleteConfirmText("");
-									setDeletingSession(false);
-								}}
-								disabled={deletingSession}
-								className="rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default cursor-pointer transition-colors"
-							>
-								Cancel
-							</button>
-							<button
-								onClick={deleteSession}
-								disabled={deleteConfirmText !== deleteConfirmSession.name || deletingSession}
-								className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
-							>
-								{deletingSession ? "Deleting..." : "Delete permanently"}
-							</button>
-						</div>
-					</div>
-				</div>
+					<p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
+						This will permanently delete this session
+						and all its scenarios, assignments, and feedback. This action
+						cannot be undone.
+					</p>
+					<p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
+						Type{" "}
+						<span className="font-mono font-bold text-red-500">{deleteConfirmSession.name}</span>{" "}
+						to confirm:
+					</p>
+					<input
+						value={deleteConfirmText}
+						onChange={(e) => setDeleteConfirmText(e.target.value)}
+						placeholder={deleteConfirmSession.name}
+						autoFocus
+						className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
+					/>
+				</ConfirmModal>
 			)}
 		</div>
 		</>
