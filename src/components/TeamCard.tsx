@@ -169,25 +169,25 @@ export default function TeamCard({
               </button>
             )}
             {pendingDelete && (
-              <span className="flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
-                <span>Confirm?</span>
+              <span className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-2.5 py-1 font-heading">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-mushi-threat">Delete?</span>
                 {deleting ? (
-                  <span className="text-slate-400 dark:text-gray-500">Deleting...</span>
+                  <span className="text-[10px] text-slate-400 dark:text-gray-500">Deleting...</span>
                 ) : (
                   <>
                     <button
                       onClick={onConfirmDelete}
-                      className="rounded p-0.5 text-green-500 dark:text-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                      className="rounded-md bg-red-500 dark:bg-mushi-threat px-2 py-0.5 text-[10px] font-bold uppercase text-white dark:text-gray-900 cursor-pointer hover:bg-red-600 dark:hover:bg-mushi-threat/80 transition-colors"
                       title="Confirm delete"
                     >
-                      <Check size={13} />
+                      Yes
                     </button>
                     <button
                       onClick={onCancelDelete}
-                      className="rounded p-0.5 text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      className="rounded-md border border-gray-600 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400 dark:text-gray-400 cursor-pointer hover:bg-gray-700/30 transition-colors"
                       title="Cancel delete"
                     >
-                      <X size={13} />
+                      No
                     </button>
                   </>
                 )}
@@ -196,7 +196,7 @@ export default function TeamCard({
           </div>
 
           {/* Quick links */}
-          <div className="grid grid-cols-4 gap-2.5 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
             <Link
               to="/testers"
               onClick={() => onSelect()}
@@ -244,16 +244,16 @@ export default function TeamCard({
             </Link>
             <button
               onClick={() => setProductsExpanded(!productsExpanded)}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors cursor-pointer"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors cursor-pointer"
             >
-              <div className="rounded-lg bg-amber-100 dark:bg-amber-900/30 p-2">
-                <Package size={16} className="text-amber-600 dark:text-amber-400" />
+              <div className="rounded-lg bg-red-100 dark:bg-mushi-threat/15 p-2">
+                <Package size={16} className="text-red-500 dark:text-mushi-threat" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
                   {products.length}
                 </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-amber-600 dark:group-hover:text-amber-400">Products</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-mushi-threat">Products</span>
               </div>
               <div className="ml-auto">
                 {productsExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
@@ -319,11 +319,11 @@ export default function TeamCard({
                 ) : (
                   <div
                     key={product.id}
-                    className="group rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                    className="group rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="rounded-md bg-amber-100 dark:bg-amber-900/30 p-1.5 mt-0.5">
-                        <Package size={14} className="text-amber-600 dark:text-amber-400" />
+                      <div className="rounded-md bg-red-100 dark:bg-mushi-threat/15 p-1.5 mt-0.5">
+                        <Package size={14} className="text-red-500 dark:text-mushi-threat" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">

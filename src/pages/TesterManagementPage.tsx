@@ -195,7 +195,7 @@ export default function TesterManagementPage() {
   return (
     <>
       <SecondaryAppBar
-        description="Manage your QA team — add testers, assign devices, and control availability."
+        description=""
         stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{testers.filter(t => t.active).length} active</span> / {testers.length} total</>}
         search={search}
         onSearchChange={setSearch}
@@ -212,6 +212,11 @@ export default function TesterManagementPage() {
       />
 
       <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Testers</h1>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Manage your QA squad roster and device assignments.</p>
+      </div>
 
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">

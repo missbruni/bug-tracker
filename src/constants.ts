@@ -27,8 +27,8 @@ export const SEVERITY_STYLES: { light: SeverityStyleMap; dark: SeverityStyleMap 
 
 export const PAGES = ['Home', 'Availability', 'Add ons', 'Summary', 'Payment', 'Confirmation'] as const
 
-export const SESSION_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: 'badge-slate', text: '' },
-  active: { bg: 'badge-blue', text: '' },
-  completed: { bg: 'badge-green', text: '' },
+export const SESSION_STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  draft: { bg: 'badge-slate', text: '', border: '#94A29D' },
+  active: { bg: 'badge-blue', text: '', border: '#00A38C' },
+  completed: { bg: 'badge-green', text: '', border: '#00A38C' },
 }

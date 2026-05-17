@@ -153,7 +153,7 @@ describe('TeamCard', () => {
 
   test('shows pending delete confirmation', () => {
     renderCard({ pendingDelete: true })
-    expect(screen.getByText('Confirm?')).toBeInTheDocument()
+    expect(screen.getByText('Delete?')).toBeInTheDocument()
   })
 
   test('shows empty state when no products', () => {

@@ -227,7 +227,7 @@ export default function SessionsListPage() {
 	return (
 		<>
 			<SecondaryAppBar
-				description="Plan and run testing sessions — assign scenarios, track progress, and collect feedback."
+				description=""
 				stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{sessions.filter(s => s.status === 'active').length} active</span> / {sessions.length} total</>}
 				search={search}
 				onSearchChange={setSearch}
@@ -244,6 +244,11 @@ export default function SessionsListPage() {
 			/>
 
 			<div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
+
+			<div className="mb-6">
+				<h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Testing Sessions</h1>
+				<p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Initialize squad deployments and scenario parameters.</p>
+			</div>
 
 			{showCreate && (
 				<div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
@@ -319,6 +324,7 @@ export default function SessionsListPage() {
 								key={session.id}
 								to={`/sessions/${session.id}`}
 								className="block rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+								style={{ borderLeft: `4px solid ${st.border}` }}
 							>
 								<div className="flex flex-col sm:flex-row sm:items-center gap-3">
 									<div className="flex-1 min-w-0">

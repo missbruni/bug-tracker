@@ -141,7 +141,7 @@ export default function PresentationPage() {
   const totalTesters = new Set(scenarioSlides.filter(s => s.assignedTester).map(s => s.assignedTester!.id)).size
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-300 font-sans select-none" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-gray-950 text-gray-300 font-sans select-none">
       {/* Navigation overlay */}
       <div className="fixed inset-0 z-10 flex">
         <div className="w-1/3 cursor-pointer" onClick={() => setCurrent(c => Math.max(c - 1, 0))} />

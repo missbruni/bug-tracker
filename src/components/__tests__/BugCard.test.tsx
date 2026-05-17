@@ -107,7 +107,7 @@ describe('BugCard', () => {
     renderBugCard()
     fireEvent.click(screen.getByTitle('Delete bug'))
 
-    expect(screen.getByText('Confirm?')).toBeInTheDocument()
+    expect(screen.getByText('Delete?')).toBeInTheDocument()
     expect(screen.getByTitle('Confirm delete')).toBeInTheDocument()
     expect(screen.getByTitle('Cancel delete')).toBeInTheDocument()
   })
@@ -117,6 +117,6 @@ describe('BugCard', () => {
     fireEvent.click(screen.getByText('Login button broken').closest('button')!)
     fireEvent.click(screen.getByText('Delete Bug'))
 
-    expect(screen.getByText('Confirm?')).toBeInTheDocument()
+    expect(screen.getByText('Delete?')).toBeInTheDocument()
   })
 })

@@ -133,6 +133,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
       {/* Content */}
       <div className={`max-w-screen-2xl mx-auto px-4 sm:px-7 pt-4 pb-8 transition-opacity duration-150 ${isSearchPending ? 'opacity-60' : 'opacity-100'}`}>
+        <div className="mb-6">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Bugs</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Track, triage, and resolve bugs across all active sessions.</p>
+        </div>
+
         {showAddForm && (
           <AddBugForm
             onAdd={addBug}

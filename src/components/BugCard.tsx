@@ -6,8 +6,6 @@ import {
 	MessageSquare,
 	Trash2,
 	CheckCircle,
-	Check,
-	X,
 	ExternalLink,
 	Rocket,
 	Pencil,
@@ -150,14 +148,14 @@ export default function BugCard({
 						/>
 					)}
 					<span
-						className={`text-xs font-bold text-slate-400 dark:text-gray-500 shrink-0 ${bug.reviewed ? "line-through" : ""}`}
+						className={`text-xs font-bold font-heading text-slate-400 dark:text-gray-500 shrink-0 ${bug.reviewed ? "line-through" : ""}`}
 						style={{ minWidth: 48 }}
 					>
 						{bug.id}
 					</span>
 					<div className="flex-1 min-w-0">
 						<span
-							className={`block truncate text-sm font-medium ${bug.reviewed ? "line-through text-slate-400 dark:text-gray-600" : "text-slate-900 dark:text-gray-100"}`}
+							className={`block truncate text-sm font-medium font-heading ${bug.reviewed ? "line-through text-slate-400 dark:text-gray-600" : "text-slate-900 dark:text-gray-100"}`}
 						>
 							{bug.title}
 						</span>
@@ -219,12 +217,12 @@ export default function BugCard({
 						</span>
 						{pendingDelete && (
 							<span
-								className="flex items-center gap-1 text-[11px] font-semibold text-red-500 dark:text-red-400"
+								className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-2.5 py-1 font-heading"
 								onClick={(e) => e.stopPropagation()}
 							>
-								<span>Confirm?</span>
+								<span className="text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-mushi-threat">Delete?</span>
 								{isDeleting ? (
-									<span className="text-slate-400 dark:text-gray-500">
+									<span className="text-[10px] text-slate-400 dark:text-gray-500">
 										Deleting...
 									</span>
 								) : (
@@ -242,10 +240,10 @@ export default function BugCard({
 													void confirmDelete();
 												}
 											}}
-											className="rounded p-0.5 text-green-500 dark:text-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+											className="rounded-md bg-red-500 dark:bg-mushi-threat px-2 py-0.5 text-[10px] font-bold uppercase text-white dark:text-gray-900 cursor-pointer hover:bg-red-600 dark:hover:bg-mushi-threat/80 transition-colors"
 											title="Confirm delete"
 										>
-											<Check size={12} />
+											Yes
 										</span>
 										<span
 											role="button"
@@ -260,10 +258,10 @@ export default function BugCard({
 													cancelDelete();
 												}
 											}}
-											className="rounded p-0.5 text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+											className="rounded-md border border-gray-600 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400 dark:text-gray-400 cursor-pointer hover:bg-gray-700/30 transition-colors"
 											title="Cancel delete"
 										>
-											<X size={12} />
+											No
 										</span>
 									</>
 								)}

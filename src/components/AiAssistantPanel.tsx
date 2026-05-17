@@ -70,7 +70,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
             </span>
             <span className="flex flex-col">
               <span>AI Assistant</span>
-              <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-blue-500 dark:text-mushi-primary"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-mushi-primary animate-pulse" />Active Listening</span>
+              <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest font-heading text-blue-500 dark:text-mushi-primary"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-mushi-primary animate-pulse" />Active Listening</span>
             </span>
           </h2>
           <div className="flex items-center gap-1.5">

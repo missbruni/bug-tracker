@@ -11,6 +11,7 @@
   --color-mushi-tertiary:  #7000ff;
   --color-mushi-neutral:   #10141a;
   --color-mushi-outline:   rgba(0, 255, 204, 0.2);
+  --color-mushi-threat:    #FFB4AB;
 
   --font-heading: "Space Grotesk", sans-serif;
   --font-sans:    "Inter", sans-serif;
@@ -44,6 +45,30 @@
   --color-indigo-400: #D63384;
   --color-indigo-500: #D63384;
   --color-indigo-600: #c12a76;
+
+  /* Danger: red → rose (secondary) */
+  --color-red-50:  #fdf2f8;
+  --color-red-100: #fce7f3;
+  --color-red-200: #f9c0d9;
+  --color-red-300: #f187b7;
+  --color-red-400: #e74d93;
+  --color-red-500: #D63384;
+  --color-red-600: #c12a76;
+  --color-red-700: #9d174d;
+  --color-red-800: #831843;
+  --color-red-900: #500724;
+
+  /* Success: green → teal (primary) */
+  --color-green-50:  #e6f7f5;
+  --color-green-100: #b3ece5;
+  --color-green-200: #80e0d5;
+  --color-green-300: #4dd4c5;
+  --color-green-400: #1ac8b5;
+  --color-green-500: #00A38C;
+  --color-green-600: #008f7a;
+  --color-green-700: #007b68;
+  --color-green-800: #005d4f;
+  --color-green-900: #004038;
 }
 
 /* ─── Mushi (dark mode) colour remap ─── */
@@ -55,10 +80,10 @@
   --color-gray-700: #2f353d;
   --color-gray-600: #404750;
   --color-gray-500: #5a6270;
-  --color-gray-400: #8891a0;
-  --color-gray-300: #b0b8c4;
-  --color-gray-200: #d1d7e0;
-  --color-gray-100: #e8ecf0;
+  --color-gray-400: #94A29D;
+  --color-gray-300: #B9CBC2;
+  --color-gray-200: #D4E2DB;
+  --color-gray-100: #ECF2EF;
 
   /* Primary: blue → mint neon */
   --color-blue-50:  rgba(0, 255, 204, 0.05);
@@ -79,6 +104,53 @@
   --color-indigo-500: rgba(0, 255, 204, 0.1);
   --color-indigo-600: #00ffcc;
   --color-yellow-400: #00ffcc;
+
+  /* Danger: red → magenta (secondary) */
+  --color-red-50:  rgba(255, 0, 122, 0.04);
+  --color-red-100: rgba(255, 0, 122, 0.08);
+  --color-red-200: rgba(255, 0, 122, 0.15);
+  --color-red-300: rgba(255, 0, 122, 0.3);
+  --color-red-400: #ff6aaf;
+  --color-red-500: #FF007A;
+  --color-red-600: #e0006c;
+  --color-red-700: #b8005a;
+  --color-red-800: rgba(255, 0, 122, 0.3);
+  --color-red-900: rgba(255, 0, 122, 0.12);
+
+  /* Slate → gray (align with surface palette) */
+  --color-slate-50:  #ECF2EF;
+  --color-slate-100: #D4E2DB;
+  --color-slate-200: #B9CBC2;
+  --color-slate-300: #94A29D;
+  --color-slate-400: #6B7A75;
+  --color-slate-500: #5a6270;
+  --color-slate-600: #404750;
+  --color-slate-700: #2f353d;
+  --color-slate-800: #252a31;
+  --color-slate-900: #1c2026;
+
+  /* Success: green → mint (primary) */
+  --color-green-50:  rgba(0, 255, 204, 0.05);
+  --color-green-100: rgba(0, 255, 204, 0.1);
+  --color-green-200: rgba(0, 255, 204, 0.2);
+  --color-green-300: rgba(0, 255, 204, 0.4);
+  --color-green-400: #00ffcc;
+  --color-green-500: #00ffcc;
+  --color-green-600: #00ddb3;
+  --color-green-700: #00bb99;
+  --color-green-800: rgba(0, 255, 204, 0.3);
+  --color-green-900: rgba(0, 255, 204, 0.08);
+}
+
+/* ─── Global typography ─── */
+html, body {
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
 }
 
 @keyframes slideUp {
@@ -224,8 +296,8 @@
   background-color: color-mix(in srgb, var(--color-red-500) 8%, transparent);
 }
 @utility badge-slate {
-  border-color: var(--color-slate-400);
-  color: var(--color-slate-500);
-  background-color: color-mix(in srgb, var(--color-slate-400) 8%, transparent);
+  border-color: var(--color-gray-600);
+  color: var(--color-gray-300);
+  background-color: color-mix(in srgb, var(--color-gray-500) 8%, transparent);
 }
 

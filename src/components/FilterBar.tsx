@@ -87,7 +87,7 @@ export default function FilterBar({
 					<button
 						key={filterOption.key}
 						onClick={() => setSeverityFilter(filterOption.key)}
-						className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer text-center whitespace-nowrap ${
+						className={`rounded-md border px-3 py-1.5 text-xs font-semibold font-heading transition-colors cursor-pointer text-center whitespace-nowrap ${
 							isSelected
 								? "bg-blue-500 dark:bg-mushi-primary text-white dark:text-mushi-bg border-blue-500 dark:border-mushi-primary"
 								: "bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700"

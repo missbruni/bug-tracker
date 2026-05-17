@@ -176,7 +176,7 @@ export default function TeamManagementPage() {
   return (
     <>
       <SecondaryAppBar
-        description="Create and manage teams under theaccessgroup."
+        description=""
         stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{teams.length} teams</span> configured</>}
         search={search}
         onSearchChange={setSearch}
@@ -193,6 +193,11 @@ export default function TeamManagementPage() {
       />
 
       <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6 space-y-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Teams</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Create and manage teams across the organization.</p>
+        </div>
+
         {showAdd && (
           <div className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
             <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">New team name</label>

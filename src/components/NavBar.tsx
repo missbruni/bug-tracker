@@ -98,7 +98,7 @@ export default function NavBar({
 									key={to}
 									to={to}
 									ref={(el) => { tabRefs.current[i] = el; }}
-									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold uppercase tracking-wide border-b-2 border-transparent transition-colors ${
+									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold uppercase tracking-wide font-heading border-b-2 border-transparent transition-colors ${
 										active
 											? "text-blue-600 dark:text-blue-400"
 											: "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
