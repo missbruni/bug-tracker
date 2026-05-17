@@ -106,8 +106,12 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
   const targetUrl = buildUrl(cfg)
   const authHeaders = buildHeaders(cfg)
 
-  // Route through local proxy to avoid CORS issues
-  const res = await fetch('/api/ai-proxy', {
+  // Route through local dev proxy or Cloudflare Worker in production
+  const proxyUrl = import.meta.env.DEV
+    ? '/api/ai-proxy'
+    : 'https://mushi-ai-proxy.mushi.workers.dev'
+
+  const res = await fetch(proxyUrl, {
     method: 'POST',
     headers: {
       ...authHeaders,
