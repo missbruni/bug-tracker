@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, ChevronUp, ChevronDown, GripVertical, Pencil, X, Check, MessageSquareHeart, AlertCircle, Package } from 'lucide-react'
 import FeedbackModal from '../components/FeedbackModal'
 import { supabase } from '../supabaseClient'
+import { useTeamAccess } from '../lib/teamAccess'
+import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { SESSION_STATUS_STYLES } from '../constants'
 import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../types'
 
 export default function SessionSetupPage() {
   const { id: sessionId } = useParams<{ id: string }>()
+  const { activeTeamId } = useTeamAccess()
   const [session, setSession] = useState<Session | null>(null)
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [testers, setTesters] = useState<Tester[]>([])
@@ -22,6 +25,8 @@ export default function SessionSetupPage() {
   const [deletingSession, setDeletingSession] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [editNameValue, setEditNameValue] = useState('')
+  const [teamName, setTeamName] = useState<string | null>(null)
+  const [productName, setProductName] = useState<string | null>(null)
   const navigate = useNavigate()
 
   // Add/edit scenario state
@@ -43,12 +48,27 @@ export default function SessionSetupPage() {
   const load = useCallback(async () => {
     if (!supabase || !sessionId) return
     const [sessRes, scenRes, testRes, assignRes] = await Promise.all([
-      supabase.from('sessions').select('*').eq('id', sessionId).single(),
-      supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'),
-      supabase.from('testers').select('*').eq('active', true).order('name'),
-      supabase.from('assignments').select('*').eq('session_id', sessionId),
+      scopeToTeam(supabase.from('sessions').select('*').eq('id', sessionId).single(), activeTeamId),
+      scopeToTeam(supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'), activeTeamId),
+      scopeToTeam(supabase.from('testers').select('*').eq('active', true).order('name'), activeTeamId),
+      scopeToTeam(supabase.from('assignments').select('*').eq('session_id', sessionId), activeTeamId),
     ])
-    if (sessRes.data) setSession(sessRes.data as Session)
+    if (sessRes.data) {
+      setSession(sessRes.data as Session)
+      // Fetch team name
+      const sess = sessRes.data as Session
+      if (sess.team_id) {
+        supabase.from('teams').select('name').eq('id', sess.team_id).single().then(({ data: t }) => {
+          if (t) setTeamName((t as { name: string }).name)
+        })
+      }
+      // Fetch product name
+      if (sess.product_id) {
+        supabase.from('products').select('name').eq('id', sess.product_id).single().then(({ data: p }) => {
+          if (p) setProductName((p as { name: string }).name)
+        })
+      }
+    }
     setScenarios((scenRes.data || []) as Scenario[])
     const assigns = (assignRes.data || []) as Assignment[]
     setAssignments(assigns)
@@ -59,7 +79,10 @@ export default function SessionSetupPage() {
       const activeIds = new Set(allTesters.map(t => t.id))
       const missingIds = assigns.map(a => a.tester_id).filter(id => !activeIds.has(id))
       if (missingIds.length) {
-        const { data: inactiveTesters } = await supabase.from('testers').select('*').in('id', missingIds)
+        const { data: inactiveTesters } = await scopeToTeam(
+          supabase.from('testers').select('*').in('id', missingIds),
+          activeTeamId,
+        )
         if (inactiveTesters?.length) {
           allTesters = [...allTesters, ...(inactiveTesters as Tester[])].sort((a, b) => a.name.localeCompare(b.name))
         }
@@ -67,7 +90,7 @@ export default function SessionSetupPage() {
     }
     setTesters(allTesters)
     setLoading(false)
-  }, [sessionId])
+  }, [sessionId, activeTeamId])
 
   useEffect(() => { load() }, [load])
 
@@ -98,11 +121,11 @@ export default function SessionSetupPage() {
     // Remove any existing assignment for this scenario
     const existing = assignments.find(a => a.scenario_id === scenarioId)
     if (existing) {
-      await supabase.from('assignments').delete().eq('id', existing.id)
+      await scopeToTeam(supabase.from('assignments').delete().eq('id', existing.id), activeTeamId)
     }
     const { data, error } = await supabase
       .from('assignments')
-      .insert({ session_id: sessionId, scenario_id: scenarioId, tester_id: testerId })
+      .insert(withTeamPayload({ session_id: sessionId, scenario_id: scenarioId, tester_id: testerId }, activeTeamId))
       .select()
     if (!error && data?.[0]) {
       setAssignments(prev => [
@@ -117,7 +140,8 @@ export default function SessionSetupPage() {
     if (!supabase) return
     const existing = assignments.find(a => a.scenario_id === scenarioId)
     if (existing) {
-      const { error } = await supabase.from('assignments').delete().eq('id', existing.id)
+      const deleteQuery = scopeToTeam(supabase.from('assignments').delete().eq('id', existing.id), activeTeamId)
+      const { error } = await deleteQuery
       if (!error) setAssignments(prev => prev.filter(a => a.id !== existing.id))
     }
     setSelectedScenarioId(null)
@@ -147,7 +171,7 @@ export default function SessionSetupPage() {
       // Delete existing non-locked assignments
       const toDelete = assignments.filter(a => !lockedScenarioIds.has(a.scenario_id))
       for (const a of toDelete) {
-        await supabase.from('assignments').delete().eq('id', a.id)
+        await scopeToTeam(supabase.from('assignments').delete().eq('id', a.id), activeTeamId)
       }
 
       // Create new assignments
@@ -155,7 +179,7 @@ export default function SessionSetupPage() {
       for (let i = 0; i < unlockedScenarios.length && i < shuffled.length; i++) {
         const { data } = await supabase
           .from('assignments')
-          .insert({ session_id: sessionId, scenario_id: unlockedScenarios[i].id, tester_id: shuffled[i].id })
+          .insert(withTeamPayload({ session_id: sessionId, scenario_id: unlockedScenarios[i].id, tester_id: shuffled[i].id }, activeTeamId))
           .select()
         if (data?.[0]) newAssignments.push(data[0] as Assignment)
       }
@@ -169,7 +193,7 @@ export default function SessionSetupPage() {
     if (!supabase || !sessionId || resettingAssignments || shufflingAssignments) return
     setResettingAssignments(true)
     try {
-      await supabase.from('assignments').delete().eq('session_id', sessionId)
+      await scopeToTeam(supabase.from('assignments').delete().eq('session_id', sessionId), activeTeamId)
       setAssignments([])
     } finally {
       setResettingAssignments(false)
@@ -183,14 +207,14 @@ export default function SessionSetupPage() {
       const maxOrder = scenarios.length ? Math.max(...scenarios.map(s => s.sort_order)) : 0
       const { data, error } = await supabase
         .from('scenarios')
-        .insert({
+        .insert(withTeamPayload({
           session_id: sessionId,
           letter: newLetter.trim().toUpperCase(),
           title: newTitle.trim(),
           description: newDesc.trim() || null,
           device_requirement: newDevice.trim() || null,
           sort_order: maxOrder + 1,
-        })
+        }, activeTeamId))
         .select()
       if (!error && data?.[0]) {
         setScenarios(prev => [...prev, data[0] as Scenario])
@@ -207,7 +231,8 @@ export default function SessionSetupPage() {
 
   const deleteScenario = async (id: string) => {
     if (!supabase) return
-    const { error } = await supabase.from('scenarios').delete().eq('id', id)
+    const deleteQuery = scopeToTeam(supabase.from('scenarios').delete().eq('id', id), activeTeamId)
+    const { error } = await deleteQuery
     if (!error) {
       setScenarios(prev => prev.filter(s => s.id !== id))
       setAssignments(prev => prev.filter(a => a.scenario_id !== id))
@@ -224,8 +249,8 @@ export default function SessionSetupPage() {
     const a = scenarios[idx]
     const b = scenarios[swapIdx]
     await Promise.all([
-      supabase.from('scenarios').update({ sort_order: b.sort_order }).eq('id', a.id),
-      supabase.from('scenarios').update({ sort_order: a.sort_order }).eq('id', b.id),
+      scopeToTeam(supabase.from('scenarios').update({ sort_order: b.sort_order }).eq('id', a.id), activeTeamId),
+      scopeToTeam(supabase.from('scenarios').update({ sort_order: a.sort_order }).eq('id', b.id), activeTeamId),
     ])
     const updated = [...scenarios]
     updated[idx] = { ...a, sort_order: b.sort_order }
@@ -244,15 +269,19 @@ export default function SessionSetupPage() {
 
   const saveEditScenario = async () => {
     if (!supabase || !editScenarioId || !editLetter.trim() || !editTitle.trim()) return
-    const { error } = await supabase
-      .from('scenarios')
-      .update({
-        letter: editLetter.trim().toUpperCase(),
-        title: editTitle.trim(),
-        description: editDesc.trim() || null,
-        device_requirement: editDevice.trim() || null,
-      })
-      .eq('id', editScenarioId)
+    const updateScenarioQuery = scopeToTeam(
+      supabase
+        .from('scenarios')
+        .update({
+          letter: editLetter.trim().toUpperCase(),
+          title: editTitle.trim(),
+          description: editDesc.trim() || null,
+          device_requirement: editDevice.trim() || null,
+        })
+        .eq('id', editScenarioId),
+      activeTeamId,
+    )
+    const { error } = await updateScenarioQuery
     if (!error) {
       setScenarios(prev => prev.map(s => s.id === editScenarioId ? {
         ...s,
@@ -272,13 +301,21 @@ export default function SessionSetupPage() {
       setShowCompleteConfirm(true)
       return
     }
-    const { error } = await supabase.from('sessions').update({ status: next }).eq('id', session.id)
+    const statusQuery = scopeToTeam(
+      supabase.from('sessions').update({ status: next }).eq('id', session.id),
+      activeTeamId,
+    )
+    const { error } = await statusQuery
     if (!error) setSession({ ...session, status: next })
   }
 
   const confirmComplete = async () => {
     if (!supabase || !session) return
-    const { error } = await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id)
+    const completeQuery = scopeToTeam(
+      supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id),
+      activeTeamId,
+    )
+    const { error } = await completeQuery
     if (!error) setSession({ ...session, status: 'completed' })
     setShowCompleteConfirm(false)
   }
@@ -287,10 +324,14 @@ export default function SessionSetupPage() {
     if (!supabase || !session || deleteConfirmText !== session.name || deletingSession) return
     setDeletingSession(true)
     try {
-      await supabase.from('assignments').delete().eq('session_id', session.id)
-      await supabase.from('scenarios').delete().eq('session_id', session.id)
-      await supabase.from('session_feedback').delete().eq('session_id', session.id)
-      const { error } = await supabase.from('sessions').delete().eq('id', session.id)
+      await scopeToTeam(supabase.from('assignments').delete().eq('session_id', session.id), activeTeamId)
+      await scopeToTeam(supabase.from('scenarios').delete().eq('session_id', session.id), activeTeamId)
+      await scopeToTeam(supabase.from('session_feedback').delete().eq('session_id', session.id), activeTeamId)
+      const deleteSessionQuery = scopeToTeam(
+        supabase.from('sessions').delete().eq('id', session.id),
+        activeTeamId,
+      )
+      const { error } = await deleteSessionQuery
       if (!error) navigate('/sessions')
       setShowDeleteConfirm(false)
       setDeleteConfirmText('')
@@ -354,7 +395,10 @@ export default function SessionSetupPage() {
                     if (newName && supabase) {
                       const oldName = session.name
                       setSession({ ...session, name: newName })
-                      supabase.from('sessions').update({ name: newName }).eq('id', session.id).then(({ error }) => {
+                      scopeToTeam(
+                        supabase.from('sessions').update({ name: newName }).eq('id', session.id),
+                        activeTeamId,
+                      ).then(({ error }) => {
                         if (error) setSession((s) => s ? { ...s, name: oldName } : s)
                       })
                     }
@@ -367,7 +411,10 @@ export default function SessionSetupPage() {
                   if (newName && supabase) {
                     const oldName = session.name
                     setSession({ ...session, name: newName })
-                    supabase.from('sessions').update({ name: newName }).eq('id', session.id).then(({ error }) => {
+                    scopeToTeam(
+                      supabase.from('sessions').update({ name: newName }).eq('id', session.id),
+                      activeTeamId,
+                    ).then(({ error }) => {
                       if (error) setSession((s) => s ? { ...s, name: oldName } : s)
                     })
                   }
@@ -426,6 +473,16 @@ export default function SessionSetupPage() {
                 </>
               )}
             </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-500 mb-0.5">
+            {teamName && <span className="font-semibold text-blue-600 dark:text-blue-400">{teamName}</span>}
+            {teamName && productName && <span>·</span>}
+            {productName && (
+              <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
+                <Package size={11} />
+                {productName}
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 dark:text-gray-500">
             {session.date && <>{new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · </>}

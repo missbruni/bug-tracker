@@ -1,5 +1,6 @@
 import { SEVERITIES } from '../constants'
 import { supabase } from '../supabaseClient'
+import { scopeToTeam } from './teamScope'
 import type { Severity } from '../constants'
 import type { ParsedBug, SessionAction } from './aiTypes'
 
@@ -43,16 +44,19 @@ export function parseSessionActions(text: string): SessionAction[] {
   return actions
 }
 
-export async function generateBugId(severity: Severity): Promise<string> {
+export async function generateBugId(severity: Severity, activeTeamId: string | null = null): Promise<string> {
   const prefix = severity === 'critical' ? 'CRT' : severity === 'high' ? 'HI' : 'LO'
   if (!supabase) return `${prefix}-01`
 
-  const { data } = await supabase
-    .from('bugs')
-    .select('id')
-    .like('id', `${prefix}-%`)
-    .order('id', { ascending: false })
-    .limit(50)
+  const { data } = await scopeToTeam(
+    supabase
+      .from('bugs')
+      .select('id')
+      .like('id', `${prefix}-%`)
+      .order('id', { ascending: false })
+      .limit(50),
+    activeTeamId,
+  )
 
   let maxNum = 0
   ;(data || []).forEach((row: { id: string }) => {

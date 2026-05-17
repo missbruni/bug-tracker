@@ -44,6 +44,10 @@ export type SessionActionType =
   | 'edit_tester'
   // Bug filters (UI only)
   | 'set_bug_filters'
+  // Team & product management
+  | 'create_team'
+  | 'create_product'
+  | 'edit_product'
 
 export interface BugFiltersActionPayload {
   severity?: string | string[]
@@ -87,6 +91,9 @@ export interface SessionAction {
   clear?: boolean
   // Session status
   status?: string
+  // Team & product fields
+  team?: string
+  link?: string
 }
 
 export interface SessionActionResult {

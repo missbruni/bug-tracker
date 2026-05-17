@@ -3,6 +3,8 @@ import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL } from '../constants'
 import { playTickSound } from '../lib/audio'
 import { findTesterByName } from '../lib/testerLookup'
+import { useTeamAccess } from '../lib/teamAccess'
+import { buildAttachmentPath, parseAttachmentStoragePath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Bug, Attachment } from '../types'
 import type { Severity } from '../constants'
 
@@ -16,6 +18,7 @@ interface UseBugActionsParams {
 
 export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onReviewed }: UseBugActionsParams) {
   const mountedRef = useRef(true)
+  const { activeTeamId } = useTeamAccess()
 
   useEffect(() => {
     return () => { mountedRef.current = false }
@@ -28,12 +31,17 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
   const persistBugUpdate = async (updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>>) => {
     if (!supabase) return true
 
-    const { data, error } = await supabase
+    const query = scopeToTeam(
+      supabase
       .from('bugs')
       .update(updates)
       .eq('id', bug.id)
       .select('id')
-      .maybeSingle()
+      .maybeSingle(),
+      activeTeamId,
+    )
+
+    const { data, error } = await query
 
     if (error || !data) {
       console.error('Failed to persist bug update:', {
@@ -115,7 +123,7 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     if (supabase) {
       const { data, error } = await supabase
         .from('comments')
-        .insert({ bug_id: bug.id, text: newComment.text, time: newComment.time })
+        .insert(withTeamPayload({ bug_id: bug.id, text: newComment.text, time: newComment.time }, activeTeamId))
         .select()
       if (!error && data?.[0]) {
         onUpdate({ ...bug, comments: [...bug.comments, { ...newComment, id: data[0].id }] })
@@ -127,7 +135,9 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
 
   const deleteComment = async (comment: { id?: number }, index: number) => {
     if (supabase && comment.id) {
-      const { error } = await supabase.from('comments').delete().eq('id', comment.id)
+      let deleteQuery = supabase.from('comments').delete().eq('id', comment.id)
+      deleteQuery = scopeToTeam(deleteQuery, activeTeamId)
+      const { error } = await deleteQuery
       if (error) { console.error('Failed to delete comment:', error); return }
     }
     onUpdate({ ...bug, comments: bug.comments.filter((_, i) => i !== index) })
@@ -135,11 +145,13 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
 
   const deleteAttachment = async (attachment: { id?: number; url?: string }, index: number) => {
     if (supabase && attachment.id) {
-      const { error } = await supabase.from('attachments').delete().eq('id', attachment.id)
+      let deleteQuery = supabase.from('attachments').delete().eq('id', attachment.id)
+      deleteQuery = scopeToTeam(deleteQuery, activeTeamId)
+      const { error } = await deleteQuery
       if (error) { console.error('Failed to delete attachment:', error); return }
-      if (attachment.url) {
-        const path = attachment.url.split('/attachments/')[1]
-        if (path) await supabase.storage.from('attachments').remove([decodeURIComponent(path)])
+      const path = parseAttachmentStoragePath(attachment.url)
+      if (path) {
+        await supabase.storage.from('attachments').remove([path])
       }
     }
     onUpdate({ ...bug, attachments: bug.attachments.filter((_, i) => i !== index) })
@@ -170,22 +182,28 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
 
     if (supabase) {
       const storagePaths = bug.attachments
-        .map((att) => att.url?.split('/attachments/')[1])
+        .map((att) => parseAttachmentStoragePath(att.url))
         .filter(Boolean)
-        .map((path) => decodeURIComponent(path!))
+        .map((path) => path!)
 
       if (storagePaths.length) {
         const { error: storageError } = await supabase.storage.from('attachments').remove(storagePaths)
         if (storageError) console.error('Failed to delete attachment files:', storageError)
       }
 
-      const { error: commentsError } = await supabase.from('comments').delete().eq('bug_id', bug.id)
+      let commentsDelete = supabase.from('comments').delete().eq('bug_id', bug.id)
+      commentsDelete = scopeToTeam(commentsDelete, activeTeamId)
+      const { error: commentsError } = await commentsDelete
       if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return false }
 
-      const { error: attachmentsError } = await supabase.from('attachments').delete().eq('bug_id', bug.id)
+      let attachmentsDelete = supabase.from('attachments').delete().eq('bug_id', bug.id)
+      attachmentsDelete = scopeToTeam(attachmentsDelete, activeTeamId)
+      const { error: attachmentsError } = await attachmentsDelete
       if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return false }
 
-      const { error: bugError } = await supabase.from('bugs').delete().eq('id', bug.id)
+      let bugDelete = supabase.from('bugs').delete().eq('id', bug.id)
+      bugDelete = scopeToTeam(bugDelete, activeTeamId)
+      const { error: bugError } = await bugDelete
       if (bugError) { console.error('Failed to delete bug:', bugError); return false }
     }
 
@@ -197,13 +215,13 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     const newAttachments: Attachment[] = []
     for (const file of files) {
       if (supabase) {
-        const path = `${bug.id}/${Date.now()}-${file.name}`
-        const { error } = await supabase.storage.from('attachments').upload(path, file)
+        const storagePath = buildAttachmentPath(activeTeamId, bug.id, file.name)
+        const { error } = await supabase.storage.from('attachments').upload(storagePath, file)
         if (!error) {
-          const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
+          const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(storagePath)
           const { data: row } = await supabase
             .from('attachments')
-            .insert({ bug_id: bug.id, name: file.name, url: urlData.publicUrl, type: file.type })
+            .insert(withTeamPayload({ bug_id: bug.id, name: file.name, url: urlData.publicUrl, type: file.type }, activeTeamId))
             .select()
           if (row?.[0]) newAttachments.push(row[0])
         }
@@ -218,7 +236,7 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
 
   const saveBugEdit = async (editFields: { title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string }) => {
     const normalizedTester = editFields.tester || 'Unknown'
-    const matchedTester = await findTesterByName(normalizedTester)
+    const matchedTester = await findTesterByName(normalizedTester, activeTeamId)
     const updates = {
       title: editFields.title,
       description: editFields.description,
@@ -230,7 +248,9 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
       category: editFields.category || null,
     }
     if (supabase) {
-      const { error } = await supabase.from('bugs').update(updates).eq('id', bug.id)
+      let updateQuery = supabase.from('bugs').update(updates).eq('id', bug.id)
+      updateQuery = scopeToTeam(updateQuery, activeTeamId)
+      const { error } = await updateQuery
       if (error) {
         console.error('Failed to update bug:', error)
         showUpdateError('Failed to save changes.')

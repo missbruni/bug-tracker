@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
 	Plus,
@@ -10,9 +10,13 @@ import {
 	Star,
 	ChevronDown,
 	Trash2,
+	Package,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabaseClient";
+import { useTeamAccess } from "../lib/teamAccess";
+import { scopeToTeam, withTeamPayload } from "../lib/teamScope";
+import type { Product } from "../components/TeamCard";
 import { SESSION_STATUS_STYLES } from "../constants";
 import FeedbackModal from "../components/FeedbackModal";
 import SecondaryAppBar from "../components/SecondaryAppBar";
@@ -20,32 +24,44 @@ import type { SessionWithStats } from "../types";
 
 type Session = SessionWithStats;
 
-async function fetchSessions(): Promise<Session[]> {
+async function fetchSessions(activeTeamId: string | null): Promise<Session[]> {
 	if (!supabase) return [];
-	const { data: sessionsData } = await supabase
-		.from("sessions")
-		.select("*")
-		.order("created_at", { ascending: false });
+	const { data: sessionsData } = await scopeToTeam(
+		supabase
+			.from("sessions")
+			.select("*")
+			.order("created_at", { ascending: false }),
+		activeTeamId,
+	);
 
 	if (!sessionsData) return [];
 
 	const enriched: Session[] = [];
 	for (const s of sessionsData) {
-		const { count: scCount } = await supabase
-			.from("scenarios")
-			.select("*", { count: "exact", head: true })
-			.eq("session_id", s.id);
-		const { count: asCount } = await supabase
-			.from("assignments")
-			.select("*", { count: "exact", head: true })
-			.eq("session_id", s.id);
+		const { count: scCount } = await scopeToTeam(
+			supabase
+				.from("scenarios")
+				.select("*", { count: "exact", head: true })
+				.eq("session_id", s.id),
+			activeTeamId,
+		);
+		const { count: asCount } = await scopeToTeam(
+			supabase
+				.from("assignments")
+				.select("*", { count: "exact", head: true })
+				.eq("session_id", s.id),
+			activeTeamId,
+		);
 		let feedbackAvg = 0;
 		let feedbackCount = 0;
 		if (s.status === "completed") {
-			const { data: fbData } = await supabase
-				.from("session_feedback")
-				.select("rating")
-				.eq("session_id", s.id);
+			const { data: fbData } = await scopeToTeam(
+				supabase
+					.from("session_feedback")
+					.select("rating")
+					.eq("session_id", s.id),
+				activeTeamId,
+			);
 			if (fbData && fbData.length) {
 				feedbackCount = fbData.length;
 				feedbackAvg =
@@ -68,9 +84,11 @@ async function fetchSessions(): Promise<Session[]> {
 
 export default function SessionsListPage() {
 	const queryClient = useQueryClient();
+	const { activeTeamId } = useTeamAccess();
+	const sessionsQueryKey = ['sessions', activeTeamId] as const;
 	const { data: sessions = [], isLoading: loading } = useQuery({
-		queryKey: ['sessions'],
-		queryFn: fetchSessions,
+		queryKey: sessionsQueryKey,
+		queryFn: () => fetchSessions(activeTeamId),
 	});
 	const [showCreate, setShowCreate] = useState(false);
 	const [newName, setNewName] = useState("");
@@ -85,22 +103,46 @@ export default function SessionsListPage() {
 	const [search, setSearch] = useState("");
 	const [creatingSession, setCreatingSession] = useState(false);
 	const [deletingSession, setDeletingSession] = useState(false);
+	const [newProductId, setNewProductId] = useState("");
+	const [teamProducts, setTeamProducts] = useState<Product[]>([]);
+
+	// Load products for the active team
+	const { data: productsData } = useQuery({
+		queryKey: ['products', activeTeamId],
+		queryFn: async () => {
+			if (!supabase) return [];
+			const { data } = await scopeToTeam(
+				supabase.from('products').select('id, team_id, name, slug, description, link').order('name'),
+				activeTeamId,
+			);
+			return (data || []) as Product[];
+		},
+	});
+
+	// Keep local state in sync
+	useEffect(() => {
+		setTeamProducts(productsData || []);
+		if (productsData?.length === 1) setNewProductId(productsData[0].id);
+	}, [productsData]);
 
 	const createSession = async () => {
 		if (!supabase || !newName.trim() || creatingSession) return;
 		setCreatingSession(true);
 		try {
+			const payload: Record<string, unknown> = { name: newName.trim(), date: newDate || null, status: "draft" };
+			if (newProductId) payload.product_id = newProductId;
 			const { data, error } = await supabase
 				.from("sessions")
-				.insert({ name: newName.trim(), date: newDate || null, status: "draft" })
+				.insert(withTeamPayload(payload, activeTeamId))
 				.select();
 			if (!error && data?.[0]) {
-				queryClient.setQueryData(['sessions'], (prev: Session[]) => [
+				queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) => [
 					{ ...data[0], scenario_count: 0, assignment_count: 0 } as Session,
 					...(prev || []),
 				]);
 				setNewName("");
 				setNewDate("");
+				setNewProductId(teamProducts.length === 1 ? teamProducts[0].id : "");
 				setShowCreate(false);
 			}
 		} finally {
@@ -115,12 +157,16 @@ export default function SessionsListPage() {
 			setCompleteConfirmSession(session);
 			return;
 		}
-		const { error } = await supabase
-			.from("sessions")
-			.update({ status: next })
-			.eq("id", session.id);
+		const statusQuery = scopeToTeam(
+			supabase
+				.from("sessions")
+				.update({ status: next })
+				.eq("id", session.id),
+			activeTeamId,
+		);
+		const { error } = await statusQuery;
 		if (!error)
-			queryClient.setQueryData(['sessions'], (prev: Session[]) =>
+			queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) =>
 				(prev || []).map((s) =>
 					s.id === session.id ? { ...s, status: next as Session["status"] } : s,
 				),
@@ -133,11 +179,15 @@ export default function SessionsListPage() {
 		try {
 			const id = deleteConfirmSession.id;
 			// Delete related data first, then the session
-			await supabase.from("assignments").delete().eq("session_id", id);
-			await supabase.from("scenarios").delete().eq("session_id", id);
-			await supabase.from("session_feedback").delete().eq("session_id", id);
-			const { error } = await supabase.from("sessions").delete().eq("id", id);
-			if (!error) queryClient.setQueryData(['sessions'], (prev: Session[]) => (prev || []).filter((s) => s.id !== id));
+			await scopeToTeam(supabase.from("assignments").delete().eq("session_id", id), activeTeamId);
+			await scopeToTeam(supabase.from("scenarios").delete().eq("session_id", id), activeTeamId);
+			await scopeToTeam(supabase.from("session_feedback").delete().eq("session_id", id), activeTeamId);
+			const deleteQuery = scopeToTeam(
+				supabase.from("sessions").delete().eq("id", id),
+				activeTeamId,
+			);
+			const { error } = await deleteQuery;
+			if (!error) queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) => (prev || []).filter((s) => s.id !== id));
 			setDeleteConfirmSession(null);
 			setDeleteConfirmText("");
 		} finally {
@@ -147,12 +197,16 @@ export default function SessionsListPage() {
 
 	const confirmComplete = async () => {
 		if (!supabase || !completeConfirmSession) return;
-		const { error } = await supabase
-			.from("sessions")
-			.update({ status: "completed" })
-			.eq("id", completeConfirmSession.id);
+		const completeQuery = scopeToTeam(
+			supabase
+				.from("sessions")
+				.update({ status: "completed" })
+				.eq("id", completeConfirmSession.id),
+			activeTeamId,
+		);
+		const { error } = await completeQuery;
 		if (!error)
-			queryClient.setQueryData(['sessions'], (prev: Session[]) =>
+			queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) =>
 				(prev || []).map((s) =>
 					s.id === completeConfirmSession.id
 						? { ...s, status: "completed" }
@@ -196,7 +250,7 @@ export default function SessionsListPage() {
 					<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">
 						Create Session
 					</h3>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
 						<input
 							value={newName}
 							onChange={(e) => setNewName(e.target.value)}
@@ -210,6 +264,16 @@ export default function SessionsListPage() {
 							onChange={(e) => setNewDate(e.target.value)}
 							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
 						/>
+						<select
+							value={newProductId}
+							onChange={(e) => setNewProductId(e.target.value)}
+							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
+						>
+							<option value="">Select product...</option>
+							{teamProducts.map((p) => (
+								<option key={p.id} value={p.id}>{p.name}</option>
+							))}
+						</select>
 					</div>
 					<div className="flex gap-2 justify-end">
 						<button
@@ -335,6 +399,16 @@ export default function SessionsListPage() {
 												<Users size={12} />
 												{session.assignment_count} assigned
 											</span>
+											{session.product_id && (() => {
+												const prod = teamProducts.find(p => p.id === session.product_id);
+												if (!prod) return null;
+												return (
+													<span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+														<Package size={12} />
+														{prod.name}
+													</span>
+												);
+											})()}
 										</div>
 									</div>
 									<div className="flex items-center gap-2 sm:shrink-0">
@@ -390,7 +464,7 @@ export default function SessionsListPage() {
 					sessionName={feedbackSession.name}
 					onClose={() => {
 						setFeedbackSession(null);
-						queryClient.invalidateQueries({ queryKey: ['sessions'] });
+						queryClient.invalidateQueries({ queryKey: sessionsQueryKey });
 					}}
 				/>
 			)}

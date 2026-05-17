@@ -16,11 +16,14 @@ import AiAssistantPanel from "./components/AiAssistantPanel";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { playAiSound } from "./lib/audio";
 import { AuthProvider } from "./lib/auth";
+import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth } from "./lib/useAuth";
+import TeamManagementPage from "./pages/TeamManagementPage";
 import "./index.css";
 
 function Layout() {
 	const { user, signOut } = useAuth();
+	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } = useTeamAccess();
 	const [showBugs, setShowBugs] = useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
@@ -93,6 +96,12 @@ function Layout() {
 				showBugs={showBugs}
 				onToggleBugs={toggleBugs}
 				bugCount={activeBugCount}
+				activeTeamName={activeTeam?.name}
+				isGodMode={isGodMode}
+				teamOptions={teams}
+				activeTeamId={activeTeamId}
+				onTeamChange={setActiveTeamId}
+				showTeamsNav={isGodMode}
 				onOpenSettings={() => setSettingsOpen(true)}
 				userLabel={isMicrosoftAuthenticated ? userLabel : undefined}
 				onLogout={isMicrosoftAuthenticated ? handleLogout : undefined}
@@ -128,17 +137,20 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 		<QueryClientProvider client={queryClient}>
 			<AuthProvider>
 				<AuthGate>
-					<HashRouter>
-						<Routes>
-							<Route element={<Layout />}>
-								<Route path="/" element={<App />} />
-								<Route path="/sessions" element={<SessionsListPage />} />
-								<Route path="/sessions/:id" element={<SessionSetupPage />} />
-								<Route path="/testers" element={<TesterManagementPage />} />
-							</Route>
-							<Route path="/sessions/:id/present" element={<PresentationPage />} />
-						</Routes>
-					</HashRouter>
+					<TeamAccessProvider>
+						<HashRouter>
+							<Routes>
+								<Route element={<Layout />}>
+									<Route path="/" element={<App />} />
+									<Route path="/sessions" element={<SessionsListPage />} />
+									<Route path="/sessions/:id" element={<SessionSetupPage />} />
+									<Route path="/testers" element={<TesterManagementPage />} />
+									<Route path="/teams" element={<TeamManagementPage />} />
+								</Route>
+								<Route path="/sessions/:id/present" element={<PresentationPage />} />
+							</Routes>
+						</HashRouter>
+					</TeamAccessProvider>
 				</AuthGate>
 			</AuthProvider>
 		</QueryClientProvider>

@@ -7,6 +7,8 @@ import { buildSystemPrompt } from '../lib/aiPrompt'
 import { parseBugsFromResponse, parseSessionActions, generateBugId } from '../lib/aiParsers'
 import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
 import { ensureTesterByName } from '../lib/testerLookup'
+import { useTeamAccess } from '../lib/teamAccess'
+import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Severity } from '../constants'
 import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult, BugFiltersActionPayload } from '../lib/aiTypes'
 
@@ -49,6 +51,7 @@ export default function useAiAssistant(open: boolean) {
 
   const location = useLocation()
   const { pathname, hash } = location
+  const { activeTeamId } = useTeamAccess()
 
   // Session context
   const [sessionContext, setSessionContext] = useState('')
@@ -76,30 +79,66 @@ export default function useAiAssistant(open: boolean) {
     ;(async () => {
       const parts: string[] = []
 
+      // Teams and products
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('id, name, slug')
+        .order('name')
+      if (teams?.length) {
+        parts.push(`Teams:\n${teams.map((t: { name: string; slug: string }) => `- ${t.name} (${t.slug})`).join('\n')}`)
+        if (activeTeamId) {
+          const active = teams.find((t: { id: string }) => t.id === activeTeamId)
+          if (active) parts.push(`Active team: ${(active as { name: string }).name}`)
+        }
+      }
+      const { data: products } = await supabase
+        .from('products')
+        .select('name, description, link, team_id')
+        .order('name')
+      if (products?.length && teams?.length) {
+        const teamMap = new Map(teams.map((t: { id: string; name: string }) => [t.id, t.name]))
+        const productList = products.map((p: { name: string; description?: string | null; link?: string | null; team_id: string }) => {
+          let line = `- ${p.name} (team: ${teamMap.get(p.team_id) || 'unknown'})`
+          if (p.description) line += ` — ${p.description}`
+          if (p.link) line += ` [${p.link}]`
+          return line
+        })
+        parts.push(`Products:\n${productList.join('\n')}`)
+      }
+
       // Recent sessions with scenario counts
-      const { data: sessions } = await supabase
-        .from('sessions')
-        .select('id, name, status')
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const { data: sessions } = await scopeToTeam(
+        supabase
+          .from('sessions')
+          .select('id, name, status')
+          .order('created_at', { ascending: false })
+          .limit(10),
+        activeTeamId,
+      )
       if (sessions?.length) {
         const sessionList: string[] = []
         for (const s of sessions) {
-          const { count } = await supabase
-            .from('scenarios')
-            .select('*', { count: 'exact', head: true })
-            .eq('session_id', s.id)
+          const { count } = await scopeToTeam(
+            supabase
+              .from('scenarios')
+              .select('*', { count: 'exact', head: true })
+              .eq('session_id', s.id),
+            activeTeamId,
+          )
           sessionList.push(`${s.name} [${s.status}] (${count ?? 0} scenarios)`)
         }
         parts.push(`Recent sessions:\n${sessionList.map((s, i) => `${i + 1}. ${s}`).join('\n')}`)
       }
 
       // Active testers
-      const { data: testers } = await supabase
-        .from('testers')
-        .select('name, devices')
-        .eq('active', true)
-        .order('name')
+      const { data: testers } = await scopeToTeam(
+        supabase
+          .from('testers')
+          .select('name, devices')
+          .eq('active', true)
+          .order('name'),
+        activeTeamId,
+      )
       if (testers?.length) {
         const testerList = testers.map((t: { name: string; devices: string[] }) =>
           `${t.name} (${t.devices.join(', ')})`
@@ -108,11 +147,14 @@ export default function useAiAssistant(open: boolean) {
       }
 
       // Inactive testers (available to reactivate)
-      const { data: inactiveTesters } = await supabase
-        .from('testers')
-        .select('name')
-        .eq('active', false)
-        .order('name')
+      const { data: inactiveTesters } = await scopeToTeam(
+        supabase
+          .from('testers')
+          .select('name')
+          .eq('active', false)
+          .order('name'),
+        activeTeamId,
+      )
       if (inactiveTesters?.length) {
         parts.push(`Inactive testers (can be reactivated):\n${inactiveTesters.map((t: { name: string }) => t.name).join('\n')}`)
       }
@@ -125,7 +167,10 @@ export default function useAiAssistant(open: boolean) {
       const path = getPathnameWithHash({ pathname, hash })
       const sessionMatch = path.match(/\/sessions\/([^/]+)/)
       if (sessionMatch) {
-        const { data: viewedSession } = await supabase.from('sessions').select('name').eq('id', sessionMatch[1]).limit(1).single()
+        const { data: viewedSession } = await scopeToTeam(
+          supabase.from('sessions').select('name').eq('id', sessionMatch[1]).limit(1).single(),
+          activeTeamId,
+        )
         const name = viewedSession?.name || sessionMatch[1]
         parts.push(`The user is currently viewing session "${name}" (ID: ${sessionMatch[1]}). If they say "this session" or "this" they mean "${name}".`)
       } else if (path.includes('/sessions')) {
@@ -139,24 +184,30 @@ export default function useAiAssistant(open: boolean) {
       // Current user identity from localStorage
       const lastTesterId = localStorage.getItem('lastTesterId')
       if (lastTesterId) {
-        const { data: currentTester } = await supabase
-          .from('testers')
-          .select('name')
-          .eq('id', lastTesterId)
-          .limit(1)
-          .single()
+        const { data: currentTester } = await scopeToTeam(
+          supabase
+            .from('testers')
+            .select('name')
+            .eq('id', lastTesterId)
+            .limit(1)
+            .single(),
+          activeTeamId,
+        )
         if (currentTester?.name) {
           parts.push(`The current user is "${currentTester.name}" (tester ID: ${lastTesterId}). Address them by name when appropriate.`)
         }
       }
 
       // Recent active bugs for natural language matching
-      const { data: activeBugs } = await supabase
-        .from('bugs')
-        .select('id, title, severity, tester, device, page, category')
-        .eq('reviewed', false)
-        .order('created_at', { ascending: false })
-        .limit(25)
+      const { data: activeBugs } = await scopeToTeam(
+        supabase
+          .from('bugs')
+          .select('id, title, severity, tester, device, page, category')
+          .eq('reviewed', false)
+          .order('created_at', { ascending: false })
+          .limit(25),
+        activeTeamId,
+      )
       if (activeBugs?.length) {
         const bugList = activeBugs.map((b: { id: string; title: string; severity: string; tester: string; device: string; page: string }) =>
           `${b.id}: ${b.title} [${b.severity}] (tester: ${b.tester}, device: ${b.device}, page: ${b.page})`
@@ -165,12 +216,15 @@ export default function useAiAssistant(open: boolean) {
       }
 
       // Recent completed bugs
-      const { data: completedBugs } = await supabase
-        .from('bugs')
-        .select('id, title, severity, tester')
-        .eq('reviewed', true)
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const { data: completedBugs } = await scopeToTeam(
+        supabase
+          .from('bugs')
+          .select('id, title, severity, tester')
+          .eq('reviewed', true)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        activeTeamId,
+      )
       if (completedBugs?.length) {
         const bugList = completedBugs.map((b: { id: string; title: string; severity: string; tester: string }) =>
           `${b.id}: ${b.title} [${b.severity}] (tester: ${b.tester})`
@@ -180,7 +234,7 @@ export default function useAiAssistant(open: boolean) {
 
       setSessionContext(parts.join('\n\n'))
     })()
-  }, [open, currentSessionId, pathname, hash])
+  }, [open, currentSessionId, pathname, hash, activeTeamId])
 
   // ─── Focus & keyboard ─────────────────────────────────────
   useEffect(() => {
@@ -225,6 +279,7 @@ export default function useAiAssistant(open: boolean) {
     const actionCtx = {
       sessionId: currentSessionId,
       onSessionCreated: (id: string) => setCurrentSessionId(id),
+      activeTeamId,
     }
 
     if (!currentSessionId) {
@@ -241,7 +296,7 @@ export default function useAiAssistant(open: boolean) {
       ...result,
       level: result.level ?? (result.success ? 'success' : 'error'),
     }
-  }, [currentSessionId, pathname, hash])
+  }, [currentSessionId, pathname, hash, activeTeamId])
 
   // ─── Send message ─────────────────────────────────────────
   const sendMessage = useCallback(async (overrideText?: string) => {
@@ -362,70 +417,73 @@ export default function useAiAssistant(open: boolean) {
     )
 
     try {
-      const id = await generateBugId(bug.severity)
-      const matchedTester = await ensureTesterByName(bug.tester)
+      const id = await generateBugId(bug.severity, activeTeamId)
+      const matchedTester = await ensureTesterByName(bug.tester, [], activeTeamId)
 
-      if (supabase) {
-        const sb = supabase
-        const bugData = {
-          id,
-          title: bug.title,
-          description: bug.description,
-          severity: bug.severity,
-          tester: matchedTester?.name || bug.tester,
-          tester_id: matchedTester?.id || null,
-          device: bug.device,
-          page: bug.page,
-          category: bug.category || null,
+      if (!supabase) {
+        throw new Error('Database not connected')
+      }
+
+      const sb = supabase
+      const bugData = withTeamPayload({
+        id,
+        title: bug.title,
+        description: bug.description,
+        severity: bug.severity,
+        tester: matchedTester?.name || bug.tester,
+        tester_id: matchedTester?.id || null,
+        device: bug.device,
+        page: bug.page,
+        category: bug.category || null,
+      }, activeTeamId) as Record<string, unknown>
+
+      let finalId = id
+      let retries = 0
+      let inserted = false
+      const prefix = id.replace(/\d+$/, '')
+      let num = parseInt(id.replace(/\D+/g, '')) || 1
+
+      while (retries < 20) {
+        bugData.id = finalId
+        const { error } = await sb.from('bugs').insert(bugData)
+        if (!error) {
+          inserted = true
+          break
         }
-
-        let finalId = id
-        let retries = 0
-        let inserted = false
-        const prefix = id.replace(/\d+$/, '')
-        let num = parseInt(id.replace(/\D+/g, '')) || 1
-
-        while (retries < 20) {
-          bugData.id = finalId
-          const { error } = await sb.from('bugs').insert(bugData)
-          if (!error) {
-            inserted = true
-            break
-          }
-          if (error.code === '23505') {
-            retries++
-            num++
-            finalId = `${prefix}${String(num).padStart(2, '0')}`
-          } else {
-            throw new Error(error.message)
-          }
+        if (error.code === '23505') {
+          retries++
+          num++
+          finalId = `${prefix}${String(num).padStart(2, '0')}`
+        } else {
+          throw new Error(error.message)
         }
+      }
 
-        if (!inserted) {
-          throw new Error('Failed to create bug after multiple ID retries')
-        }
+      if (!inserted) {
+        throw new Error('Failed to create bug after multiple ID retries')
+      }
 
-        // Upload attachments
-        if (bug._attachments?.length) {
-          await Promise.all(
-            bug._attachments.map(async (att) => {
-              const path = `${finalId}/${Date.now()}-${att.name}`
-              const { error: upErr } = await sb.storage.from('attachments').upload(path, att.file!)
-              if (upErr) return
-              const { data: urlData } = sb.storage.from('attachments').getPublicUrl(path)
-              await sb.from('attachments').insert({ bug_id: finalId, name: att.name, url: urlData.publicUrl, type: att.type })
-            })
-          )
-        }
-
-        setMessages((prev) =>
-          prev.map((m, i) =>
-            i !== messageIndex || !m.bugs
-              ? m
-              : { ...m, bugs: m.bugs.map((b) => (b._key === bugKey ? { ...b, _creating: false, _created: true, _createdId: finalId } : b)) }
-          )
+      if (bug._attachments?.length) {
+        await Promise.all(
+          bug._attachments.map(async (att) => {
+            const storagePath = buildAttachmentPath(activeTeamId, finalId, att.name)
+            const { error: upErr } = await sb.storage.from('attachments').upload(storagePath, att.file!)
+            if (upErr) return
+            const { data: urlData } = sb.storage.from('attachments').getPublicUrl(storagePath)
+            await sb
+              .from('attachments')
+              .insert(withTeamPayload({ bug_id: finalId, name: att.name, url: urlData.publicUrl, type: att.type }, activeTeamId))
+          })
         )
       }
+
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i !== messageIndex || !m.bugs
+            ? m
+            : { ...m, bugs: m.bugs.map((b) => (b._key === bugKey ? { ...b, _creating: false, _created: true, _createdId: finalId } : b)) }
+        )
+      )
     } catch (err) {
       console.error('Failed to create bug:', err)
       setMessages((prev) =>
@@ -437,7 +495,7 @@ export default function useAiAssistant(open: boolean) {
       )
       setError(err instanceof Error ? err.message : 'Failed to create bug')
     }
-  }, [messages])
+  }, [messages, activeTeamId])
 
   const createAllBugs = useCallback(async (messageIndex: number) => {
     const msg = messages[messageIndex]
