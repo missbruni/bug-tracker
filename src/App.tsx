@@ -94,7 +94,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
       {/* Secondary bar — bugs page only */}
       <SecondaryAppBar
-        description={testers.join(', ') || 'No testers yet'}
+        description=""
         stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{activeBugs.length} active</span> / {bugs.length} total</>}
         search={search}
         onSearchChange={setSearch}

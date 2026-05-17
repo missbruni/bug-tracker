@@ -2,7 +2,7 @@ import { type ReactNode, useRef, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock, Building2 } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
-import { playBugSound } from "../lib/audio";
+import Logo from "./Logo";
 import type { TeamRecord } from "../lib/teamScope";
 
 const NAV_ITEMS = [
@@ -69,22 +69,7 @@ export default function NavBar({
 				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-3 sm:gap-4 relative z-10">
 					{/* Branding */}
 					<div className="flex items-center gap-3 py-3 shrink-0">
-						<h1
-							className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1"
-							style={{ fontFamily: "'Press Start 2P', cursive" }}
-						>
-							Mushi{" "}
-							<button
-								onClick={() => {
-									playBugSound();
-									onToggleBugs?.();
-								}}
-								className={`transition-colors cursor-pointer ${showBugs ? "text-blue-500 hover:text-blue-600" : "text-slate-300 dark:text-gray-600 hover:text-slate-500 dark:hover:text-gray-400"}`}
-								title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
-							>
-								<Bug size={18} />
-							</button>
-						</h1>
+						<Logo showBugs={showBugs} onToggleBugs={onToggleBugs} />
 						<span className="hidden lg:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
 							Catch every bug before your users do.
 						</span>
