@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { parse, serialize } from 'cookie'
+import * as cookie from 'cookie'
 
 type PinAccessLevel = 'team' | 'god'
 
@@ -48,7 +48,7 @@ export function isSecureRequest(req: any): boolean {
 }
 
 export function buildSessionCookie(token: string, secure: boolean): string {
-  return serialize(PIN_SESSION_COOKIE, token, {
+  return cookie.serialize(PIN_SESSION_COOKIE, token, {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
@@ -58,7 +58,7 @@ export function buildSessionCookie(token: string, secure: boolean): string {
 }
 
 export function buildClearSessionCookie(secure: boolean): string {
-  return serialize(PIN_SESSION_COOKIE, '', {
+  return cookie.serialize(PIN_SESSION_COOKIE, '', {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
@@ -80,7 +80,7 @@ export async function readSessionFromRequest(
   secret: string,
 ): Promise<{ authenticated: boolean; role: PinAccessLevel | null }> {
   const cookieHeader = toSingleHeader(req?.headers?.cookie)
-  const cookies = parse(cookieHeader || '')
+  const cookies = cookie.parse(cookieHeader || '')
   const token = cookies[PIN_SESSION_COOKIE]
 
   if (!token) {

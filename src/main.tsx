@@ -1,25 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { Suspense, lazy, useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import App from "./App";
 import AuthGate from "./components/AuthGate";
 import NavBar from "./components/NavBar";
 import ThemeToggle from "./components/ThemeToggle";
-import SessionsListPage from "./pages/SessionsListPage";
-import SessionSetupPage from "./pages/SessionSetupPage";
-import PresentationPage from "./pages/PresentationPage";
-import TesterManagementPage from "./pages/TesterManagementPage";
-import SettingsSidebar from "./components/SettingsSidebar";
-import AiAssistantPanel from "./components/AiAssistantPanel";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { playAiSound } from "./lib/audio";
 import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth } from "./lib/useAuth";
-import TeamManagementPage from "./pages/TeamManagementPage";
 import "./index.css";
+
+const AppPage = lazy(() => import("./App"));
+const SessionsListPage = lazy(() => import("./pages/SessionsListPage"));
+const SessionSetupPage = lazy(() => import("./pages/SessionSetupPage"));
+const PresentationPage = lazy(() => import("./pages/PresentationPage"));
+const TesterManagementPage = lazy(() => import("./pages/TesterManagementPage"));
+const TeamManagementPage = lazy(() => import("./pages/TeamManagementPage"));
+const SettingsSidebar = lazy(() => import("./components/SettingsSidebar"));
+const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel"));
+
+function RouteFallback() {
+	return (
+		<div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500 dark:text-gray-500">
+			Loading page...
+		</div>
+	);
+}
 
 function Layout() {
 	const { user, signOut } = useAuth();
@@ -32,9 +41,18 @@ function Layout() {
 	const [aiPanelOpen, setAiPanelOpen] = useState(
 		() => sessionStorage.getItem("aiPanelOpen") === "true",
 	);
+	const [aiPanelMounted, setAiPanelMounted] = useState(
+		() => sessionStorage.getItem("aiPanelOpen") === "true",
+	);
 
 	useEffect(() => {
 		sessionStorage.setItem("aiPanelOpen", String(aiPanelOpen));
+	}, [aiPanelOpen]);
+
+	useEffect(() => {
+		if (aiPanelOpen) {
+			setAiPanelMounted(true);
+		}
 	}, [aiPanelOpen]);
 
 	useEffect(() => {
@@ -116,18 +134,26 @@ function Layout() {
 			>
 				<Outlet />
 			</div>
-			<SettingsSidebar
-				open={settingsOpen}
-				onClose={() => setSettingsOpen(false)}
-			/>
-			<AiAssistantPanel
-				open={aiPanelOpen}
-				onClose={() => setAiPanelOpen(false)}
-				onOpenSettings={() => {
-					setAiPanelOpen(false);
-					setSettingsOpen(true);
-				}}
-			/>
+			{settingsOpen && (
+				<Suspense fallback={null}>
+					<SettingsSidebar
+						open={settingsOpen}
+						onClose={() => setSettingsOpen(false)}
+					/>
+				</Suspense>
+			)}
+			{aiPanelMounted && (
+				<Suspense fallback={null}>
+					<AiAssistantPanel
+						open={aiPanelOpen}
+						onClose={() => setAiPanelOpen(false)}
+						onOpenSettings={() => {
+							setAiPanelOpen(false);
+							setSettingsOpen(true);
+						}}
+					/>
+				</Suspense>
+			)}
 		</div>
 	);
 }
@@ -141,13 +167,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 						<HashRouter>
 							<Routes>
 								<Route element={<Layout />}>
-									<Route path="/" element={<App />} />
-									<Route path="/sessions" element={<SessionsListPage />} />
-									<Route path="/sessions/:id" element={<SessionSetupPage />} />
-									<Route path="/testers" element={<TesterManagementPage />} />
-									<Route path="/teams" element={<TeamManagementPage />} />
+									<Route path="/" element={<Suspense fallback={<RouteFallback />}><AppPage /></Suspense>} />
+									<Route path="/sessions" element={<Suspense fallback={<RouteFallback />}><SessionsListPage /></Suspense>} />
+									<Route path="/sessions/:id" element={<Suspense fallback={<RouteFallback />}><SessionSetupPage /></Suspense>} />
+									<Route path="/testers" element={<Suspense fallback={<RouteFallback />}><TesterManagementPage /></Suspense>} />
+									<Route path="/teams" element={<Suspense fallback={<RouteFallback />}><TeamManagementPage /></Suspense>} />
 								</Route>
-								<Route path="/sessions/:id/present" element={<PresentationPage />} />
+								<Route path="/sessions/:id/present" element={<Suspense fallback={<RouteFallback />}><PresentationPage /></Suspense>} />
 							</Routes>
 						</HashRouter>
 					</TeamAccessProvider>
