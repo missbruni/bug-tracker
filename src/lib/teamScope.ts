@@ -13,9 +13,9 @@ export const DEFAULT_TEAM_SLUG = 'evo-ibe'
 export const DEFAULT_TEAM_NAME = 'EVO IBE'
 export const DEFAULT_TEAM_ID = '11111111-1111-1111-1111-111111111111'
 
-export const PIN_SESSION_KEY = 'bug-tracker-auth'
-export const PIN_ROLE_SESSION_KEY = 'bug-tracker-auth-role'
-export const ACTIVE_TEAM_SESSION_KEY = 'bug-tracker-active-team'
+export const PIN_SESSION_KEY = 'mushi-auth'
+export const PIN_ROLE_SESSION_KEY = 'mushi-auth-role'
+export const ACTIVE_TEAM_SESSION_KEY = 'mushi-active-team'
 
 export function isPinAccessLevel(value: string | null): value is PinAccessLevel {
   return value === 'team' || value === 'god'

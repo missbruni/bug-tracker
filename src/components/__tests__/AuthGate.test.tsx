@@ -54,7 +54,7 @@ describe('AuthGate', () => {
   })
 
   test('renders children when pin is already unlocked in sessionStorage', () => {
-    sessionStorage.setItem('bug-tracker-auth', 'true')
+    sessionStorage.setItem('mushi-auth', 'true')
 
     render(
       <AuthGate>
@@ -66,7 +66,7 @@ describe('AuthGate', () => {
   })
 
   test('handles pin-lock event by clearing pin session and returning to login', async () => {
-    sessionStorage.setItem('bug-tracker-auth', 'true')
+    sessionStorage.setItem('mushi-auth', 'true')
 
     render(
       <AuthGate>
@@ -82,7 +82,7 @@ describe('AuthGate', () => {
       expect(screen.queryByText('App Content')).not.toBeInTheDocument()
     })
 
-    expect(sessionStorage.getItem('bug-tracker-auth')).toBeNull()
+    expect(sessionStorage.getItem('mushi-auth')).toBeNull()
     expect(screen.getByText('Sign in with your company Microsoft account to continue.')).toBeInTheDocument()
   })
 })

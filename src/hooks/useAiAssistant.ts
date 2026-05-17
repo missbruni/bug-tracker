@@ -178,7 +178,7 @@ export default function useAiAssistant(open: boolean) {
       } else if (path.includes('/testers')) {
         parts.push('The user is currently on the tester management page.')
       } else {
-        parts.push('The user is currently on the bug tracker main page.')
+        parts.push('The user is currently on the Mushi main page.')
       }
 
       // Current user identity from localStorage
@@ -250,7 +250,7 @@ export default function useAiAssistant(open: boolean) {
           action: 'set_bug_filters',
           success: true,
           level: 'warning',
-          message: 'I can apply filters from the Bugs page. Open the main bug tracker page and ask again.',
+          message: 'I can apply filters from the Bugs page. Open the Mushi Bugs page and ask again.',
         }
       }
 

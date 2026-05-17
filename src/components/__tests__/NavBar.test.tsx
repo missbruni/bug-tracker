@@ -25,7 +25,7 @@ function renderNavBar(props: {
 describe('NavBar', () => {
   test('renders branding text', () => {
     renderNavBar()
-    expect(screen.getByText('Bug Catcher')).toBeInTheDocument()
+    expect(screen.getByText('Catch every bug before your users do.')).toBeInTheDocument()
   })
 
   test('renders all navigation tabs', () => {

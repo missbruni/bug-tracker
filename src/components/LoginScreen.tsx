@@ -23,7 +23,7 @@ export default function LoginScreen({
           className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-1"
           style={{ fontFamily: "'Press Start 2P', cursive", fontSize: 14 }}
         >
-          EVO Bug Tracker
+          Mushi
         </h1>
         <p className="text-sm text-slate-500 dark:text-gray-400 mt-4">
           Sign in with your company Microsoft account to continue.

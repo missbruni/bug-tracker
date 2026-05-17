@@ -1,6 +1,6 @@
 import type { Severity } from '../constants'
 
-// ─── Bug Tracker ───────────────────────────────────────────────
+// ─── Mushi ───────────────────────────────────────────────
 
 export interface Attachment {
   id?: number

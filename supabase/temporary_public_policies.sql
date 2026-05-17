@@ -7,7 +7,7 @@
 -- IMPORTANT: when Entra access is approved, run `supabase/authenticated_policies.sql`
 -- to switch back to authenticated-only access.
 
--- Base bug tracker tables
+-- Base Mushi tables
 alter table bugs enable row level security;
 alter table comments enable row level security;
 alter table attachments enable row level security;

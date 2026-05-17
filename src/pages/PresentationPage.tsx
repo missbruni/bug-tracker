@@ -236,7 +236,7 @@ export default function PresentationPage() {
                   { time: '0:05 – 0:40', label: 'Your Scenario', desc: 'Follow your card step by step. Complete at least 1 full booking.', color: 'border-green-400' },
                   { time: '0:40 – 0:50', label: 'Cross-cutting', desc: 'Everyone runs the same 4 quick checks on their device', color: 'border-purple-400' },
                   { time: '0:50 – 0:55', label: 'Edge Cases', desc: 'Pick 2–3 quick tests from the list', color: 'border-amber-400' },
-                  { time: '0:55 – 1:00', label: 'Log Bugs', desc: 'Report everything in the Bug Tracker', color: 'border-red-400' },
+                  { time: '0:55 – 1:00', label: 'Log Bugs', desc: 'Report everything in Mushi', color: 'border-red-400' },
                 ].map(item => (
                   <div key={item.label} className={`flex items-center gap-4 bg-gray-900 rounded-lg p-4 border-l-4 ${item.color}`}>
                     <span className="text-amber-400 font-bold text-sm min-w-[100px]">{item.time}</span>
@@ -365,11 +365,11 @@ export default function PresentationPage() {
           {slide.type === 'bugreporting' && (
             <div>
               <h2 className="text-2xl font-bold text-gray-100 mb-4">Bug Reporting</h2>
-              <p className="text-sm text-gray-400 mb-6">Log all bugs in our Bug Tracker. We will triage them together in a follow-up session.</p>
+              <p className="text-sm text-gray-400 mb-6">Log all bugs in Mushi. We will triage them together in a follow-up session.</p>
               <div className="bg-gray-900 border-2 border-blue-500 rounded-xl p-6 text-center mb-6">
-                <a href="https://missbruni.github.io/bug-tracker/" target="_blank" rel="noopener noreferrer"
+                <a href="https://missbruni.github.io/mushi/" target="_blank" rel="noopener noreferrer"
                   className="text-blue-400 font-bold text-lg hover:underline">
-                  missbruni.github.io/bug-tracker
+                  missbruni.github.io/mushi
                 </a>
                 <div className="mt-3">
                   <span className="inline-block bg-gray-800 border border-gray-700 px-4 py-1 rounded font-mono text-amber-400 tracking-wider">
@@ -387,7 +387,7 @@ export default function PresentationPage() {
                       ['Device', 'e.g. iPhone 15 Safari, Desktop Chrome, iPad Safari'],
                       ['Severity', 'Critical — blocks booking | High — wrong data/price | Low — cosmetic/minor'],
                       ['Description', 'Steps: 1. Go to... 2. Click... 3. See... • Expected vs Actual'],
-                      ['Screenshot', 'Paste or attach directly in the bug tracker'],
+                      ['Screenshot', 'Paste or attach directly in Mushi'],
                     ].map(([label, desc]) => (
                       <tr key={label}>
                         <td className="text-amber-400 font-semibold pr-4 py-1.5 whitespace-nowrap align-top">{label}</td>
