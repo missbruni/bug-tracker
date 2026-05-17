@@ -21,5 +21,3 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ALLOWED_EMAIL_DOMAIN: ${{ secrets.VITE_ALLOWED_EMAIL_DOMAIN }}
-          VITE_TEAM_PIN: ${{ secrets.VITE_TEAM_PIN }}
-          VITE_GOD_PIN: ${{ secrets.VITE_GOD_PIN }}

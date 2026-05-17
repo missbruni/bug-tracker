@@ -13,11 +13,11 @@ import {
   DEFAULT_TEAM_ID,
   DEFAULT_TEAM_SLUG,
   ORGANIZATION_ID,
-  getPinRoleFromSessionStorage,
   slugifyTeamName,
   type PinAccessLevel,
   type TeamRecord,
 } from './teamScope'
+import { cachePinRole, fetchPinSession } from './pinAuth'
 
 interface TeamCreationResult {
   team: TeamRecord | null
@@ -80,7 +80,7 @@ function setStoredActiveTeamId(teamId: string | null) {
 export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const [teams, setTeams] = useState<TeamRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [pinRole, setPinRole] = useState<PinAccessLevel | null>(() => getPinRoleFromSessionStorage())
+  const [pinRole, setPinRole] = useState<PinAccessLevel | null>(null)
   const [activeTeamIdState, setActiveTeamIdState] = useState<string | null>(() => getStoredActiveTeamId())
 
   const refreshTeams = useCallback(async () => {
@@ -113,17 +113,33 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   }, [refreshTeams])
 
   useEffect(() => {
-    const updatePinRole = () => {
-      setPinRole(getPinRoleFromSessionStorage())
+    let cancelled = false
+
+    const updatePinRole = async () => {
+      try {
+        const session = await fetchPinSession()
+        if (cancelled) return
+        const role = session.authenticated ? session.role : null
+        setPinRole(role)
+        cachePinRole(role)
+      } catch {
+        if (cancelled) return
+        setPinRole(null)
+        cachePinRole(null)
+      }
     }
 
-    updatePinRole()
-    window.addEventListener('pin-unlocked', updatePinRole)
-    window.addEventListener('pin-lock', updatePinRole)
+    void updatePinRole()
+    const triggerUpdate = () => {
+      void updatePinRole()
+    }
+    window.addEventListener('pin-unlocked', triggerUpdate)
+    window.addEventListener('pin-lock', triggerUpdate)
 
     return () => {
-      window.removeEventListener('pin-unlocked', updatePinRole)
-      window.removeEventListener('pin-lock', updatePinRole)
+      cancelled = true
+      window.removeEventListener('pin-unlocked', triggerUpdate)
+      window.removeEventListener('pin-lock', triggerUpdate)
     }
   }, [])
 

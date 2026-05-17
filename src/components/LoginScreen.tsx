@@ -1,18 +1,17 @@
 import { LogIn } from "lucide-react";
 import PinGate from "./PinGate";
+import { type PinAccessLevel } from "../lib/teamScope";
 
 interface LoginScreenProps {
-  teamPin: string | undefined;
-  godPin: string | undefined;
-  onPinUnlock: (accessLevel: "team" | "god") => void;
+  onPinUnlock: (accessLevel: PinAccessLevel) => void;
+  pinConfigured: boolean;
   error: string | null;
   allowedEmailDomain: string;
 }
 
 export default function LoginScreen({
-  teamPin,
-  godPin,
   onPinUnlock,
+  pinConfigured,
   error,
   allowedEmailDomain,
 }: LoginScreenProps) {
@@ -51,7 +50,7 @@ export default function LoginScreen({
           </p>
         )}
 
-        <PinGate teamPin={teamPin} godPin={godPin} onUnlock={onPinUnlock} />
+        <PinGate pinConfigured={pinConfigured} onUnlock={onPinUnlock} />
       </div>
     </div>
   );
