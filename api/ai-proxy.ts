@@ -59,8 +59,8 @@ export default async function handler(req: any, res: any): Promise<void> {
     res.status(upstream.status)
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json')
 
-    const data = await upstream.arrayBuffer()
-    res.send(new Uint8Array(data))
+    const data = await upstream.text()
+    res.send(data)
   } catch (error) {
     setCorsHeaders(res)
     const message = error instanceof Error ? error.message : String(error)

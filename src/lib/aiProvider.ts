@@ -99,6 +99,48 @@ function buildBody(cfg: AiProviderConfig, messages: ChatMessage[]): Record<strin
   return body
 }
 
+function extractAssistantText(data: unknown): string {
+  if (!data || typeof data !== 'object') return ''
+
+  const asRecord = data as Record<string, unknown>
+  const choices = Array.isArray(asRecord.choices) ? asRecord.choices : []
+  const firstChoice = (choices[0] ?? null) as Record<string, unknown> | null
+
+  if (firstChoice) {
+    const message = (firstChoice.message ?? null) as Record<string, unknown> | null
+    const messageContent = message?.content
+
+    if (typeof messageContent === 'string' && messageContent.trim()) {
+      return messageContent
+    }
+
+    if (Array.isArray(messageContent)) {
+      const text = messageContent
+        .map((part) => {
+          if (!part || typeof part !== 'object') return ''
+          const record = part as Record<string, unknown>
+          if (typeof record.text === 'string') return record.text
+          return ''
+        })
+        .filter(Boolean)
+        .join('')
+      if (text.trim()) return text
+    }
+
+    const legacyText = firstChoice.text
+    if (typeof legacyText === 'string' && legacyText.trim()) {
+      return legacyText
+    }
+  }
+
+  const outputText = asRecord.output_text
+  if (typeof outputText === 'string' && outputText.trim()) {
+    return outputText
+  }
+
+  return ''
+}
+
 export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
   const cfg = getAiConfig()
   if (!cfg) throw new Error('AI provider not configured. Open Settings to add your API key.')
@@ -124,5 +166,9 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
   }
 
   const data = await res.json()
-  return data.choices?.[0]?.message?.content ?? ''
+  const text = extractAssistantText(data)
+  if (!text.trim()) {
+    throw new Error('AI returned an empty response. Check provider/model response format in Settings.')
+  }
+  return text
 }
