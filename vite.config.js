@@ -65,5 +65,5 @@ function aiProxyPlugin() {
 
 export default defineConfig({
   plugins: [react(), aiProxyPlugin()],
-  base: '/mushi/',
+  base: '/',
 })

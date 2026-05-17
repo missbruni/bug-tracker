@@ -1,12 +1,24 @@
-const ALLOWED_ORIGINS = [
-  'https://missbruni.github.io',
-  'http://localhost:5173',
-]
+interface Env {
+  ALLOWED_ORIGINS?: string
+}
+
+function parseAllowedOrigins(raw?: string): string[] {
+  return (raw ?? '')
+    .split(/[;,]/)
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+}
+
+function resolveCorsOrigin(origin: string, env: Env): string {
+  const configured = parseAllowedOrigins(env.ALLOWED_ORIGINS)
+  const allowedOrigins = configured.length > 0 ? configured : ['http://localhost:5173']
+  return allowedOrigins.includes(origin) ? origin : ''
+}
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get('Origin') || ''
-    const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ''
+    const corsOrigin = resolveCorsOrigin(origin, env)
 
     // CORS preflight
     if (request.method === 'OPTIONS') {
