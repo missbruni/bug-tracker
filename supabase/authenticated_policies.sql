@@ -1,7 +1,7 @@
 -- Run this in Supabase SQL Editor to migrate an existing project from public access to authenticated-only access.
 -- Keep attachments publicly readable while requiring authenticated users for upload/delete.
 
--- Base bug tracker tables
+-- Base Mushi tables
 alter table bugs enable row level security;
 alter table comments enable row level security;
 alter table attachments enable row level security;

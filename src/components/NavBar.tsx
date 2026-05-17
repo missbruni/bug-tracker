@@ -73,7 +73,7 @@ export default function NavBar({
 							className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1"
 							style={{ fontFamily: "'Press Start 2P', cursive" }}
 						>
-							EVO{" "}
+							Mushi{" "}
 							<button
 								onClick={() => {
 									playBugSound();
@@ -83,11 +83,10 @@ export default function NavBar({
 								title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
 							>
 								<Bug size={18} />
-							</button>{" "}
-							IBE
+							</button>
 						</h1>
 						<span className="hidden sm:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
-							Bug Catcher
+							Catch every bug before your users do.
 						</span>
 					</div>
 					{/* Desktop Tabs — hidden on mobile */}
