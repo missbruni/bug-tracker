@@ -134,7 +134,7 @@ export default function PresentationPage() {
     return <div className="flex items-center justify-center min-h-screen bg-gray-950 text-red-500 text-sm">Session not found</div>
   }
 
-  const appUrl = `${window.location.origin}/#/`
+  const appUrl = `${window.location.origin}/`
 
   // Get all scenarios+assignments for the assignments slide
   const scenarioSlides = slides.filter(s => s.type === 'scenario')

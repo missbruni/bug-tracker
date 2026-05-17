@@ -16,10 +16,6 @@ import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult
 
 const STORAGE_KEY = 'ai-assistant-chat'
 
-function getPathnameWithHash(location: { pathname: string; hash: string }): string {
-  return location.pathname + location.hash.replace('#', '')
-}
-
 function isBugMainPage(path: string): boolean {
   return !path.includes('/sessions') && !path.includes('/testers')
 }
@@ -50,7 +46,7 @@ export default function useAiAssistant(open: boolean) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const location = useLocation()
-  const { pathname, hash } = location
+  const { pathname } = location
   const { activeTeamId } = useTeamAccess()
 
   // Session context
@@ -164,7 +160,7 @@ export default function useAiAssistant(open: boolean) {
       }
 
       // Current page context
-      const path = getPathnameWithHash({ pathname, hash })
+      const path = pathname
       const sessionMatch = path.match(/\/sessions\/([^/]+)/)
       if (sessionMatch) {
         const { data: viewedSession } = await scopeToTeam(
@@ -234,7 +230,7 @@ export default function useAiAssistant(open: boolean) {
 
       setSessionContext(parts.join('\n\n'))
     })()
-  }, [open, currentSessionId, pathname, hash, activeTeamId])
+  }, [open, currentSessionId, pathname, activeTeamId])
 
   // ─── Focus & keyboard ─────────────────────────────────────
   useEffect(() => {
@@ -244,7 +240,7 @@ export default function useAiAssistant(open: boolean) {
   // ─── Session action executor ──────────────────────────────
   const executeSessionAction = useCallback(async (action: SessionAction): Promise<SessionActionResult> => {
     if (action.action === 'set_bug_filters') {
-      const path = getPathnameWithHash({ pathname, hash })
+      const path = pathname
       if (!isBugMainPage(path)) {
         return {
           action: 'set_bug_filters',
@@ -283,7 +279,7 @@ export default function useAiAssistant(open: boolean) {
     }
 
     if (!currentSessionId) {
-      const path = getPathnameWithHash({ pathname, hash })
+      const path = pathname
       const match = path.match(/\/sessions\/([^/]+)/)
       if (match) {
         setCurrentSessionId(match[1])
@@ -296,7 +292,7 @@ export default function useAiAssistant(open: boolean) {
       ...result,
       level: result.level ?? (result.success ? 'success' : 'error'),
     }
-  }, [currentSessionId, pathname, hash, activeTeamId])
+  }, [currentSessionId, pathname, activeTeamId])
 
   // ─── Send message ─────────────────────────────────────────
   const sendMessage = useCallback(async (overrideText?: string) => {

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import AuthGate from "./components/AuthGate";
@@ -164,7 +164,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 			<AuthProvider>
 				<AuthGate>
 					<TeamAccessProvider>
-						<HashRouter>
+						<BrowserRouter>
 							<Routes>
 								<Route element={<Layout />}>
 									<Route path="/" element={<Suspense fallback={<RouteFallback />}><AppPage /></Suspense>} />
@@ -175,7 +175,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 								</Route>
 								<Route path="/sessions/:id/present" element={<Suspense fallback={<RouteFallback />}><PresentationPage /></Suspense>} />
 							</Routes>
-						</HashRouter>
+						</BrowserRouter>
 					</TeamAccessProvider>
 				</AuthGate>
 			</AuthProvider>
