@@ -134,6 +134,8 @@ export default function PresentationPage() {
     return <div className="flex items-center justify-center min-h-screen bg-gray-950 text-red-500 text-sm">Session not found</div>
   }
 
+  const appUrl = `${window.location.origin}/#/`
+
   // Get all scenarios+assignments for the assignments slide
   const scenarioSlides = slides.filter(s => s.type === 'scenario')
   const totalTesters = new Set(scenarioSlides.filter(s => s.assignedTester).map(s => s.assignedTester!.id)).size
@@ -367,9 +369,9 @@ export default function PresentationPage() {
               <h2 className="text-2xl font-bold text-gray-100 mb-4">Bug Reporting</h2>
               <p className="text-sm text-gray-400 mb-6">Log all bugs in Mushi. We will triage them together in a follow-up session.</p>
               <div className="bg-gray-900 border-2 border-blue-500 rounded-xl p-6 text-center mb-6">
-                <a href="https://missbruni.github.io/mushi/" target="_blank" rel="noopener noreferrer"
+                <a href={appUrl} target="_blank" rel="noopener noreferrer"
                   className="text-blue-400 font-bold text-lg hover:underline">
-                  missbruni.github.io/mushi
+                  {appUrl}
                 </a>
                 <div className="mt-3">
                   <span className="inline-block bg-gray-800 border border-gray-700 px-4 py-1 rounded font-mono text-amber-400 tracking-wider">
