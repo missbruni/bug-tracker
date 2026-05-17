@@ -4,7 +4,7 @@
 
 Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log bugs, triage as a team, and publish straight to your backlog — all in one place.
 
-**Live:** [https://mushi.vercel.app/](https://mushi.vercel.app/)
+**Live:** [https://mushi-navy.vercel.app/](https://mushi-navy.vercel.app/)
 
 ## Features
 
@@ -43,7 +43,7 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
 
 ## Deploying to Vercel
 
-This app is hosted on Vercel (frontend) and currently uses a Cloudflare Worker for AI proxying.
+This app is hosted on Vercel and uses a Vercel Function for AI proxying.
 
 1. Import this repo into Vercel.
 2. Set build settings:
@@ -57,18 +57,8 @@ This app is hosted on Vercel (frontend) and currently uses a Cloudflare Worker f
    - `VITE_GOD_PIN`
 4. In Supabase Auth settings, add your Vercel production URL to allowed redirect URLs.
 
-## AI Proxy (Current)
+## AI Proxy
 
-- Production AI requests are routed through the Cloudflare Worker in `worker/`.
-- Worker CORS allowlist is controlled by `ALLOWED_ORIGINS` (comma-separated), for example:
-
-  ```
-  https://your-project.vercel.app,http://localhost:5173
-  ```
-- After changing allowed origins in `worker/src/index.ts`, redeploy the worker:
-
-  ```bash
-  cd worker
-  bun install
-  bunx wrangler deploy
-  ```
+- AI requests are routed through the same-origin endpoint `/api/ai-proxy`.
+- On Vercel (preview + production), this endpoint is served by `api/ai-proxy.ts`.
+- In local development, Vite serves the same route via middleware in `vite.config.js`.
