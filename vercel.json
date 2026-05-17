@@ -1,0 +1,9 @@
+{
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build",
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 30
+    }
+  }
+}

@@ -106,10 +106,8 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
   const targetUrl = buildUrl(cfg)
   const authHeaders = buildHeaders(cfg)
 
-  // Route through local dev proxy or Cloudflare Worker in production
-  const proxyUrl = import.meta.env.DEV
-    ? '/api/ai-proxy'
-    : 'https://mushi-ai-proxy.mushi.workers.dev'
+  // Route through same-origin proxy endpoint (Vite dev middleware / Vercel function)
+  const proxyUrl = '/api/ai-proxy'
 
   const res = await fetch(proxyUrl, {
     method: 'POST',
