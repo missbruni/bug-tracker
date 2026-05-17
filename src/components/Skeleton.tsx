@@ -88,6 +88,75 @@ export function TeamCardSkeleton() {
 	);
 }
 
+function ScenarioCardSkeleton() {
+	return (
+		<div className="rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3">
+			<div className="flex items-center gap-3">
+				<Bone className="w-4 h-4 rounded shrink-0" />
+				<Bone className="w-8 h-8 rounded-full shrink-0" />
+				<div className="flex-1 min-w-0 space-y-1.5">
+					<Bone className="h-3.5 w-3/4" />
+					<Bone className="h-2.5 w-1/3" />
+				</div>
+				<Bone className="h-5 w-20 rounded-full" />
+			</div>
+		</div>
+	);
+}
+
+export function SessionSetupSkeleton() {
+	return (
+		<div>
+			{/* Header */}
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+				<div className="space-y-2">
+					<div className="flex items-center gap-2">
+						<Bone className="h-6 w-48" />
+						<Bone className="h-6 w-20 rounded-full" />
+					</div>
+					<Bone className="h-3.5 w-64" />
+				</div>
+				<Bone className="h-9 w-24 rounded-lg" />
+			</div>
+
+			{/* Grid: Scenarios + Tester Pool */}
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				{/* Left: Scenarios */}
+				<div className="lg:col-span-2">
+					<div className="flex items-center justify-between mb-3">
+						<Bone className="h-4 w-20" />
+						<Bone className="h-7 w-16 rounded-md" />
+					</div>
+					<div className="space-y-1.5">
+						{Array.from({ length: 4 }).map((_, i) => (
+							<ScenarioCardSkeleton key={i} />
+						))}
+					</div>
+				</div>
+
+				{/* Right: Tester Pool */}
+				<div>
+					<div className="flex items-center justify-between mb-3">
+						<Bone className="h-4 w-24" />
+						<div className="flex gap-1.5">
+							<Bone className="h-7 w-20 rounded-md" />
+							<Bone className="h-7 w-16 rounded-md" />
+						</div>
+					</div>
+					<div className="rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3">
+						<Bone className="h-3 w-48 mb-3" />
+						<div className="flex flex-wrap gap-1.5">
+							{Array.from({ length: 6 }).map((_, i) => (
+								<Bone key={i} className="h-7 w-20 rounded-full" />
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export function BugListSkeleton({ count = 5 }: { count?: number }) {
 	return (
 		<div>

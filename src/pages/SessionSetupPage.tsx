@@ -6,6 +6,7 @@ import StatusMenu from '../components/StatusMenu'
 import ConfirmModal from '../components/ConfirmModal'
 import ScenarioCard from '../components/ScenarioCard'
 import ScenarioForm from '../components/ScenarioForm'
+import { SessionSetupSkeleton } from '../components/Skeleton'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
@@ -361,7 +362,11 @@ export default function SessionSetupPage() {
   const assignedTesterIds = new Set(assignments.map(a => a.tester_id))
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20 text-sm text-gray-500">Loading session...</div>
+    return (
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-7 py-6">
+        <SessionSetupSkeleton />
+      </div>
+    )
   }
 
   if (!session) {
