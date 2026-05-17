@@ -25,7 +25,15 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
    bun install
    ```
 
-2. Create `.env` from `.env.example` and set values.
+2. Create a local `.env` with:
+
+   ```
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   VITE_ALLOWED_EMAIL_DOMAIN=theaccessgroup.com
+   VITE_TEAM_PIN=your-team-pin
+   VITE_GOD_PIN=your-god-pin
+   ```
 
 3. Run the app:
 
