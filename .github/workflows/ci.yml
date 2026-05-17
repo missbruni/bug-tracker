@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun test
+      - run: bun run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ALLOWED_EMAIL_DOMAIN: ${{ secrets.VITE_ALLOWED_EMAIL_DOMAIN }}
+          VITE_TEAM_PIN: ${{ secrets.VITE_TEAM_PIN }}
+          VITE_GOD_PIN: ${{ secrets.VITE_GOD_PIN }}
