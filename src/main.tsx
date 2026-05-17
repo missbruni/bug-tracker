@@ -127,13 +127,13 @@ function Layout() {
 			>
 				<ThemeToggle />
 			</NavBar>
-			<div
+			<main
 				className={`pb-16 md:pb-0 transition-[margin] duration-200 ease-in-out ${
 					aiPanelOpen ? "lg:mr-[420px]" : ""
 				}`}
 			>
 				<Outlet />
-			</div>
+			</main>
 			{settingsOpen && (
 				<Suspense fallback={null}>
 					<SettingsSidebar

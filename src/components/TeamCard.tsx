@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Pencil, Trash2, Check, X, Users, Bug, CalendarDays, Package, Plus, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
+import InlineDeleteConfirm from './InlineDeleteConfirm'
 
 export interface TeamStats {
   testers: number
@@ -169,29 +170,11 @@ export default function TeamCard({
               </button>
             )}
             {pendingDelete && (
-              <span className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-2.5 py-1 font-heading">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-mushi-threat">Delete?</span>
-                {deleting ? (
-                  <span className="text-[10px] text-slate-400 dark:text-gray-500">Deleting...</span>
-                ) : (
-                  <>
-                    <button
-                      onClick={onConfirmDelete}
-                      className="rounded-md bg-red-500 dark:bg-mushi-threat px-2 py-0.5 text-[10px] font-bold uppercase text-white dark:text-gray-900 cursor-pointer hover:bg-red-600 dark:hover:bg-mushi-threat/80 transition-colors"
-                      title="Confirm delete"
-                    >
-                      Yes
-                    </button>
-                    <button
-                      onClick={onCancelDelete}
-                      className="rounded-md border border-gray-600 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400 dark:text-gray-400 cursor-pointer hover:bg-gray-700/30 transition-colors"
-                      title="Cancel delete"
-                    >
-                      No
-                    </button>
-                  </>
-                )}
-              </span>
+              <InlineDeleteConfirm
+                isDeleting={deleting}
+                onConfirm={onConfirmDelete}
+                onCancel={onCancelDelete}
+              />
             )}
           </div>
 

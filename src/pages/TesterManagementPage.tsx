@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, X, Check, Pencil } from 'lucide-react'
+import { Plus, Trash2, Pencil, X, Check } from 'lucide-react'
+import InlineDeleteConfirm from '../components/InlineDeleteConfirm'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -220,7 +221,7 @@ export default function TesterManagementPage() {
 
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Tester</h3>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Tester</h2>
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
@@ -350,29 +351,11 @@ export default function TesterManagementPage() {
                   <Trash2 size={14} />
                 </button>
                 {pendingDeleteTesterId === tester.id && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-red-500 dark:text-red-400">
-                    <span>Confirm?</span>
-                    {deletingTesterId === tester.id ? (
-                      <span className="text-slate-400 dark:text-gray-500">Deleting...</span>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => { void confirmDeleteTester(tester) }}
-                          className="rounded p-0.5 text-green-500 dark:text-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-                          title="Confirm delete"
-                        >
-                          <Check size={12} />
-                        </button>
-                        <button
-                          onClick={() => setPendingDeleteTesterId(null)}
-                          className="rounded p-0.5 text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                          title="Cancel delete"
-                        >
-                          <X size={12} />
-                        </button>
-                      </>
-                    )}
-                  </span>
+                  <InlineDeleteConfirm
+                    isDeleting={deletingTesterId === tester.id}
+                    onConfirm={() => { void confirmDeleteTester(tester) }}
+                    onCancel={() => setPendingDeleteTesterId(null)}
+                  />
                 )}
               </div>
             )}

@@ -79,7 +79,7 @@
   --color-gray-800: #252a31;
   --color-gray-700: #2f353d;
   --color-gray-600: #404750;
-  --color-gray-500: #5a6270;
+  --color-gray-500: #7B8B86;
   --color-gray-400: #94A29D;
   --color-gray-300: #B9CBC2;
   --color-gray-200: #D4E2DB;
@@ -117,13 +117,16 @@
   --color-red-800: rgba(255, 0, 122, 0.3);
   --color-red-900: rgba(255, 0, 122, 0.12);
 
+  /* Purple → lighter for contrast on dark surfaces */
+  --color-purple-500: #c084fc;
+
   /* Slate → gray (align with surface palette) */
   --color-slate-50:  #ECF2EF;
   --color-slate-100: #D4E2DB;
   --color-slate-200: #B9CBC2;
   --color-slate-300: #94A29D;
   --color-slate-400: #6B7A75;
-  --color-slate-500: #5a6270;
+  --color-slate-500: #7B8B86;
   --color-slate-600: #404750;
   --color-slate-700: #2f353d;
   --color-slate-800: #252a31;
@@ -262,12 +265,13 @@ h1, h2, h3, h4 {
   gap: 0.25rem;
   border-radius: 0.5rem;
   border-width: 1.5px;
-  padding: 0.2rem 0.625rem;
+  padding: 0.25rem 0.625rem;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   line-height: 1.4;
+  min-height: 24px;
   transition: background-color 0.15s;
 }
 @utility badge-green {

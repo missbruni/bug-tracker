@@ -31,9 +31,21 @@ const HELP_COLORS: Record<string, string> = {
 }
 
 const LENGTH_COLORS: Record<string, string> = {
-  too_short: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+  too_short: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
   just_right: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
   too_long: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
+}
+
+const HELP_BAR_COLORS: Record<string, string> = {
+  not_at_all: 'bg-red-400 dark:bg-red-500',
+  somewhat: 'bg-yellow-400 dark:bg-yellow-500',
+  very: 'bg-green-500 dark:bg-green-400',
+}
+
+const LENGTH_BAR_COLORS: Record<string, string> = {
+  too_short: 'bg-red-400 dark:bg-red-500',
+  just_right: 'bg-green-500 dark:bg-green-400',
+  too_long: 'bg-red-400 dark:bg-red-500',
 }
 
 export default function FeedbackModal({ sessionId, sessionName, onClose, inline }: Props) {
@@ -125,13 +137,13 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
     </div>
   )
 
-  const renderBar = (counts: Record<string, number>, labels: Record<string, string>, colors: Record<string, string>) => (
+  const renderBar = (counts: Record<string, number>, labels: Record<string, string>, barColors: Record<string, string>) => (
     <div className="space-y-1">
       {Object.entries(counts).map(([key, val]) => (
         <div key={key} className="flex items-center gap-2">
           <span className="text-[11px] text-slate-500 dark:text-gray-500 w-20 text-right">{labels[key]}</span>
           <div className="flex-1 h-4 bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${colors[key]?.split(' ')[0] || 'bg-blue-400'}`}
+            <div className={`h-full rounded-full transition-all ${barColors[key] || 'bg-blue-400'}`}
               style={{ width: count ? `${(val / count) * 100}%` : '0%' }} />
           </div>
           <span className="text-[11px] font-bold text-slate-600 dark:text-gray-400 w-6">{val}</span>
@@ -163,11 +175,11 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
               </div>
               <div>
                 <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-1">Session length</p>
-                {renderBar(lengthCounts, { too_short: 'Too short', just_right: 'Just right', too_long: 'Too long' }, LENGTH_COLORS)}
+                {renderBar(lengthCounts, { too_short: 'Too short', just_right: 'Just right', too_long: 'Too long' }, LENGTH_BAR_COLORS)}
               </div>
               <div>
                 <p className="text-[11px] text-slate-500 dark:text-gray-500 mb-1">Helpfulness</p>
-                {renderBar(helpCounts, { not_at_all: 'Not really', somewhat: 'Somewhat', very: 'Very helpful' }, HELP_COLORS)}
+                {renderBar(helpCounts, { not_at_all: 'Not really', somewhat: 'Somewhat', very: 'Very helpful' }, HELP_BAR_COLORS)}
               </div>
               {/* Written feedback highlights */}
               {feedbacks.some(f => f.worked_well) && (

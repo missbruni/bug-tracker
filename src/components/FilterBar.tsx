@@ -100,6 +100,7 @@ export default function FilterBar({
 			<select
 				value={testerFilter}
 				onChange={(event) => setTesterFilter(event.target.value)}
+				aria-label="Filter by tester"
 				className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
 			>
 				<option value="all">All testers</option>
@@ -112,6 +113,7 @@ export default function FilterBar({
 			<select
 				value={dateFilter}
 				onChange={(event) => setDateFilter(event.target.value)}
+				aria-label="Filter by date"
 				className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
 			>
 				<option value="all">All dates</option>
@@ -124,6 +126,7 @@ export default function FilterBar({
 				<select
 					value={sessionFilter}
 					onChange={(event) => setSessionFilter(event.target.value)}
+					aria-label="Filter by session"
 					className="rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-600 dark:text-gray-400"
 				>
 					<option value="all">All sessions</option>

@@ -475,10 +475,10 @@ export default function SessionSetupPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-500 mb-0.5">
-            {teamName && <span className="font-semibold text-blue-600 dark:text-blue-400">{teamName}</span>}
+            {teamName && <span className="inline-flex items-center rounded-full border border-slate-300 dark:border-gray-600 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">Team: {teamName}</span>}
             {teamName && productName && <span>·</span>}
             {productName && (
-              <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
+              <span className="flex items-center gap-1 font-medium text-red-500 dark:text-mushi-threat">
                 <Package size={11} />
                 {productName}
               </span>
@@ -492,7 +492,7 @@ export default function SessionSetupPage() {
         <div className="flex items-center gap-2">
           <Link
             to={`/sessions/${sessionId}/present`}
-            className="flex items-center gap-1.5 rounded-lg bg-purple-500 px-4 py-2 text-sm font-bold text-white hover:bg-purple-600 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors"
           >
             <Presentation size={16} /> Present
           </Link>
@@ -656,8 +656,8 @@ export default function SessionSetupPage() {
                         }
                         if (isCheck) {
                           return (
-                            <div key={i} className="flex gap-2 items-start mt-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 px-3 py-2">
-                              <span className="text-green-500 shrink-0 mt-0.5">✓</span>
+                            <div key={i} className="flex gap-2 items-center mt-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 px-3 py-2">
+                              <span className="text-green-500 shrink-0 leading-none">✓</span>
                               <span className="text-[13px] font-medium text-green-700 dark:text-green-400">{trimmed.replace(/^[✓✔]\s*/, '')}</span>
                             </div>
                           )
@@ -727,7 +727,7 @@ export default function SessionSetupPage() {
                     disabled={isCompleted || !selectedScenarioId || used || !eligible}
                     className={`rounded-full px-3 py-1 text-xs font-medium border transition-all ${
                       used
-                        ? 'opacity-30 line-through border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-600 cursor-default'
+                        ? 'opacity-60 line-through border-slate-300 dark:border-gray-600 text-slate-500 dark:text-gray-400 cursor-default'
                         : !eligible
                         ? 'opacity-40 border-red-200 dark:border-red-800 text-red-400 dark:text-red-600 cursor-not-allowed'
                         : selectedScenarioId

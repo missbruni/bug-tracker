@@ -252,9 +252,9 @@ export default function SessionsListPage() {
 
 			{showCreate && (
 				<div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
-					<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">
+					<h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">
 						Create Session
-					</h3>
+					</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
 						<input
 							value={newName}
@@ -329,9 +329,9 @@ export default function SessionsListPage() {
 								<div className="flex flex-col sm:flex-row sm:items-center gap-3">
 									<div className="flex-1 min-w-0">
 										<div className="flex items-center gap-2 mb-1">
-											<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate sm:truncate break-words sm:break-normal whitespace-normal sm:whitespace-nowrap">
+											<h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 truncate sm:truncate break-words sm:break-normal whitespace-normal sm:whitespace-nowrap">
 												{session.name}
-											</h3>
+											</h2>
 											<div className="relative">
 												<button
 													onClick={(e) => {
@@ -450,7 +450,7 @@ export default function SessionsListPage() {
 														e.preventDefault();
 														setFeedbackSession(session);
 													}}
-													className="flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+													className="flex items-center gap-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors cursor-pointer"
 												>
 													<MessageSquareHeart size={14} />
 													Feedback
@@ -483,9 +483,9 @@ export default function SessionsListPage() {
 						className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<h3 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-2">
+						<h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-2">
 							Complete session?
-						</h3>
+						</h2>
 						<p className="text-xs text-slate-500 dark:text-gray-400 mb-5 leading-relaxed">
 							This will lock{" "}
 							<span className="font-semibold text-slate-700 dark:text-gray-300">
@@ -525,9 +525,9 @@ export default function SessionsListPage() {
 						className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">
+						<h2 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">
 							Delete session?
-						</h3>
+						</h2>
 						<p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">
 							This will permanently delete this session
 							and all its scenarios, assignments, and feedback. This action

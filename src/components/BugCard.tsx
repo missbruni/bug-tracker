@@ -16,6 +16,7 @@ import AttachmentCard from "./AttachmentCard";
 import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../hooks/useBugActions";
+import InlineDeleteConfirm from "./InlineDeleteConfirm";
 import type { Bug } from "../types";
 
 interface BugCardProps {
@@ -216,56 +217,11 @@ export default function BugCard({
 							<Trash2 size={14} />
 						</span>
 						{pendingDelete && (
-							<span
-								className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-2.5 py-1 font-heading"
-								onClick={(e) => e.stopPropagation()}
-							>
-								<span className="text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-mushi-threat">Delete?</span>
-								{isDeleting ? (
-									<span className="text-[10px] text-slate-400 dark:text-gray-500">
-										Deleting...
-									</span>
-								) : (
-									<>
-										<span
-											role="button"
-											tabIndex={0}
-											onClick={(e) => {
-												e.stopPropagation();
-												void confirmDelete();
-											}}
-											onKeyDown={(e) => {
-												if (e.key === "Enter") {
-													e.stopPropagation();
-													void confirmDelete();
-												}
-											}}
-											className="rounded-md bg-red-500 dark:bg-mushi-threat px-2 py-0.5 text-[10px] font-bold uppercase text-white dark:text-gray-900 cursor-pointer hover:bg-red-600 dark:hover:bg-mushi-threat/80 transition-colors"
-											title="Confirm delete"
-										>
-											Yes
-										</span>
-										<span
-											role="button"
-											tabIndex={0}
-											onClick={(e) => {
-												e.stopPropagation();
-												cancelDelete();
-											}}
-											onKeyDown={(e) => {
-												if (e.key === "Enter") {
-													e.stopPropagation();
-													cancelDelete();
-												}
-											}}
-											className="rounded-md border border-gray-600 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400 dark:text-gray-400 cursor-pointer hover:bg-gray-700/30 transition-colors"
-											title="Cancel delete"
-										>
-											No
-										</span>
-									</>
-								)}
-							</span>
+							<InlineDeleteConfirm
+								isDeleting={isDeleting}
+								onConfirm={() => void confirmDelete()}
+								onCancel={cancelDelete}
+							/>
 						)}
 						{backlogUrl && (
 							<a
