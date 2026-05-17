@@ -1,4 +1,6 @@
-import { getConfiguredPins, getSessionSecret, readSessionFromRequest } from './_session'
+import { getConfiguredPins, getSessionSecret, readSessionFromRequest } from './_session.js'
+
+// Vercel executes API routes in Node ESM, which requires explicit .js extensions at runtime.
 
 export default async function handler(req: any, res: any): Promise<void> {
   if (req.method !== 'GET') {

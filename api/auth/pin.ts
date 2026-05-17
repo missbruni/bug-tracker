@@ -4,7 +4,9 @@ import {
   getConfiguredPins,
   getSessionSecret,
   isSecureRequest,
-} from './_session'
+} from './_session.js'
+
+// Vercel executes API routes in Node ESM, which requires explicit .js extensions at runtime.
 
 function parseBody(body: unknown): Record<string, unknown> {
   if (!body) return {}
