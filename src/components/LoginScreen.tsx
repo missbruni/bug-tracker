@@ -3,6 +3,7 @@ import PinGate from "./PinGate";
 import { type PinAccessLevel } from "../lib/teamScope";
 
 interface LoginScreenProps {
+  onMicrosoftSignIn: () => Promise<void>;
   onPinUnlock: (accessLevel: PinAccessLevel) => void;
   pinConfigured: boolean;
   error: string | null;
