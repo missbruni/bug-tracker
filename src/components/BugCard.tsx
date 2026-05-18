@@ -216,7 +216,7 @@ export default function BugCard({
 						>
 							<Trash2 size={14} />
 						</span>
-						{pendingDelete && (
+						{pendingDelete && !expanded && (
 							<InlineDeleteConfirm
 								isDeleting={isDeleting}
 								onConfirm={() => void confirmDelete()}
@@ -405,14 +405,21 @@ export default function BugCard({
 								actions.publishToBacklog(withDevin, setPublishingMode, () => {})
 							}
 						/>
-						<button
-							onClick={requestDelete}
-							disabled={isDeleting}
-							className="flex items-center justify-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
-						>
-							<Trash2 size={12} />
-							Delete Bug
-						</button>
+						{pendingDelete && expanded ? (
+							<InlineDeleteConfirm
+								isDeleting={isDeleting}
+								onConfirm={() => void confirmDelete()}
+								onCancel={cancelDelete}
+							/>
+						) : (
+							<button
+								onClick={requestDelete}
+								className="flex items-center justify-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-3 py-1.5 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors cursor-pointer"
+							>
+								<Trash2 size={12} />
+								Delete Bug
+							</button>
+						)}
 					</div>
 				</div>
 			</div>

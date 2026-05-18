@@ -7,7 +7,7 @@ interface InlineDeleteConfirmProps {
 export default function InlineDeleteConfirm({ isDeleting, onConfirm, onCancel }: InlineDeleteConfirmProps) {
   return (
     <span
-      className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-2.5 py-1 font-heading"
+      className="flex items-center gap-2 rounded-md bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-3 py-1.5 font-heading"
       onClick={(e) => e.stopPropagation()}
     >
       <span className="text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-mushi-threat">Delete?</span>
