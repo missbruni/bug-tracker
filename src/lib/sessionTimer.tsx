@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from './teamAccess'
@@ -98,7 +98,7 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
     }
   }, [timer])
 
-  const startTimer = useCallback((sessionId: string, sessionName: string) => {
+  const startTimer = (sessionId: string, sessionName: string) => {
     setTimer(prev => {
       // If already tracking this session and paused, resume
       if (prev && prev.sessionId === sessionId && prev.status === 'paused') {
@@ -113,9 +113,9 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
         startedAt: Date.now(),
       }
     })
-  }, [])
+  }
 
-  const pauseTimer = useCallback(() => {
+  const pauseTimer = () => {
     setTimer(prev => {
       if (!prev || prev.status !== 'running' || !prev.startedAt) return prev
       return {
@@ -125,16 +125,16 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
         startedAt: null,
       }
     })
-  }, [])
+  }
 
-  const resumeTimer = useCallback(() => {
+  const resumeTimer = () => {
     setTimer(prev => {
       if (!prev || prev.status !== 'paused') return prev
       return { ...prev, status: 'running', startedAt: Date.now() }
     })
-  }, [])
+  }
 
-  const stopTimer = useCallback(async () => {
+  const stopTimer = async () => {
     const current = timer
     if (!current) return
 
@@ -155,11 +155,11 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
 
     // Clear timer
     setTimer(null)
-  }, [timer, activeTeamId])
+  }
 
-  const discardTimer = useCallback(() => {
+  const discardTimer = () => {
     setTimer(null)
-  }, [])
+  }
 
   return (
     <SessionTimerContext.Provider value={{ timer, elapsed, startTimer, pauseTimer, resumeTimer, stopTimer, discardTimer }}>

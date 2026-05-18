@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, ShieldCheck } from 'lucide-react'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
@@ -33,39 +33,43 @@ export default function TeamManagementPage() {
   const [teamStats, setTeamStats] = useState<Record<string, TeamStats>>({})
   const [products, setProducts] = useState<Product[]>([])
 
-  const loadTeamStats = useCallback(async () => {
-    if (!supabase || !teams.length) return
-    const [testersRes, sessionsRes, bugsRes, productsRes] = await Promise.all([
-      supabase.from('testers').select('team_id, active'),
-      supabase.from('sessions').select('team_id'),
-      supabase.from('bugs').select('team_id, reviewed'),
-      supabase.from('products').select('id, team_id, name, slug, description, link, links'),
-    ])
-    const stats: Record<string, TeamStats> = {}
-    const ensure = (id: string) => { if (!stats[id]) stats[id] = { testers: 0, activeTesters: 0, sessions: 0, activeBugs: 0 } }
-    for (const row of (testersRes.data || []) as Array<{ team_id: string; active: boolean }>) {
-      ensure(row.team_id); stats[row.team_id].testers++
-      if (row.active) stats[row.team_id].activeTesters++
+  useEffect(() => {
+    const loadTeamStats = async () => {
+      if (!supabase || !teams.length) return
+      const [testersRes, sessionsRes, bugsRes, productsRes] = await Promise.all([
+        supabase.from('testers').select('team_id, active'),
+        supabase.from('sessions').select('team_id'),
+        supabase.from('bugs').select('team_id, reviewed'),
+        supabase.from('products').select('id, team_id, name, slug, description, link, links'),
+      ])
+      const stats: Record<string, TeamStats> = {}
+      const ensure = (id: string) => { if (!stats[id]) stats[id] = { testers: 0, activeTesters: 0, sessions: 0, activeBugs: 0 } }
+      for (const row of (testersRes.data || []) as Array<{ team_id: string; active: boolean }>) {
+        ensure(row.team_id); stats[row.team_id].testers++
+        if (row.active) stats[row.team_id].activeTesters++
+      }
+      for (const row of (sessionsRes.data || []) as Array<{ team_id: string }>) {
+        ensure(row.team_id); stats[row.team_id].sessions++
+      }
+      for (const row of (bugsRes.data || []) as Array<{ team_id: string; reviewed: boolean }>) {
+        ensure(row.team_id)
+        if (!row.reviewed) stats[row.team_id].activeBugs++
+      }
+      setTeamStats(stats)
+      setProducts((productsRes.data || []) as Product[])
     }
-    for (const row of (sessionsRes.data || []) as Array<{ team_id: string }>) {
-      ensure(row.team_id); stats[row.team_id].sessions++
-    }
-    for (const row of (bugsRes.data || []) as Array<{ team_id: string; reviewed: boolean }>) {
-      ensure(row.team_id)
-      if (!row.reviewed) stats[row.team_id].activeBugs++
-    }
-    setTeamStats(stats)
-    setProducts((productsRes.data || []) as Product[])
-  }, [teams.length])
 
-  useEffect(() => { void loadTeamStats() }, [loadTeamStats])
+    void loadTeamStats()
+  }, [teams.length])
 
   // Refresh when AI creates a team or product
   useEffect(() => {
-    const handler = () => { void refreshTeams(); void loadTeamStats() }
+    const handler = () => {
+      void refreshTeams()
+    }
     window.addEventListener('teamDataChanged', handler)
     return () => window.removeEventListener('teamDataChanged', handler)
-  }, [refreshTeams, loadTeamStats])
+  }, [refreshTeams])
 
   const handleAddProduct = async (teamId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {
     if (!supabase) return
@@ -108,18 +112,15 @@ export default function TeamManagementPage() {
     }
   }
 
-  const sortedTeams = useMemo(
-    () => [...teams].sort((a, b) => a.name.localeCompare(b.name)),
-    [teams],
-  )
+  const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name))
 
-  const filteredTeams = useMemo(() => {
+  const filteredTeams = (() => {
     const query = search.trim().toLowerCase()
     if (!query) return sortedTeams
     return sortedTeams.filter(
       (team) => team.name.toLowerCase().includes(query) || team.slug.toLowerCase().includes(query),
     )
-  }, [search, sortedTeams])
+  })()
 
   const handleCreateTeam = async () => {
     if (!newTeamName.trim() || creating) return

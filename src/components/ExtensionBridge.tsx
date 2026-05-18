@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SEVERITIES, type Severity } from '../constants'
 import { generateBugId } from '../lib/aiParsers'
 import { fetchPinSession } from '../lib/pinAuth'
@@ -260,8 +260,25 @@ export default function ExtensionBridge() {
     }
   }, [activeTeamId])
 
-  const createBugFromPayload = useCallback(
-    async (payload: ExtensionCreateBugPayload): Promise<ExtensionCreateBugResult> => {
+  useEffect(() => {
+    const email = user?.email?.trim() || null
+    const authenticated = Boolean(user) || pinAuthenticated
+    const authMode = user ? 'supabase' : pinAuthenticated ? 'pin' : 'none'
+    const displayName = user ? getUserDisplayName(user) : getPinTesterName(pinRole)
+    const contextPayload = {
+      authenticated,
+      authMode,
+      activeTeamId,
+      allowedDomains,
+      user: {
+        id: user?.id || null,
+        email,
+        name: displayName,
+      },
+      appBaseUrl: `${window.location.origin}/`,
+    }
+
+    const createBugFromPayload = async (payload: ExtensionCreateBugPayload): Promise<ExtensionCreateBugResult> => {
       if (!supabase) {
         throw new Error('Database is not connected.')
       }
@@ -385,31 +402,8 @@ export default function ExtensionBridge() {
         bugUrl: `${window.location.origin}/`,
         uploadedCount,
       }
-    },
-    [activeTeamId, pinAuthenticated, pinRole, user],
-  )
-
-  const contextPayload = useMemo(() => {
-    const email = user?.email?.trim() || null
-    const authenticated = Boolean(user) || pinAuthenticated
-    const authMode = user ? 'supabase' : pinAuthenticated ? 'pin' : 'none'
-    const displayName = user ? getUserDisplayName(user) : getPinTesterName(pinRole)
-
-    return {
-      authenticated,
-      authMode,
-      activeTeamId,
-      allowedDomains,
-      user: {
-        id: user?.id || null,
-        email,
-        name: displayName,
-      },
-      appBaseUrl: `${window.location.origin}/`,
     }
-  }, [activeTeamId, allowedDomains, pinAuthenticated, pinRole, user])
 
-  useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.source !== window) return
 
@@ -462,7 +456,7 @@ export default function ExtensionBridge() {
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [contextPayload, createBugFromPayload])
+  }, [activeTeamId, allowedDomains, pinAuthenticated, pinRole, user])
 
   return null
 }

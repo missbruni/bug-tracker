@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X, Package } from 'lucide-react'
 import { supabase } from '../supabaseClient'
@@ -54,58 +54,59 @@ export default function PresentationPage() {
   const [teamName, setTeamName] = useState<string | null>(null)
   const [productName, setProductName] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    if (!supabase || !sessionId) return
-    const [sessRes, scenRes, assignRes, testRes] = await Promise.all([
-      scopeToTeam(supabase.from('sessions').select('*').eq('id', sessionId).single(), activeTeamId),
-      scopeToTeam(supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'), activeTeamId),
-      scopeToTeam(supabase.from('assignments').select('*').eq('session_id', sessionId), activeTeamId),
-      scopeToTeam(supabase.from('testers').select('*'), activeTeamId),
-    ])
+  useEffect(() => {
+    const load = async () => {
+      if (!supabase || !sessionId) return
+      const [sessRes, scenRes, assignRes, testRes] = await Promise.all([
+        scopeToTeam(supabase.from('sessions').select('*').eq('id', sessionId).single(), activeTeamId),
+        scopeToTeam(supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'), activeTeamId),
+        scopeToTeam(supabase.from('assignments').select('*').eq('session_id', sessionId), activeTeamId),
+        scopeToTeam(supabase.from('testers').select('*'), activeTeamId),
+      ])
 
-    const sess = sessRes.data as Session | null
-    const scenarios = (scenRes.data || []) as Scenario[]
-    const assigns = (assignRes.data || []) as Assignment[]
-    const allTesters = (testRes.data || []) as Tester[]
+      const sess = sessRes.data as Session | null
+      const scenarios = (scenRes.data || []) as Scenario[]
+      const assigns = (assignRes.data || []) as Assignment[]
+      const allTesters = (testRes.data || []) as Tester[]
 
-    setSession(sess)
+      setSession(sess)
 
-    // Fetch team + product names
-    if (supabase && sess?.team_id) {
-      supabase.from('teams').select('name').eq('id', sess.team_id).single().then(({ data: t }) => {
-        if (t) setTeamName((t as { name: string }).name)
-      })
+      if (supabase && sess?.team_id) {
+        supabase.from('teams').select('name').eq('id', sess.team_id).single().then(({ data: t }) => {
+          if (t) setTeamName((t as { name: string }).name)
+        })
+      }
+      if (supabase && sess?.product_id) {
+        supabase.from('products').select('name').eq('id', sess.product_id).single().then(({ data: p }) => {
+          if (p) setProductName((p as { name: string }).name)
+        })
+      }
+
+      const testerMap = new Map(allTesters.map(t => [t.id, t]))
+      const assignMap = new Map(assigns.map(a => [a.scenario_id, testerMap.get(a.tester_id) || null]))
+
+      const builtSlides: Slide[] = [
+        { type: 'title' },
+        { type: 'objective' },
+        { type: 'timeline' },
+        { type: 'assignments' },
+        ...scenarios.map(sc => ({
+          type: 'scenario' as const,
+          scenario: sc,
+          assignedTester: assignMap.get(sc.id) || null,
+        })),
+        { type: 'crosscutting' },
+        { type: 'edgecases' },
+        { type: 'bugreporting' },
+        { type: 'tips' },
+      ]
+
+      setSlides(builtSlides)
+      setLoading(false)
     }
-    if (supabase && sess?.product_id) {
-      supabase.from('products').select('name').eq('id', sess.product_id).single().then(({ data: p }) => {
-        if (p) setProductName((p as { name: string }).name)
-      })
-    }
 
-    const testerMap = new Map(allTesters.map(t => [t.id, t]))
-    const assignMap = new Map(assigns.map(a => [a.scenario_id, testerMap.get(a.tester_id) || null]))
-
-    const builtSlides: Slide[] = [
-      { type: 'title' },
-      { type: 'objective' },
-      { type: 'timeline' },
-      { type: 'assignments' },
-      ...scenarios.map(sc => ({
-        type: 'scenario' as const,
-        scenario: sc,
-        assignedTester: assignMap.get(sc.id) || null,
-      })),
-      { type: 'crosscutting' },
-      { type: 'edgecases' },
-      { type: 'bugreporting' },
-      { type: 'tips' },
-    ]
-
-    setSlides(builtSlides)
-    setLoading(false)
+    void load()
   }, [sessionId, activeTeamId])
-
-  useEffect(() => { load() }, [load])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

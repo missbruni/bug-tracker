@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy, GripVertical } from 'lucide-react'
 import SessionSummaryBanner from '../components/SessionSummaryBanner'
@@ -57,87 +57,85 @@ export default function SessionSetupPage() {
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editDevice, setEditDevice] = useState('')
+  const [reloadCounter, setReloadCounter] = useState(0)
 
-  const load = useCallback(async () => {
-    if (!supabase || !sessionId) return
-    const [sessRes, scenRes, testRes, assignRes] = await Promise.all([
-      scopeToTeam(supabase.from('sessions').select('*').eq('id', sessionId).single(), activeTeamId),
-      scopeToTeam(supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'), activeTeamId),
-      scopeToTeam(supabase.from('testers').select('*').eq('active', true).order('name'), activeTeamId),
-      scopeToTeam(supabase.from('assignments').select('*').eq('session_id', sessionId), activeTeamId),
-    ])
-    if (sessRes.data) {
-      setSession(sessRes.data as Session)
-      // Fetch team name
-      const sess = sessRes.data as Session
-      if (sess.team_id) {
-        supabase.from('teams').select('name').eq('id', sess.team_id).single().then(({ data: t }) => {
-          if (t) setTeamName((t as { name: string }).name)
-        })
-      }
-      // Fetch product name
-      if (sess.product_id) {
-        supabase.from('products').select('name').eq('id', sess.product_id).single().then(({ data: p }) => {
-          if (p) setProductName((p as { name: string }).name)
-        })
-      }
-    }
-    setScenarios((scenRes.data || []) as Scenario[])
-    const assigns = (assignRes.data || []) as Assignment[]
-    setAssignments(assigns)
-
-    // For completed sessions, also load inactive testers that have assignments
-    let allTesters = (testRes.data || []) as Tester[]
-    if (sessRes.data?.status === 'completed' && assigns.length) {
-      const activeIds = new Set(allTesters.map(t => t.id))
-      const missingIds = assigns.map(a => a.tester_id).filter(id => !activeIds.has(id))
-      if (missingIds.length) {
-        const { data: inactiveTesters } = await scopeToTeam(
-          supabase.from('testers').select('*').in('id', missingIds),
-          activeTeamId,
-        )
-        if (inactiveTesters?.length) {
-          allTesters = [...allTesters, ...(inactiveTesters as Tester[])].sort((a, b) => a.name.localeCompare(b.name))
+  useEffect(() => {
+    const load = async () => {
+      if (!supabase || !sessionId) return
+      const [sessRes, scenRes, testRes, assignRes] = await Promise.all([
+        scopeToTeam(supabase.from('sessions').select('*').eq('id', sessionId).single(), activeTeamId),
+        scopeToTeam(supabase.from('scenarios').select('*').eq('session_id', sessionId).order('sort_order'), activeTeamId),
+        scopeToTeam(supabase.from('testers').select('*').eq('active', true).order('name'), activeTeamId),
+        scopeToTeam(supabase.from('assignments').select('*').eq('session_id', sessionId), activeTeamId),
+      ])
+      if (sessRes.data) {
+        setSession(sessRes.data as Session)
+        const sess = sessRes.data as Session
+        if (sess.team_id) {
+          supabase.from('teams').select('name').eq('id', sess.team_id).single().then(({ data: t }) => {
+            if (t) setTeamName((t as { name: string }).name)
+          })
+        }
+        if (sess.product_id) {
+          supabase.from('products').select('name').eq('id', sess.product_id).single().then(({ data: p }) => {
+            if (p) setProductName((p as { name: string }).name)
+          })
         }
       }
+      setScenarios((scenRes.data || []) as Scenario[])
+      const assigns = (assignRes.data || []) as Assignment[]
+      setAssignments(assigns)
+
+      let allTesters = (testRes.data || []) as Tester[]
+      if (sessRes.data?.status === 'completed' && assigns.length) {
+        const activeIds = new Set(allTesters.map(t => t.id))
+        const missingIds = assigns.map(a => a.tester_id).filter(id => !activeIds.has(id))
+        if (missingIds.length) {
+          const { data: inactiveTesters } = await scopeToTeam(
+            supabase.from('testers').select('*').in('id', missingIds),
+            activeTeamId,
+          )
+          if (inactiveTesters?.length) {
+            allTesters = [...allTesters, ...(inactiveTesters as Tester[])].sort((a, b) => a.name.localeCompare(b.name))
+          }
+        }
+      }
+      setTesters(allTesters)
+
+      const sess = sessRes.data as Session | null
+      if (sess?.date) {
+        const dayStart = sess.date
+        const dayEnd = new Date(new Date(sess.date).getTime() + 86400000).toISOString().split('T')[0]
+        const { count } = await scopeToTeam(
+          supabase.from('bugs').select('*', { count: 'exact', head: true }).gte('created_at', dayStart).lt('created_at', dayEnd),
+          activeTeamId,
+        )
+        setSessionBugCount(count ?? 0)
+      } else {
+        const { count } = await scopeToTeam(
+          supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
+          activeTeamId,
+        )
+        setSessionBugCount(count ?? 0)
+      }
+
+      setLoading(false)
     }
-    setTesters(allTesters)
 
-    // Fetch bug count for the session date (all bugs found that day)
-    const sess = sessRes.data as Session | null
-    if (sess?.date) {
-      const dayStart = sess.date
-      const dayEnd = new Date(new Date(sess.date).getTime() + 86400000).toISOString().split('T')[0]
-      const { count } = await scopeToTeam(
-        supabase.from('bugs').select('*', { count: 'exact', head: true }).gte('created_at', dayStart).lt('created_at', dayEnd),
-        activeTeamId,
-      )
-      setSessionBugCount(count ?? 0)
-    } else {
-      // Fallback: count bugs linked to this session
-      const { count } = await scopeToTeam(
-        supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
-        activeTeamId,
-      )
-      setSessionBugCount(count ?? 0)
-    }
-
-    setLoading(false)
-  }, [sessionId, activeTeamId])
-
-  useEffect(() => { load() }, [load])
+    void load()
+  }, [sessionId, activeTeamId, reloadCounter])
 
   // Reload when AI assistant modifies session data
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (!detail?.sessionId || detail.sessionId === sessionId) {
-        load()
+        setReloadCounter((prev) => prev + 1)
       }
     }
     window.addEventListener('sessionDataChanged', handler)
     return () => window.removeEventListener('sessionDataChanged', handler)
-  }, [load, sessionId])
+  }, [sessionId])
 
   // Navigate away if this session is deleted via AI
   useEffect(() => {
@@ -575,7 +573,7 @@ export default function SessionSetupPage() {
                   </button>
                 )}
                 <button
-                  onClick={async () => { await stopTimer(); load() }}
+                  onClick={async () => { await stopTimer(); setReloadCounter((prev) => prev + 1) }}
                   className="flex items-center gap-1.5 rounded-lg border border-red-300 dark:border-red-800 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                 >
                   <Square size={12} fill="currentColor" /> Stop

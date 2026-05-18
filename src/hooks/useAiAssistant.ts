@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { chatCompletion, hasAiConfig, type ChatMessage } from '../lib/aiProvider'
 import { supabase } from '../supabaseClient'
@@ -62,12 +62,12 @@ export default function useAiAssistant(open: boolean) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }, [messages, currentSessionId])
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     setTimeout(() => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       inputRef.current?.focus()
     }, 50)
-  }, [])
+  }
 
   // ─── Context fetching ─────────────────────────────────────
   useEffect(() => {
@@ -238,7 +238,7 @@ export default function useAiAssistant(open: boolean) {
   }, [open])
 
   // ─── Session action executor ──────────────────────────────
-  const executeSessionAction = useCallback(async (action: SessionAction): Promise<SessionActionResult> => {
+  const executeSessionAction = async (action: SessionAction): Promise<SessionActionResult> => {
     if (action.action === 'set_bug_filters') {
       const path = pathname
       if (!isBugMainPage(path)) {
@@ -293,10 +293,10 @@ export default function useAiAssistant(open: boolean) {
       ...result,
       level: result.level ?? (result.success ? 'success' : 'error'),
     }
-  }, [currentSessionId, pathname, activeTeamId, pinRole])
+  }
 
   // ─── Send message ─────────────────────────────────────────
-  const sendMessage = useCallback(async (overrideText?: string) => {
+  const sendMessage = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim()
     if (!text || sending) return
 
@@ -362,10 +362,10 @@ export default function useAiAssistant(open: boolean) {
       setSending(false)
       setTimeout(() => inputRef.current?.focus(), 0)
     }
-  }, [input, sending, sessionContext, messages, scrollToBottom, executeSessionAction])
+  }
 
   // ─── Bug preview helpers ──────────────────────────────────
-  const updateBugPreview = useCallback((messageIndex: number, bugKey: string, field: keyof ParsedBug, value: string) => {
+  const updateBugPreview = (messageIndex: number, bugKey: string, field: keyof ParsedBug, value: string) => {
     setMessages((prev) =>
       prev.map((m, i) => {
         if (i !== messageIndex || !m.bugs) return m
@@ -377,9 +377,9 @@ export default function useAiAssistant(open: boolean) {
         }
       })
     )
-  }, [])
+  }
 
-  const addAttachment = useCallback((messageIndex: number, bugKey: string, files: File[]) => {
+  const addAttachment = (messageIndex: number, bugKey: string, files: File[]) => {
     const newAtts = filesToAttachments(files)
     setMessages((prev) =>
       prev.map((m, i) =>
@@ -388,9 +388,9 @@ export default function useAiAssistant(open: boolean) {
           : { ...m, bugs: m.bugs.map((b) => b._key === bugKey ? { ...b, _attachments: [...(b._attachments || []), ...newAtts] } : b) }
       )
     )
-  }, [])
+  }
 
-  const removeAttachment = useCallback((messageIndex: number, bugKey: string, attIndex: number) => {
+  const removeAttachment = (messageIndex: number, bugKey: string, attIndex: number) => {
     setMessages((prev) =>
       prev.map((m, i) =>
         i !== messageIndex || !m.bugs
@@ -398,9 +398,9 @@ export default function useAiAssistant(open: boolean) {
           : { ...m, bugs: m.bugs.map((b) => b._key === bugKey ? { ...b, _attachments: (b._attachments || []).filter((_, j) => j !== attIndex) } : b) }
       )
     )
-  }, [])
+  }
 
-  const createBug = useCallback(async (messageIndex: number, bugKey: string) => {
+  const createBug = async (messageIndex: number, bugKey: string) => {
     const msg = messages[messageIndex]
     const bug = msg?.bugs?.find((b) => b._key === bugKey)
     if (!bug || bug._created || bug._creating) return
@@ -492,23 +492,23 @@ export default function useAiAssistant(open: boolean) {
       )
       setError(err instanceof Error ? err.message : 'Failed to create bug')
     }
-  }, [messages, activeTeamId])
+  }
 
-  const createAllBugs = useCallback(async (messageIndex: number) => {
+  const createAllBugs = async (messageIndex: number) => {
     const msg = messages[messageIndex]
     if (!msg?.bugs) return
     const pending = msg.bugs.filter((b) => !b._created && !b._creating)
     for (const bug of pending) {
       await createBug(messageIndex, bug._key)
     }
-  }, [messages, createBug])
+  }
 
-  const clearChat = useCallback(() => {
+  const clearChat = () => {
     setMessages([])
     setError('')
     setCurrentSessionId(null)
     sessionStorage.removeItem(STORAGE_KEY)
-  }, [])
+  }
 
   const configured = hasAiConfig()
 

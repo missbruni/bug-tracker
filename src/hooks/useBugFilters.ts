@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useDeferredValue } from 'react'
+import { useState, useEffect, useDeferredValue } from 'react'
 import { SEVERITIES } from '../constants'
 import { matchesDateFilter } from '../lib/dateFilter'
 import type { Bug, Question, SessionOption } from '../types'
@@ -105,10 +105,7 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
   }, [search, severityFilter, testerFilter, dateFilter, sortOrder, sessionFilter])
 
-  const testers = useMemo(
-    () => [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort(),
-    [bugs],
-  )
+  const testers = [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort()
 
   useEffect(() => {
     const onSetBugFiltersFromAi = (event: Event) => {
@@ -182,7 +179,7 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
     return () => window.removeEventListener('setBugFiltersFromAi', onSetBugFiltersFromAi)
   }, [sessions, testers])
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     const selectedActiveSeverities = getSelectedActiveSeverities(severityFilter)
 
     return bugs.filter((b) => {
@@ -217,32 +214,29 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
       if (sortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
       return 0
     })
-  }, [bugs, severityFilter, deferredSearch, testerFilter, dateFilter, sortOrder, sessionFilter])
+  })()
 
-  const activeBugs = useMemo(() => bugs.filter(b => !b.reviewed), [bugs])
+  const activeBugs = bugs.filter(b => !b.reviewed)
 
-  const counts = useMemo(() => {
+  const counts = (() => {
     const c: Record<Severity, number> = { critical: 0, high: 0, low: 0 }
     activeBugs.forEach((b) => c[b.severity]++)
     return c
-  }, [activeBugs])
+  })()
 
-  const nextIds = useMemo(() => ({
+  const nextIds = ({
     critical: Math.max(0, ...bugs.filter((b) => b.severity === 'critical').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
     high: Math.max(0, ...bugs.filter((b) => b.severity === 'high').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
     low: Math.max(0, ...bugs.filter((b) => b.severity === 'low').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
-  }), [bugs])
+  })
 
-  const grouped = useMemo(() => {
+  const grouped = (() => {
     const g: Record<string, Bug[]> = {}
     SEVERITIES.forEach((s) => { g[s] = filtered.filter((b) => b.severity === s) })
     return g
-  }, [filtered])
+  })()
 
-  const filteredQuestions = useMemo(
-    () => questions.filter((q) => matchesDateFilter(q.created_at, dateFilter)),
-    [questions, dateFilter],
-  )
+  const filteredQuestions = questions.filter((q) => matchesDateFilter(q.created_at, dateFilter))
 
   return {
     severityFilter,

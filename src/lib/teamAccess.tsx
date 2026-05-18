@@ -1,9 +1,7 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from 'react'
@@ -83,7 +81,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const [pinRole, setPinRole] = useState<PinAccessLevel | null>(null)
   const [activeTeamIdState, setActiveTeamIdState] = useState<string | null>(() => getStoredActiveTeamId())
 
-  const refreshTeams = useCallback(async () => {
+  const refreshTeams = async () => {
     if (!supabase) {
       setTeams([])
       setLoading(false)
@@ -106,11 +104,11 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
     setTeams((data || []) as TeamRecord[])
     setLoading(false)
-  }, [])
+  }
 
   useEffect(() => {
     void refreshTeams()
-  }, [refreshTeams])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -146,11 +144,11 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const isGodMode = pinRole === 'god'
   const fallbackTeam = teams.find((team) => team.slug === DEFAULT_TEAM_SLUG) || teams[0] || null
 
-  const allowedTeamIds = useMemo(() => {
+  const allowedTeamIds = (() => {
     if (!teams.length) return []
     if (isGodMode) return teams.map((team) => team.id)
     return fallbackTeam ? [fallbackTeam.id] : []
-  }, [teams, isGodMode, fallbackTeam])
+  })()
 
   useEffect(() => {
     if (!teams.length) {
@@ -183,18 +181,14 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     setStoredActiveTeamId(next)
   }, [teams, isGodMode, fallbackTeam, activeTeamIdState])
 
-  const setActiveTeamId = useCallback(
-    (teamId: string) => {
-      if (!isGodMode) return
-      if (!teams.some((team) => team.id === teamId)) return
-      setActiveTeamIdState(teamId)
-      setStoredActiveTeamId(teamId)
-    },
-    [isGodMode, teams],
-  )
+  const setActiveTeamId = (teamId: string) => {
+    if (!isGodMode) return
+    if (!teams.some((team) => team.id === teamId)) return
+    setActiveTeamIdState(teamId)
+    setStoredActiveTeamId(teamId)
+  }
 
-  const createTeam = useCallback(
-    async (name: string): Promise<TeamCreationResult> => {
+  const createTeam = async (name: string): Promise<TeamCreationResult> => {
       if (!supabase) {
         return { team: null, error: 'Database is not connected.' }
       }
@@ -237,12 +231,9 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
       setStoredActiveTeamId(created.id)
 
       return { team: created, error: null }
-    },
-    [isGodMode, teams],
-  )
+  }
 
-  const updateTeam = useCallback(
-    async (teamId: string, name: string): Promise<TeamMutationResult> => {
+  const updateTeam = async (teamId: string, name: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
       if (!isGodMode) return { error: 'Only god mode can update teams.' }
 
@@ -261,12 +252,9 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
         prev.map((t) => (t.id === teamId ? { ...t, name: normalizedName, slug: newSlug } : t)),
       )
       return { error: null }
-    },
-    [isGodMode],
-  )
+  }
 
-  const deleteTeam = useCallback(
-    async (teamId: string): Promise<TeamMutationResult> => {
+  const deleteTeam = async (teamId: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
       if (!isGodMode) return { error: 'Only god mode can delete teams.' }
       if (teamId === DEFAULT_TEAM_ID) return { error: 'Cannot delete the default team.' }
@@ -283,45 +271,24 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
       }
 
       return { error: null }
-    },
-    [isGodMode, activeTeamIdState, teams],
-  )
+  }
 
-  const activeTeam = useMemo(
-    () => teams.find((team) => team.id === activeTeamIdState) || null,
-    [teams, activeTeamIdState],
-  )
+  const activeTeam = teams.find((team) => team.id === activeTeamIdState) || null
 
-  const value = useMemo<TeamAccessContextValue>(
-    () => ({
-      teams,
-      activeTeamId: activeTeamIdState,
-      activeTeam,
-      allowedTeamIds,
-      pinRole,
-      isGodMode,
-      loading,
-      setActiveTeamId,
-      refreshTeams,
-      createTeam,
-      updateTeam,
-      deleteTeam,
-    }),
-    [
-      teams,
-      activeTeamIdState,
-      activeTeam,
-      allowedTeamIds,
-      pinRole,
-      isGodMode,
-      loading,
-      setActiveTeamId,
-      refreshTeams,
-      createTeam,
-      updateTeam,
-      deleteTeam,
-    ],
-  )
+  const value: TeamAccessContextValue = {
+    teams,
+    activeTeamId: activeTeamIdState,
+    activeTeam,
+    allowedTeamIds,
+    pinRole,
+    isGodMode,
+    loading,
+    setActiveTeamId,
+    refreshTeams,
+    createTeam,
+    updateTeam,
+    deleteTeam,
+  }
 
   return <TeamAccessContext.Provider value={value}>{children}</TeamAccessContext.Provider>
 }

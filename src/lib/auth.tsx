@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -178,19 +177,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   };
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      session,
-      user: session?.user ?? null,
-      loading,
-      authError,
-      allowedEmailDomain,
-      signInWithMicrosoft,
-      signOut,
-      clearAuthError: () => setAuthError(null),
-    }),
-    [session, loading, authError],
-  );
+  const value: AuthContextValue = {
+    session,
+    user: session?.user ?? null,
+    loading,
+    authError,
+    allowedEmailDomain,
+    signInWithMicrosoft,
+    signOut,
+    clearAuthError: () => setAuthError(null),
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -52,10 +52,9 @@ export function useBugs(): UseBugsReturn {
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const bugsQueryKey = ['bugs-data', activeTeamId] as const
 
   const { data, isLoading: loading } = useQuery({
-    queryKey: bugsQueryKey,
+    queryKey: ['bugs-data', activeTeamId],
     queryFn: async () => {
       if (!supabase) return { bugs: [], questions: [], sessions: [], testers: [] }
 
@@ -104,33 +103,39 @@ export function useBugs(): UseBugsReturn {
   const registeredTesters = data?.testers || []
 
   // Helper to update bugs in the query cache
-  const setBugs = useCallback((updater: (prev: Bug[]) => Bug[]) => {
-    queryClient.setQueryData(bugsQueryKey, (old: typeof data) => {
+  const setBugs = (updater: (prev: Bug[]) => Bug[]) => {
+    queryClient.setQueryData(['bugs-data', activeTeamId], (old: typeof data) => {
       if (!old) return old
       return { ...old, bugs: updater(old.bugs) }
     })
-  }, [bugsQueryKey, queryClient])
+  }
 
-  const setQuestions = useCallback((updater: React.SetStateAction<Question[]>) => {
-    queryClient.setQueryData(bugsQueryKey, (old: typeof data) => {
+  const setQuestions = (updater: React.SetStateAction<Question[]>) => {
+    queryClient.setQueryData(['bugs-data', activeTeamId], (old: typeof data) => {
       if (!old) return old
       const next = typeof updater === 'function' ? updater(old.questions) : updater
       return { ...old, questions: next }
     })
-  }, [bugsQueryKey, queryClient])
+  }
 
-  const setRegisteredTesters = useCallback((updater: (prev: Array<Pick<Tester, 'id' | 'name'>>) => Array<Pick<Tester, 'id' | 'name'>>) => {
-    queryClient.setQueryData(bugsQueryKey, (old: typeof data) => {
+  const setRegisteredTesters = (updater: (prev: Array<Pick<Tester, 'id' | 'name'>>) => Array<Pick<Tester, 'id' | 'name'>>) => {
+    queryClient.setQueryData(['bugs-data', activeTeamId], (old: typeof data) => {
       if (!old) return old
       return { ...old, testers: updater(old.testers) }
     })
-  }, [bugsQueryKey, queryClient])
+  }
 
   // Real-time subscriptions so all users stay in sync
   useEffect(() => {
     if (!supabase) return
 
     const sb = supabase
+    const updateBugs = (updater: (prev: Bug[]) => Bug[]) => {
+      queryClient.setQueryData(['bugs-data', activeTeamId], (old: typeof data) => {
+        if (!old) return old
+        return { ...old, bugs: updater(old.bugs) }
+      })
+    }
 
     const scopeConfig = (event: '*' | 'INSERT' | 'DELETE', table: 'bugs' | 'comments' | 'attachments') => ({
       event,
@@ -143,21 +148,21 @@ export function useBugs(): UseBugsReturn {
       .on('postgres_changes', scopeConfig('*', 'bugs'), (payload) => {
         if (payload.eventType === 'INSERT') {
           const newBug = payload.new as Bug
-          setBugs((prev) => {
+          updateBugs((prev) => {
             if (prev.some(b => b.id === newBug.id)) return prev
             return [...prev, { ...newBug, comments: [], attachments: [] }]
           })
         } else if (payload.eventType === 'UPDATE') {
           const updated = payload.new as Bug
-          setBugs((prev) => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b))
+          updateBugs((prev) => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b))
         } else if (payload.eventType === 'DELETE') {
           const deleted = payload.old as { id: string }
-          setBugs((prev) => prev.filter(b => b.id !== deleted.id))
+          updateBugs((prev) => prev.filter(b => b.id !== deleted.id))
         }
       })
       .on('postgres_changes', scopeConfig('INSERT', 'comments'), (payload) => {
         const c = payload.new as { id: number; bug_id: string; text: string; time?: string }
-        setBugs((prev) => prev.map(b => {
+        updateBugs((prev) => prev.map(b => {
           if (b.id !== c.bug_id) return b
           if (b.comments.some(cm => cm.id === c.id)) return b
           return { ...b, comments: [...b.comments, c] }
@@ -165,14 +170,14 @@ export function useBugs(): UseBugsReturn {
       })
       .on('postgres_changes', scopeConfig('DELETE', 'comments'), (payload) => {
         const c = payload.old as { id: number; bug_id: string }
-        setBugs((prev) => prev.map(b => {
+        updateBugs((prev) => prev.map(b => {
           if (b.id !== c.bug_id) return b
           return { ...b, comments: b.comments.filter(cm => cm.id !== c.id) }
         }))
       })
       .on('postgres_changes', scopeConfig('INSERT', 'attachments'), (payload) => {
         const a = payload.new as Attachment & { bug_id: string }
-        setBugs((prev) => prev.map(b => {
+        updateBugs((prev) => prev.map(b => {
           if (b.id !== a.bug_id) return b
           if (b.attachments.some(at => at.id === a.id)) return b
           return { ...b, attachments: [...b.attachments, a] }
@@ -180,7 +185,7 @@ export function useBugs(): UseBugsReturn {
       })
       .on('postgres_changes', scopeConfig('DELETE', 'attachments'), (payload) => {
         const a = payload.old as { id: number; bug_id: string }
-        setBugs((prev) => prev.map(b => {
+        updateBugs((prev) => prev.map(b => {
           if (b.id !== a.bug_id) return b
           return { ...b, attachments: b.attachments.filter(at => at.id !== a.id) }
         }))
@@ -188,25 +193,25 @@ export function useBugs(): UseBugsReturn {
       .subscribe()
 
     return () => { sb.removeChannel(channel) }
-  }, [activeTeamId, setBugs])
+  }, [activeTeamId, queryClient])
 
-  const updateBug = useCallback((updated: Bug) => {
+  const updateBug = (updated: Bug) => {
     setBugs((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
-  }, [setBugs])
+  }
 
-  const showPersistError = useCallback(() => {
+  const showPersistError = () => {
     setSnackbar({ message: 'It was not possible to update the bug.' })
     window.setTimeout(() => setSnackbar(null), 4000)
-  }, [])
+  }
 
-  const deleteBugFromState = useCallback((bugId: string) => {
+  const deleteBugFromState = (bugId: string) => {
     setBugs((prev) => prev.filter((b) => b.id !== bugId))
-  }, [setBugs])
+  }
 
-  const clearSnackbar = useCallback(() => {
+  const clearSnackbar = () => {
     if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
     setSnackbar(null)
-  }, [])
+  }
 
   const addTester = async (name: string, devices: string[] = []): Promise<Pick<Tester, 'id' | 'name'> | null> => {
     if (!supabase) return null

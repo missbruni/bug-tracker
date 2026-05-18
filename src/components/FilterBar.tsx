@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import type { Bug, SessionOption } from "../types";
 import type { Severity } from "../constants";
@@ -41,13 +41,13 @@ export default function FilterBar({
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [closing, setClosing] = useState(false);
 
-	const closeSheet = useCallback(() => {
+	const closeSheet = () => {
 		setClosing(true);
 		setTimeout(() => {
 			setSheetOpen(false);
 			setClosing(false);
 		}, 200);
-	}, []);
+	};
 
 	const selectedActiveSeverities = new Set(
 		severityFilter

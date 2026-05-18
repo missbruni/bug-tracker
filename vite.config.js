@@ -180,6 +180,15 @@ function aiProxyPlugin() {
 }
 
 export default defineConfig({
-  plugins: [tailwindcss(), react(), pinAuthDevPlugin(), aiProxyPlugin()],
+  plugins: [
+    tailwindcss(),
+    react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler'],
+      },
+    }),
+    pinAuthDevPlugin(),
+    aiProxyPlugin(),
+  ],
   base: '/',
 })
