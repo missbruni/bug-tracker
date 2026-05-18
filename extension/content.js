@@ -165,42 +165,46 @@ function formatAllowedDomains(domains) {
 
 function showToast(message, tone = 'default') {
   const toast = document.createElement('div')
+  toast.setAttribute('role', 'alert')
+  toast.setAttribute('aria-live', 'assertive')
+  toast.setAttribute('aria-atomic', 'true')
   toast.textContent = message
   toast.style.position = 'fixed'
   toast.style.bottom = '24px'
   toast.style.left = '50%'
   toast.style.transform = 'translateX(-50%)'
-  toast.style.zIndex = '2147483646'
-  toast.style.maxWidth = '440px'
-  toast.style.padding = '14px 20px'
-  toast.style.borderRadius = '10px'
-  toast.style.fontSize = '14px'
+  toast.style.zIndex = '2147483647'
+  toast.style.maxWidth = '480px'
+  toast.style.width = 'max-content'
+  toast.style.padding = '16px 24px'
+  toast.style.borderRadius = '12px'
+  toast.style.fontSize = '15px'
   toast.style.lineHeight = '1.5'
   toast.style.fontWeight = '600'
   toast.style.fontFamily = 'Inter, system-ui, sans-serif'
   toast.style.textAlign = 'center'
   toast.style.whiteSpace = 'pre-line'
-  toast.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.55)'
+  toast.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.6)'
   toast.style.pointerEvents = 'none'
 
   if (tone === 'error') {
-    toast.style.background = THEME.dangerBg
-    toast.style.border = `1.5px solid ${THEME.dangerBorder}`
-    toast.style.color = THEME.dangerText
+    toast.style.background = '#3d0a16'
+    toast.style.border = `2px solid ${THEME.dangerBorder}`
+    toast.style.color = '#ffd0dc'
   } else if (tone === 'success') {
-    toast.style.background = THEME.successBg
-    toast.style.border = `1.5px solid ${THEME.successBorder}`
-    toast.style.color = THEME.successText
+    toast.style.background = '#0a2e18'
+    toast.style.border = `2px solid ${THEME.successBorder}`
+    toast.style.color = '#b0ffe0'
   } else {
     toast.style.background = THEME.surfaceAlt
-    toast.style.border = `1.5px solid ${THEME.border}`
+    toast.style.border = `2px solid ${THEME.border}`
     toast.style.color = THEME.text
   }
 
   document.body.appendChild(toast)
   window.setTimeout(() => {
     toast.remove()
-  }, 4500)
+  }, 5000)
 }
 
 function inferAttachmentName(fileType, index) {
@@ -1249,6 +1253,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         debugLog('EXTENSION_OPEN_COMPOSER:openComposerIfAllowed')
         void openComposerIfAllowed(message?.openMeta || { source: 'runtime' })
       }
+      return
+    }
+
+    if (message?.type === 'EXTENSION_TEST_TOAST') {
+      showToast('Capture is disabled on this domain.\nAllowed domains: app.example.com, staging.example.com', 'error')
+      sendResponse({ ok: true })
       return
     }
 

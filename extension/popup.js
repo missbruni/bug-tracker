@@ -174,4 +174,23 @@ openComposerButton.addEventListener('click', async () => {
   }
 })
 
+const testToastButton = document.getElementById('testToast')
+if (testToastButton) {
+  testToastButton.addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) {
+      setStatus('No active tab.', 'error')
+      return
+    }
+    try {
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'EXTENSION_TEST_TOAST',
+      })
+      setStatus('Toast triggered on active tab.', 'success')
+    } catch {
+      setStatus('Could not reach the tab. Refresh and try again.', 'error')
+    }
+  })
+}
+
 void loadSettings()

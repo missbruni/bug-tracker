@@ -49,6 +49,23 @@ interface TeamCardProps {
   onCancelDelete: () => void
 }
 
+export function parseProductLink(raw: unknown): ProductLink {
+  if (raw && typeof raw === 'object' && 'url' in raw) {
+    const obj = raw as Record<string, unknown>
+    return { label: String(obj.label || ''), url: String(obj.url || '') }
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object' && typeof parsed.url === 'string') {
+        return { label: String(parsed.label || ''), url: parsed.url }
+      }
+    } catch { /* not JSON, treat as plain URL */ }
+    return { label: '', url: raw }
+  }
+  return { label: '', url: '' }
+}
+
 export default function TeamCard({
   team,
   isActive,
@@ -104,7 +121,7 @@ export default function TeamCard({
     setEditProductName(product.name)
     setEditProductDesc(product.description || '')
     const existingLinks: ProductLink[] = product.links?.length
-      ? product.links.map(l => typeof l === 'string' ? { label: '', url: l } : l)
+      ? product.links.map(l => parseProductLink(l))
       : product.link ? [{ label: '', url: product.link }] : [{ label: '', url: '' }]
     setEditProductLinks(existingLinks)
   }
@@ -347,9 +364,9 @@ export default function TeamCard({
                         <p className="text-xs text-slate-500 dark:text-gray-500 mt-0.5 line-clamp-2">
                           {product.description}
                           {product.description && (product.links?.length || product.link) ? ' · ' : ''}
-                          {(product.links?.length ? product.links : product.link ? [{ label: '', url: product.link }] : []).map((lnk, i, arr) => {
-                            const url = typeof lnk === 'string' ? lnk : lnk.url
-                            const label = (typeof lnk === 'string' ? '' : lnk.label) || (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return 'Link' } })()
+                          {(product.links?.length ? product.links.map(l => parseProductLink(l)) : product.link ? [{ label: '', url: product.link }] : []).map((lnk, i, arr) => {
+                            const url = lnk.url
+                            const label = lnk.label || (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return 'Link' } })()
                             return (
                               <span key={i}>
                                 {i > 0 && <span className="text-slate-300 dark:text-gray-600"> · </span>}

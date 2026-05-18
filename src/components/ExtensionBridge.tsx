@@ -73,6 +73,23 @@ export function extractDomainFromLink(link: string): string | null {
   }
 }
 
+function resolveEntryUrl(entry: unknown): string | null {
+  if (entry && typeof entry === 'object' && 'url' in entry) {
+    const url = (entry as Record<string, unknown>).url
+    return typeof url === 'string' ? url : null
+  }
+  if (typeof entry === 'string') {
+    try {
+      const parsed = JSON.parse(entry)
+      if (parsed && typeof parsed === 'object' && typeof parsed.url === 'string') {
+        return parsed.url
+      }
+    } catch { /* not JSON, treat as plain URL */ }
+    return entry
+  }
+  return null
+}
+
 function normalizeSeverity(severity?: string): Severity {
   if (severity && SEVERITIES.includes(severity as Severity)) {
     return severity as Severity
@@ -216,15 +233,16 @@ export default function ExtensionBridge() {
       }
 
       const allDomains: string[] = []
-      for (const row of (data || []) as Array<{ link: string | null; links: Array<{ label: string; url: string }> | null }>) {
+      for (const row of (data || []) as Array<{ link: string | null; links: unknown[] | null }>) {
         if (row.link) {
           const d = extractDomainFromLink(row.link)
           if (d) allDomains.push(d)
         }
         if (Array.isArray(row.links)) {
           for (const entry of row.links) {
-            if (entry?.url) {
-              const d = extractDomainFromLink(entry.url)
+            const url = resolveEntryUrl(entry)
+            if (url) {
+              const d = extractDomainFromLink(url)
               if (d) allDomains.push(d)
             }
           }

@@ -2,7 +2,7 @@
 import { test, expect, describe, afterEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import TeamCard from '../TeamCard'
+import TeamCard, { parseProductLink } from '../TeamCard'
 import type { TeamStats, Product } from '../TeamCard'
 import type { TeamRecord } from '../../lib/teamScope'
 
@@ -166,5 +166,41 @@ describe('TeamCard', () => {
     const zeros = screen.getAllByText('0')
     // Should have at least 3 zeros (testers, sessions, active bugs) + 0 products
     expect(zeros.length).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('parseProductLink', () => {
+  test('parses a proper {label, url} object', () => {
+    expect(parseProductLink({ label: 'CI', url: 'https://ci.example.com' })).toEqual({
+      label: 'CI',
+      url: 'https://ci.example.com',
+    })
+  })
+
+  test('parses a double-serialized JSON string', () => {
+    const raw = '{"label":"Stage","url":"https://staging.example.com"}'
+    expect(parseProductLink(raw)).toEqual({
+      label: 'Stage',
+      url: 'https://staging.example.com',
+    })
+  })
+
+  test('parses a plain URL string', () => {
+    expect(parseProductLink('https://example.com')).toEqual({
+      label: '',
+      url: 'https://example.com',
+    })
+  })
+
+  test('returns empty link for null/undefined', () => {
+    expect(parseProductLink(null)).toEqual({ label: '', url: '' })
+    expect(parseProductLink(undefined)).toEqual({ label: '', url: '' })
+  })
+
+  test('handles object with missing label', () => {
+    expect(parseProductLink({ url: 'https://example.com' })).toEqual({
+      label: '',
+      url: 'https://example.com',
+    })
   })
 })
