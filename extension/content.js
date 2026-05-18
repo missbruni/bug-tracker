@@ -10,7 +10,7 @@ const EXTENSION_RESPONSE_SOURCE = 'mushi-extension-bridge'
 
 const COMPOSER_ROOT_ID = 'mushi-extension-composer-root'
 const FLOATING_SHORTCUT_ID = 'mushi-extension-floating-shortcut'
-const FLOATING_SHORTCUT_POSITION_KEY = 'floatingShortcutPosition'
+const FLOATING_SHORTCUT_POSITION_KEY = 'floatingShortcutOffset'
 const FLOATING_SHORTCUT_SIZE = 46
 const FLOATING_SHORTCUT_MARGIN = 16
 const KEY_SHORTCUT = 'alt+shift+b'
@@ -80,7 +80,7 @@ function debugLog(...args) {
 
 let currentOverlay = null
 let floatingShortcutEnabled = false
-let floatingShortcutPosition = null
+let floatingShortcutOffset = null
 let floatingShortcutSuppressClickUntil = 0
 let composerDraft = null
 
@@ -282,7 +282,7 @@ function getBugIconSvg(size = 20) {
   `
 }
 
-function clampFloatingShortcutPosition(left, top) {
+function clampPosition(left, top) {
   const maxLeft = Math.max(8, window.innerWidth - FLOATING_SHORTCUT_SIZE - 8)
   const maxTop = Math.max(8, window.innerHeight - FLOATING_SHORTCUT_SIZE - 8)
 
@@ -292,10 +292,23 @@ function clampFloatingShortcutPosition(left, top) {
   }
 }
 
-async function persistFloatingShortcutPosition(position) {
-  floatingShortcutPosition = position
+function offsetToPosition(offset) {
+  const left = window.innerWidth - FLOATING_SHORTCUT_SIZE - (offset?.right ?? FLOATING_SHORTCUT_MARGIN)
+  const top = window.innerHeight - FLOATING_SHORTCUT_SIZE - (offset?.bottom ?? FLOATING_SHORTCUT_MARGIN)
+  return clampPosition(left, top)
+}
+
+function positionToOffset(left, top) {
+  return {
+    right: window.innerWidth - FLOATING_SHORTCUT_SIZE - left,
+    bottom: window.innerHeight - FLOATING_SHORTCUT_SIZE - top,
+  }
+}
+
+async function persistFloatingShortcutOffset(offset) {
+  floatingShortcutOffset = offset
   try {
-    await chrome.storage.local.set({ [FLOATING_SHORTCUT_POSITION_KEY]: position })
+    await chrome.storage.local.set({ [FLOATING_SHORTCUT_POSITION_KEY]: offset })
   } catch {
     // Ignore persistence failures.
   }
@@ -306,21 +319,22 @@ function removeFloatingShortcut() {
   if (existing) existing.remove()
 }
 
+let renderingFloatingShortcut = false
+
 function renderFloatingShortcut() {
+  renderingFloatingShortcut = true
   removeFloatingShortcut()
-  if (!floatingShortcutEnabled) return
+  if (!floatingShortcutEnabled) {
+    renderingFloatingShortcut = false
+    return
+  }
 
   debugLog('renderFloatingShortcut:start', {
     floatingShortcutEnabled,
-    floatingShortcutPosition,
+    floatingShortcutOffset,
   })
 
-  const defaultLeft = window.innerWidth - FLOATING_SHORTCUT_SIZE - FLOATING_SHORTCUT_MARGIN
-  const defaultTop = window.innerHeight - FLOATING_SHORTCUT_SIZE - FLOATING_SHORTCUT_MARGIN
-  const initialPosition = clampFloatingShortcutPosition(
-    floatingShortcutPosition?.left ?? defaultLeft,
-    floatingShortcutPosition?.top ?? defaultTop,
-  )
+  const initialPosition = offsetToPosition(floatingShortcutOffset)
 
   const button = document.createElement('button')
   button.id = FLOATING_SHORTCUT_ID
@@ -359,10 +373,10 @@ function renderFloatingShortcut() {
       floatingShortcutSuppressClickUntil = Date.now() + 250
       const finalLeft = Number.parseFloat(button.style.left) || dragState.startLeft
       const finalTop = Number.parseFloat(button.style.top) || dragState.startTop
-      const finalPosition = clampFloatingShortcutPosition(finalLeft, finalTop)
+      const finalPosition = clampPosition(finalLeft, finalTop)
       button.style.left = `${finalPosition.left}px`
       button.style.top = `${finalPosition.top}px`
-      void persistFloatingShortcutPosition(finalPosition)
+      void persistFloatingShortcutOffset(positionToOffset(finalPosition.left, finalPosition.top))
     }
 
     if (button.hasPointerCapture(event.pointerId)) {
@@ -401,7 +415,7 @@ function renderFloatingShortcut() {
 
     const deltaX = event.clientX - dragState.startX
     const deltaY = event.clientY - dragState.startY
-    const nextPosition = clampFloatingShortcutPosition(
+    const nextPosition = clampPosition(
       dragState.startLeft + deltaX,
       dragState.startTop + deltaY,
     )
@@ -457,6 +471,7 @@ function renderFloatingShortcut() {
   }
 
   document.body.appendChild(button)
+  renderingFloatingShortcut = false
 }
 
 async function loadFloatingShortcutSetting() {
@@ -484,17 +499,17 @@ async function loadFloatingShortcutSetting() {
 
   try {
     const stored = await chrome.storage.local.get({ [FLOATING_SHORTCUT_POSITION_KEY]: null })
-    const rawPosition = stored[FLOATING_SHORTCUT_POSITION_KEY]
+    const rawOffset = stored[FLOATING_SHORTCUT_POSITION_KEY]
     if (
-      rawPosition &&
-      typeof rawPosition.left === 'number' &&
-      Number.isFinite(rawPosition.left) &&
-      typeof rawPosition.top === 'number' &&
-      Number.isFinite(rawPosition.top)
+      rawOffset &&
+      typeof rawOffset.right === 'number' &&
+      Number.isFinite(rawOffset.right) &&
+      typeof rawOffset.bottom === 'number' &&
+      Number.isFinite(rawOffset.bottom)
     ) {
-      floatingShortcutPosition = {
-        left: rawPosition.left,
-        top: rawPosition.top,
+      floatingShortcutOffset = {
+        right: rawOffset.right,
+        bottom: rawOffset.bottom,
       }
     }
   } catch {
@@ -1210,22 +1225,28 @@ window.addEventListener('resize', () => {
   const existing = document.getElementById(FLOATING_SHORTCUT_ID)
   if (!existing || !floatingShortcutEnabled) return
 
-  const currentLeft = Number.parseFloat(existing.style.left)
-  const currentTop = Number.parseFloat(existing.style.top)
-  const nextPosition = clampFloatingShortcutPosition(
-    Number.isFinite(currentLeft) ? currentLeft : window.innerWidth - FLOATING_SHORTCUT_SIZE - FLOATING_SHORTCUT_MARGIN,
-    Number.isFinite(currentTop) ? currentTop : window.innerHeight - FLOATING_SHORTCUT_SIZE - FLOATING_SHORTCUT_MARGIN,
-  )
-
+  const nextPosition = offsetToPosition(floatingShortcutOffset)
   existing.style.left = `${nextPosition.left}px`
   existing.style.top = `${nextPosition.top}px`
-  floatingShortcutPosition = nextPosition
 })
+
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
+  if (document.visibilityState === 'visible' && floatingShortcutEnabled) {
+    if (!document.getElementById(FLOATING_SHORTCUT_ID)) {
+      renderFloatingShortcut()
+    }
+  }
+})
+
+// Re-inject the floating button if it gets removed by an SPA or page rebuild
+const floatingButtonObserver = new MutationObserver(() => {
+  if (!floatingShortcutEnabled || renderingFloatingShortcut) return
+  if (!document.getElementById(FLOATING_SHORTCUT_ID)) {
+    debugLog('floatingButtonObserver:re-inject')
     renderFloatingShortcut()
   }
 })
+floatingButtonObserver.observe(document.body, { childList: true, subtree: true })
 
 void loadFloatingShortcutSetting()
 
