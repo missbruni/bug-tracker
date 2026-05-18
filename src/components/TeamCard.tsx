@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Check, X, Users, Bug, CalendarDays, Package, Plus, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, Check, X, Users, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
 import InlineDeleteConfirm from './InlineDeleteConfirm'
 
@@ -11,6 +11,11 @@ export interface TeamStats {
   activeBugs: number
 }
 
+export interface ProductLink {
+  label: string
+  url: string
+}
+
 export interface Product {
   id: string
   team_id: string
@@ -18,6 +23,7 @@ export interface Product {
   slug: string
   description?: string | null
   link?: string | null
+  links?: ProductLink[] | null
 }
 
 interface TeamCardProps {
@@ -29,8 +35,8 @@ interface TeamCardProps {
   onSelect: () => void
   onStartEdit: () => void
   onDelete: () => void
-  onAddProduct: (product: { name: string; description?: string; link?: string }) => Promise<void>
-  onUpdateProduct: (productId: string, product: { name: string; description?: string; link?: string }) => Promise<void>
+  onAddProduct: (product: { name: string; description?: string; links?: ProductLink[] }) => Promise<void>
+  onUpdateProduct: (productId: string, product: { name: string; description?: string; links?: ProductLink[] }) => Promise<void>
   onDeleteProduct: (productId: string) => void
   isEditing: boolean
   editName: string
@@ -68,26 +74,27 @@ export default function TeamCard({
   const [addingProduct, setAddingProduct] = useState(false)
   const [newProductName, setNewProductName] = useState('')
   const [newProductDesc, setNewProductDesc] = useState('')
-  const [newProductLink, setNewProductLink] = useState('')
+  const [newProductLinks, setNewProductLinks] = useState<ProductLink[]>([{ label: '', url: '' }])
   const [creatingProduct, setCreatingProduct] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [editProductName, setEditProductName] = useState('')
   const [editProductDesc, setEditProductDesc] = useState('')
-  const [editProductLink, setEditProductLink] = useState('')
+  const [editProductLinks, setEditProductLinks] = useState<ProductLink[]>([{ label: '', url: '' }])
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
   const [productsExpanded, setProductsExpanded] = useState(true)
 
   const handleAddProduct = async () => {
     if (!newProductName.trim() || creatingProduct) return
     setCreatingProduct(true)
+    const trimmedLinks = newProductLinks.filter(l => l.url.trim()).map(l => ({ label: l.label.trim(), url: l.url.trim() }))
     await onAddProduct({
       name: newProductName.trim(),
       description: newProductDesc.trim() || undefined,
-      link: newProductLink.trim() || undefined,
+      links: trimmedLinks.length ? trimmedLinks : undefined,
     })
     setNewProductName('')
     setNewProductDesc('')
-    setNewProductLink('')
+    setNewProductLinks([{ label: '', url: '' }])
     setAddingProduct(false)
     setCreatingProduct(false)
   }
@@ -96,15 +103,19 @@ export default function TeamCard({
     setEditingProductId(product.id)
     setEditProductName(product.name)
     setEditProductDesc(product.description || '')
-    setEditProductLink(product.link || '')
+    const existingLinks: ProductLink[] = product.links?.length
+      ? product.links.map(l => typeof l === 'string' ? { label: '', url: l } : l)
+      : product.link ? [{ label: '', url: product.link }] : [{ label: '', url: '' }]
+    setEditProductLinks(existingLinks)
   }
 
   const saveEditProduct = async () => {
     if (!editingProductId || !editProductName.trim()) return
+    const trimmedLinks = editProductLinks.filter(l => l.url.trim()).map(l => ({ label: l.label.trim(), url: l.url.trim() }))
     await onUpdateProduct(editingProductId, {
       name: editProductName.trim(),
       description: editProductDesc.trim() || undefined,
-      link: editProductLink.trim() || undefined,
+      links: trimmedLinks.length ? trimmedLinks : undefined,
     })
     setEditingProductId(null)
   }
@@ -252,7 +263,7 @@ export default function TeamCard({
               <Package size={14} className="text-slate-400 dark:text-gray-500" />
               <span className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wide">Products</span>
               <button
-                onClick={() => { setAddingProduct(true); setNewProductName(''); setNewProductDesc(''); setNewProductLink('') }}
+                onClick={() => { setAddingProduct(true); setNewProductName(''); setNewProductDesc(''); setNewProductLinks([{ label: '', url: '' }]) }}
                 className="ml-auto flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
                 title="Add product"
               >
@@ -282,12 +293,34 @@ export default function TeamCard({
                       placeholder="Description (optional)"
                       className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                     />
-                    <input
-                      value={editProductLink}
-                      onChange={(e) => setEditProductLink(e.target.value)}
-                      placeholder="URL (optional)"
-                      className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
-                    />
+                    <div className="space-y-1.5">
+                      {editProductLinks.map((link, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <input
+                            value={link.label}
+                            onChange={(e) => { const next = [...editProductLinks]; next[i] = { ...next[i], label: e.target.value }; setEditProductLinks(next) }}
+                            placeholder="Label"
+                            className="w-28 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
+                          />
+                          <input
+                            value={link.url}
+                            onChange={(e) => { const next = [...editProductLinks]; next[i] = { ...next[i], url: e.target.value }; setEditProductLinks(next) }}
+                            placeholder="https://..."
+                            className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
+                          />
+                          {editProductLinks.length > 1 && (
+                            <button onClick={() => setEditProductLinks(editProductLinks.filter((_, j) => j !== i))}
+                              className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer" title="Remove link">
+                              <X size={12} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button onClick={() => setEditProductLinks([...editProductLinks, { label: '', url: '' }])}
+                        className="flex items-center gap-1 text-[11px] font-medium text-blue-500 hover:text-blue-600 cursor-pointer">
+                        <Plus size={10} /> Add link
+                      </button>
+                    </div>
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => setEditingProductId(null)}
                         className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1 text-xs text-slate-600 dark:text-gray-400 cursor-pointer">
@@ -310,24 +343,30 @@ export default function TeamCard({
                         <Package size={14} className="text-red-500 dark:text-mushi-threat" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">{product.name}</p>
-                          {product.link && (
-                            <a
-                              href={product.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                              title={product.link}
-                            >
-                              <ExternalLink size={12} />
-                            </a>
-                          )}
-                        </div>
-                        {product.description && (
-                          <p className="text-xs text-slate-500 dark:text-gray-500 mt-0.5 line-clamp-2">{product.description}</p>
-                        )}
+                        <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">{product.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-gray-500 mt-0.5 line-clamp-2">
+                          {product.description}
+                          {product.description && (product.links?.length || product.link) ? ' · ' : ''}
+                          {(product.links?.length ? product.links : product.link ? [{ label: '', url: product.link }] : []).map((lnk, i, arr) => {
+                            const url = typeof lnk === 'string' ? lnk : lnk.url
+                            const label = (typeof lnk === 'string' ? '' : lnk.label) || (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return 'Link' } })()
+                            return (
+                              <span key={i}>
+                                {i > 0 && <span className="text-slate-300 dark:text-gray-600"> · </span>}
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                                  title={url}
+                                >
+                                  {label}
+                                </a>
+                              </span>
+                            )
+                          })}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <button
@@ -386,12 +425,34 @@ export default function TeamCard({
                   placeholder="Description (optional)"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                 />
-                <input
-                  value={newProductLink}
-                  onChange={(e) => setNewProductLink(e.target.value)}
-                  placeholder="URL (optional)"
-                  className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
-                />
+                <div className="space-y-1.5">
+                  {newProductLinks.map((link, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <input
+                        value={link.label}
+                        onChange={(e) => { const next = [...newProductLinks]; next[i] = { ...next[i], label: e.target.value }; setNewProductLinks(next) }}
+                        placeholder="Label"
+                        className="w-28 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
+                      />
+                      <input
+                        value={link.url}
+                        onChange={(e) => { const next = [...newProductLinks]; next[i] = { ...next[i], url: e.target.value }; setNewProductLinks(next) }}
+                        placeholder="https://..."
+                        className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
+                      />
+                      {newProductLinks.length > 1 && (
+                        <button onClick={() => setNewProductLinks(newProductLinks.filter((_, j) => j !== i))}
+                          className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer" title="Remove link">
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => setNewProductLinks([...newProductLinks, { label: '', url: '' }])}
+                    className="flex items-center gap-1 text-[11px] font-medium text-blue-500 hover:text-blue-600 cursor-pointer">
+                    <Plus size={10} /> Add link
+                  </button>
+                </div>
                 <div className="flex gap-2 justify-end">
                   <button
                     onClick={() => setAddingProduct(false)}

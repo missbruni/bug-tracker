@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, ShieldCheck } from 'lucide-react'
 import SecondaryAppBar from '../components/SecondaryAppBar'
-import TeamCard, { type Product, type TeamStats } from '../components/TeamCard'
+import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
 import { useTeamAccess } from '../lib/teamAccess'
 import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
 import { supabase } from '../supabaseClient'
@@ -39,7 +39,7 @@ export default function TeamManagementPage() {
       supabase.from('testers').select('team_id, active'),
       supabase.from('sessions').select('team_id'),
       supabase.from('bugs').select('team_id, reviewed'),
-      supabase.from('products').select('id, team_id, name, slug, description, link'),
+      supabase.from('products').select('id, team_id, name, slug, description, link, links'),
     ])
     const stats: Record<string, TeamStats> = {}
     const ensure = (id: string) => { if (!stats[id]) stats[id] = { testers: 0, activeTesters: 0, sessions: 0, activeBugs: 0 } }
@@ -67,13 +67,14 @@ export default function TeamManagementPage() {
     return () => window.removeEventListener('teamDataChanged', handler)
   }, [refreshTeams, loadTeamStats])
 
-  const handleAddProduct = async (teamId: string, product: { name: string; description?: string; link?: string }) => {
+  const handleAddProduct = async (teamId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {
     if (!supabase) return
     const slug = slugifyTeamName(product.name)
+    const links = product.links?.length ? product.links : []
     const { data, error: err } = await supabase
       .from('products')
-      .insert({ team_id: teamId, name: product.name, slug, description: product.description || null, link: product.link || null })
-      .select('id, team_id, name, slug, description, link')
+      .insert({ team_id: teamId, name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links })
+      .select('id, team_id, name, slug, description, link, links')
       .single()
     if (err) {
       setToast({ message: err.message, tone: 'error' })
@@ -82,17 +83,18 @@ export default function TeamManagementPage() {
     }
   }
 
-  const handleUpdateProduct = async (productId: string, product: { name: string; description?: string; link?: string }) => {
+  const handleUpdateProduct = async (productId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {
     if (!supabase) return
     const slug = slugifyTeamName(product.name)
+    const links = product.links?.length ? product.links : []
     const { error: err } = await supabase
       .from('products')
-      .update({ name: product.name, slug, description: product.description || null, link: product.link || null })
+      .update({ name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links })
       .eq('id', productId)
     if (err) {
       setToast({ message: err.message, tone: 'error' })
     } else {
-      setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, name: product.name, slug, description: product.description || null, link: product.link || null } : p))
+      setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links } : p))
     }
   }
 

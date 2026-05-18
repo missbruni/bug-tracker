@@ -224,7 +224,7 @@ button.full {
 }
 
 .status.error {
-  border-color: rgba(255, 106, 175, 0.45);
-  background: rgba(255, 0, 122, 0.12);
-  color: #ffb5d5;
+  border-color: #ff3c64;
+  background: #2a0f18;
+  color: #ff8fa8;
 }

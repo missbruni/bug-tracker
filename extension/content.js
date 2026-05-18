@@ -26,7 +26,13 @@ const THEME = {
   primary: '#00ffcc',
   primarySoft: 'rgba(0, 255, 204, 0.12)',
   danger: '#ff6aaf',
-  dangerSoft: 'rgba(255, 0, 122, 0.12)',
+  dangerSoft: 'rgba(255, 60, 100, 0.18)',
+  dangerBg: '#2a0f18',
+  dangerBorder: '#ff3c64',
+  dangerText: '#ff8fa8',
+  successBg: '#0f2a1a',
+  successBorder: '#00cc88',
+  successText: '#7cffcc',
 }
 const TYPE_SCALE = {
   title: '16px',
@@ -169,15 +175,21 @@ function showToast(message, tone = 'default') {
   toast.style.borderRadius = '8px'
   toast.style.fontSize = '12px'
   toast.style.fontWeight = '600'
-  toast.style.color = THEME.text
   toast.style.boxShadow = '0 16px 35px rgba(0, 0, 0, 0.45)'
-  toast.style.border = `1px solid ${THEME.border}`
-  toast.style.background =
-    tone === 'error'
-      ? THEME.dangerSoft
-      : tone === 'success'
-        ? THEME.primarySoft
-        : THEME.surfaceAlt
+
+  if (tone === 'error') {
+    toast.style.background = THEME.dangerBg
+    toast.style.border = `1px solid ${THEME.dangerBorder}`
+    toast.style.color = THEME.dangerText
+  } else if (tone === 'success') {
+    toast.style.background = THEME.successBg
+    toast.style.border = `1px solid ${THEME.successBorder}`
+    toast.style.color = THEME.successText
+  } else {
+    toast.style.background = THEME.surfaceAlt
+    toast.style.border = `1px solid ${THEME.border}`
+    toast.style.color = THEME.text
+  }
 
   document.body.appendChild(toast)
   window.setTimeout(() => {
