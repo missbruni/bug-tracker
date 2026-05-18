@@ -56,15 +56,11 @@ interface ExtensionCreateBugResult {
   uploadedCount: number
 }
 
-interface ProductLinkRow {
-  link: string | null
-}
-
-function normalizeHostname(hostname: string): string {
+export function normalizeHostname(hostname: string): string {
   return hostname.trim().toLowerCase().replace(/^www\./, '')
 }
 
-function extractDomainFromLink(link: string): string | null {
+export function extractDomainFromLink(link: string): string | null {
   const raw = link.trim()
   if (!raw) return null
 
@@ -208,7 +204,7 @@ export default function ExtensionBridge() {
 
       const { data, error } = await supabase
         .from('products')
-        .select('link')
+        .select('link, links')
         .eq('team_id', activeTeamId)
 
       if (cancelled) return
@@ -219,14 +215,23 @@ export default function ExtensionBridge() {
         return
       }
 
-      const domains = Array.from(
-        new Set(
-          ((data || []) as ProductLinkRow[])
-            .map((row) => extractDomainFromLink(row.link || ''))
-            .filter((domain): domain is string => Boolean(domain)),
-        ),
-      ).sort((a, b) => a.localeCompare(b))
+      const allDomains: string[] = []
+      for (const row of (data || []) as Array<{ link: string | null; links: Array<{ label: string; url: string }> | null }>) {
+        if (row.link) {
+          const d = extractDomainFromLink(row.link)
+          if (d) allDomains.push(d)
+        }
+        if (Array.isArray(row.links)) {
+          for (const entry of row.links) {
+            if (entry?.url) {
+              const d = extractDomainFromLink(entry.url)
+              if (d) allDomains.push(d)
+            }
+          }
+        }
+      }
 
+      const domains = Array.from(new Set(allDomains)).sort((a, b) => a.localeCompare(b))
       setAllowedDomains(domains)
     }
 

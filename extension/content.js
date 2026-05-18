@@ -167,34 +167,40 @@ function showToast(message, tone = 'default') {
   const toast = document.createElement('div')
   toast.textContent = message
   toast.style.position = 'fixed'
-  toast.style.bottom = '20px'
-  toast.style.right = '20px'
+  toast.style.bottom = '24px'
+  toast.style.left = '50%'
+  toast.style.transform = 'translateX(-50%)'
   toast.style.zIndex = '2147483646'
-  toast.style.maxWidth = '320px'
-  toast.style.padding = '10px 14px'
-  toast.style.borderRadius = '8px'
-  toast.style.fontSize = '12px'
+  toast.style.maxWidth = '440px'
+  toast.style.padding = '14px 20px'
+  toast.style.borderRadius = '10px'
+  toast.style.fontSize = '14px'
+  toast.style.lineHeight = '1.5'
   toast.style.fontWeight = '600'
-  toast.style.boxShadow = '0 16px 35px rgba(0, 0, 0, 0.45)'
+  toast.style.fontFamily = 'Inter, system-ui, sans-serif'
+  toast.style.textAlign = 'center'
+  toast.style.whiteSpace = 'pre-line'
+  toast.style.boxShadow = '0 20px 50px rgba(0, 0, 0, 0.55)'
+  toast.style.pointerEvents = 'none'
 
   if (tone === 'error') {
     toast.style.background = THEME.dangerBg
-    toast.style.border = `1px solid ${THEME.dangerBorder}`
+    toast.style.border = `1.5px solid ${THEME.dangerBorder}`
     toast.style.color = THEME.dangerText
   } else if (tone === 'success') {
     toast.style.background = THEME.successBg
-    toast.style.border = `1px solid ${THEME.successBorder}`
+    toast.style.border = `1.5px solid ${THEME.successBorder}`
     toast.style.color = THEME.successText
   } else {
     toast.style.background = THEME.surfaceAlt
-    toast.style.border = `1px solid ${THEME.border}`
+    toast.style.border = `1.5px solid ${THEME.border}`
     toast.style.color = THEME.text
   }
 
   document.body.appendChild(toast)
   window.setTimeout(() => {
     toast.remove()
-  }, 3000)
+  }, 4500)
 }
 
 function inferAttachmentName(fileType, index) {
@@ -1176,8 +1182,9 @@ async function openComposerIfAllowed(openMeta = {}) {
 
   if (!response?.ok || !response.allowed) {
     const allowedDomains = formatAllowedDomains(response?.allowedDomains)
-    const suffix = allowedDomains ? ` Allowed: ${allowedDomains}` : ''
-    showToast((response?.reason || 'Capture is disabled for this page.') + suffix, 'error')
+    const reason = response?.reason || 'Capture is disabled for this page.'
+    const suffix = allowedDomains ? `\nAllowed domains: ${allowedDomains}` : ''
+    showToast(reason + suffix, 'error')
     return
   }
 
