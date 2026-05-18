@@ -94,13 +94,14 @@ describe('BugCard', () => {
 
   test('expands card when clicked to reveal description', () => {
     renderBugCard({ description: 'Detailed steps to reproduce the issue' })
-    // Description should not be visible before expanding
-    expect(screen.queryByText('Detailed steps to reproduce the issue')).not.toBeInTheDocument()
+    // Description is in DOM but hidden (collapse-grid without open)
+    const desc = screen.getByText('Detailed steps to reproduce the issue')
+    expect(desc.closest('.collapse-grid')!.classList.contains('open')).toBe(false)
     // Click the expand area (the button wrapping the title)
     const titleEl = screen.getByText('Login button broken')
     fireEvent.click(titleEl.closest('button')!)
-    // Description should now be visible
-    expect(screen.getByText('Detailed steps to reproduce the issue')).toBeInTheDocument()
+    // Description should now be visible (collapse-grid has open class)
+    expect(desc.closest('.collapse-grid')!.classList.contains('open')).toBe(true)
   })
 
   test('shows inline confirm when row trash icon is clicked', () => {

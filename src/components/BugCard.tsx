@@ -255,7 +255,8 @@ export default function BugCard({
 				</button>
 			</div>
 
-			{expanded && (
+			<div className={`collapse-grid ${expanded ? 'open' : ''}`}>
+			<div>
 				<div
 					className="border-t border-slate-100 dark:border-gray-800 px-4 py-3"
 					onPaste={handlePaste}
@@ -414,7 +415,8 @@ export default function BugCard({
 						</button>
 					</div>
 				</div>
-			)}
+			</div>
+			</div>
 		</div>
 	);
 }

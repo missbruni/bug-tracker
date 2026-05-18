@@ -118,9 +118,9 @@ describe('TeamCard', () => {
     // The first "Products" is inside the stat tile button
     const tile = productButtons[0].closest('button')
     if (tile) fireEvent.click(tile)
-    // Product names should no longer be visible
-    expect(screen.queryByText('Booking Engine')).not.toBeInTheDocument()
-    expect(screen.queryByText('Ancillaries')).not.toBeInTheDocument()
+    // Products section should be collapsed (collapse-grid without open class)
+    const product = screen.getByText('Booking Engine')
+    expect(product.closest('.collapse-grid')!.classList.contains('open')).toBe(false)
   })
 
   test('products section re-expands when clicked again', () => {

@@ -305,3 +305,19 @@ h1, h2, h3, h4 {
   background-color: color-mix(in srgb, var(--color-slate-500) 8%, transparent);
 }
 
+/* ─── Collapse / expand animation ─── */
+.collapse-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 250ms ease, opacity 200ms ease;
+}
+.collapse-grid.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.collapse-grid > div {
+  overflow: hidden;
+  min-height: 0;
+}
+

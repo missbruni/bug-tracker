@@ -245,7 +245,8 @@ export default function TeamCard({
           </div>
 
           {/* Products section (collapsible) */}
-          {productsExpanded && (
+          <div className={`collapse-grid ${productsExpanded ? 'open' : ''}`}>
+          <div>
           <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-gray-800">
             <div className="flex items-center gap-2 mb-3">
               <Package size={14} className="text-slate-400 dark:text-gray-500" />
@@ -409,7 +410,8 @@ export default function TeamCard({
               </div>
             )}
           </div>
-          )}
+          </div>
+          </div>
         </div>
       )}
     </div>

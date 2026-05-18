@@ -92,9 +92,10 @@ export default function ScenarioCard({
 					</div>
 				)}
 			</div>
-			{isExpanded && scenario.description && (
-				<div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 space-y-1.5">
-					{scenario.description.split('\n').filter(l => l.trim()).map((line, i) => {
+			<div className={`collapse-grid ${isExpanded && scenario.description ? 'open' : ''}`}>
+			<div>
+				<div className="mt-3 pt-3 pb-1 px-1 border-t border-slate-100 dark:border-gray-800 space-y-1.5">
+					{scenario.description?.split('\n').filter(l => l.trim()).map((line, i) => {
 						const trimmed = line.trim()
 						const numberedMatch = trimmed.match(/^(\d+)\.\s+(.*)/)
 						const isCheck = trimmed.startsWith('✓') || trimmed.startsWith('✔')
@@ -117,7 +118,8 @@ export default function ScenarioCard({
 						return <p key={i} className="text-[13px] text-slate-600 dark:text-gray-400 leading-relaxed">{trimmed}</p>
 					})}
 				</div>
-			)}
+			</div>
+			</div>
 		</div>
 	)
 }
