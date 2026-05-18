@@ -13,6 +13,8 @@ import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth } from "./lib/useAuth";
 import PageLoader from "./components/PageLoader";
 import ExtensionBridge from "./components/ExtensionBridge";
+import { SessionTimerProvider } from "./lib/sessionTimer";
+import SessionTimerBar from "./components/SessionTimerBar";
 import "./index.css";
 
 const AppPage = lazy(() => import("./App"));
@@ -126,6 +128,7 @@ function Layout() {
 			>
 				<ThemeToggle />
 			</NavBar>
+			<SessionTimerBar />
 			<main
 				className={`pb-16 md:pb-0 transition-[margin] duration-200 ease-in-out ${
 					aiPanelOpen ? "lg:mr-[420px]" : ""
@@ -163,6 +166,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 			<AuthProvider>
 				<AuthGate>
 					<TeamAccessProvider>
+						<SessionTimerProvider>
 						<BrowserRouter>
 							<Routes>
 								<Route element={<Layout />}>
@@ -175,6 +179,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 								<Route path="/sessions/:id/present" element={<Suspense fallback={<RouteFallback />}><PresentationPage /></Suspense>} />
 							</Routes>
 						</BrowserRouter>
+						</SessionTimerProvider>
 					</TeamAccessProvider>
 				</AuthGate>
 			</AuthProvider>

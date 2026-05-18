@@ -10,6 +10,7 @@ import {
 	Star,
 	Trash2,
 	Package,
+	Play,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabaseClient";
@@ -22,6 +23,7 @@ import StatusMenu from "../components/StatusMenu";
 import ConfirmModal from "../components/ConfirmModal";
 import SecondaryAppBar from "../components/SecondaryAppBar";
 import { SessionListSkeleton } from "../components/Skeleton";
+import { useSessionTimer } from "../lib/sessionTimer";
 import type { SessionWithStats } from "../types";
 
 type Session = SessionWithStats;
@@ -87,6 +89,7 @@ async function fetchSessions(activeTeamId: string | null): Promise<Session[]> {
 export default function SessionsListPage() {
 	const queryClient = useQueryClient();
 	const { activeTeamId } = useTeamAccess();
+	const { timer, startTimer } = useSessionTimer();
 	const sessionsQueryKey = ['sessions', activeTeamId] as const;
 	const { data: sessions = [], isLoading: loading } = useQuery({
 		queryKey: sessionsQueryKey,
@@ -94,7 +97,7 @@ export default function SessionsListPage() {
 	});
 	const [showCreate, setShowCreate] = useState(false);
 	const [newName, setNewName] = useState("");
-	const [newDate, setNewDate] = useState("");
+	const [newDate, setNewDate] = useState(() => new Date().toISOString().split("T")[0]);
 	const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
 	const [completeConfirmSession, setCompleteConfirmSession] =
 		useState<Session | null>(null);
@@ -143,7 +146,7 @@ export default function SessionsListPage() {
 					...(prev || []),
 				]);
 				setNewName("");
-				setNewDate("");
+				setNewDate(new Date().toISOString().split("T")[0]);
 				setNewProductId(teamProducts.length === 1 ? teamProducts[0].id : "");
 				setShowCreate(false);
 			}
@@ -283,7 +286,7 @@ export default function SessionsListPage() {
 								if (creatingSession) return;
 								setShowCreate(false);
 								setNewName("");
-								setNewDate("");
+								setNewDate(new Date().toISOString().split("T")[0]);
 							}}
 							disabled={creatingSession}
 							className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
@@ -371,6 +374,18 @@ export default function SessionsListPage() {
 										</div>
 									</div>
 									<div className="flex items-center gap-2 sm:shrink-0">
+										{session.status !== "completed" && !timer && (
+											<button
+												onClick={(e) => {
+													e.preventDefault();
+													startTimer(session.id, session.name);
+												}}
+												className="flex items-center gap-1 rounded-md bg-blue-500 px-2.5 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
+												title="Start session timer"
+											>
+												<Play size={12} /> Start
+											</button>
+										)}
 										<button
 											onClick={(e) => {
 												e.preventDefault();

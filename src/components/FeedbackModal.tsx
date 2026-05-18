@@ -159,7 +159,7 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
           {loading ? (
             <p className="text-xs text-slate-400 text-center">Loading feedback...</p>
           ) : count > 0 ? (
-            <div className="rounded-xl bg-slate-50 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 p-4 space-y-3">
+            <div className="rounded-xl bg-white dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-700 dark:text-gray-300">{count} response{count !== 1 ? 's' : ''}</span>
               </div>

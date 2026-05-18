@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package } from 'lucide-react'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy } from 'lucide-react'
+import SessionSummaryBanner from '../components/SessionSummaryBanner'
 import FeedbackModal from '../components/FeedbackModal'
 import StatusMenu from '../components/StatusMenu'
 import ConfirmModal from '../components/ConfirmModal'
 import ScenarioCard from '../components/ScenarioCard'
 import ScenarioForm from '../components/ScenarioForm'
+import CopyScenariosModal from '../components/CopyScenariosModal'
 import { SessionSetupSkeleton } from '../components/Skeleton'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
+import { useSessionTimer } from '../lib/sessionTimer'
 import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../types'
 
 export default function SessionSetupPage() {
@@ -31,10 +34,14 @@ export default function SessionSetupPage() {
   const [editNameValue, setEditNameValue] = useState('')
   const [teamName, setTeamName] = useState<string | null>(null)
   const [productName, setProductName] = useState<string | null>(null)
+  const [sessionBugCount, setSessionBugCount] = useState(0)
   const navigate = useNavigate()
+  const { timer, elapsed, startTimer, pauseTimer, resumeTimer, stopTimer } = useSessionTimer()
+  const isTimerForThis = timer?.sessionId === sessionId
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = useState(false)
+  const [showCopyScenarios, setShowCopyScenarios] = useState(false)
   const [addingScenario, setAddingScenario] = useState(false)
   const [shufflingAssignments, setShufflingAssignments] = useState(false)
   const [resettingAssignments, setResettingAssignments] = useState(false)
@@ -93,6 +100,26 @@ export default function SessionSetupPage() {
       }
     }
     setTesters(allTesters)
+
+    // Fetch bug count for the session date (all bugs found that day)
+    const sess = sessRes.data as Session | null
+    if (sess?.date) {
+      const dayStart = sess.date
+      const dayEnd = new Date(new Date(sess.date).getTime() + 86400000).toISOString().split('T')[0]
+      const { count } = await scopeToTeam(
+        supabase.from('bugs').select('*', { count: 'exact', head: true }).gte('created_at', dayStart).lt('created_at', dayEnd),
+        activeTeamId,
+      )
+      setSessionBugCount(count ?? 0)
+    } else {
+      // Fallback: count bugs linked to this session
+      const { count } = await scopeToTeam(
+        supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('session_id', sessionId),
+        activeTeamId,
+      )
+      setSessionBugCount(count ?? 0)
+    }
+
     setLoading(false)
   }, [sessionId, activeTeamId])
 
@@ -231,6 +258,24 @@ export default function SessionSetupPage() {
     } finally {
       setAddingScenario(false)
     }
+  }
+
+  const copyScenarios = async (items: Pick<Scenario, 'letter' | 'title' | 'description' | 'device_requirement'>[]) => {
+    if (!supabase || !sessionId || !items.length) return
+    const maxOrder = scenarios.length ? Math.max(...scenarios.map(s => s.sort_order)) : 0
+    const rows = items.map((item, i) => withTeamPayload({
+      session_id: sessionId,
+      letter: item.letter,
+      title: item.title,
+      description: item.description || null,
+      device_requirement: item.device_requirement || null,
+      sort_order: maxOrder + 1 + i,
+    }, activeTeamId))
+    const { data, error } = await supabase.from('scenarios').insert(rows).select()
+    if (!error && data) {
+      setScenarios(prev => [...prev, ...(data as Scenario[])])
+    }
+    setShowCopyScenarios(false)
   }
 
   const deleteScenario = async (id: string) => {
@@ -432,31 +477,24 @@ export default function SessionSetupPage() {
               />
             ) : (
               <div
-                onClick={() => { if (!isCompleted) { setEditNameValue(session.name); setEditingName(true) } }}
-                className={`flex items-center gap-2.5 whitespace-nowrap ${!isCompleted ? 'cursor-pointer' : ''}`}
-                title={!isCompleted ? 'Click to edit title' : ''}
+                onClick={() => { setEditNameValue(session.name); setEditingName(true) }}
+                className="flex items-center gap-2.5 whitespace-nowrap cursor-pointer"
+                title="Click to edit title"
               >
                 <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">{session.name}</h1>
-                {!isCompleted && <Pencil size={13} className="text-slate-400 dark:text-gray-600" />}
+                <Pencil size={13} className="text-slate-400 dark:text-gray-600" />
               </div>
             )}
-            <button
-              onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(''); setDeletingSession(false) }}
-              className="text-slate-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
-              title="Delete session"
-            >
-              <Trash2 size={15} />
-            </button>
             <StatusMenu
               currentStatus={session.status}
               open={showStatusMenu}
               onToggle={() => setShowStatusMenu(!showStatusMenu)}
               onSelect={setStatus}
               onClose={() => setShowStatusMenu(false)}
-              disabled={isCompleted}
+              disabled={false}
             />
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-500 mb-0.5">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-500 mt-1.5">
             {teamName && <span className="inline-flex items-center rounded-full border border-slate-300 dark:border-gray-600 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">Team: {teamName}</span>}
             {teamName && productName && <span>·</span>}
             {productName && (
@@ -466,20 +504,75 @@ export default function SessionSetupPage() {
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500 dark:text-gray-500">
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">
             {session.date && <>{new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · </>}
             {scenarios.length} scenarios · {assignments.length} assigned · {testers.length} testers in pool
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {!isCompleted && (
+            isTimerForThis && timer ? (
+              <div className="flex items-center gap-1.5">
+                {timer.status === 'running' ? (
+                  <button
+                    onClick={pauseTimer}
+                    className="flex items-center gap-1.5 rounded-lg border border-amber-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                  >
+                    <Pause size={14} /> Pause
+                  </button>
+                ) : (
+                  <button
+                    onClick={resumeTimer}
+                    className="flex items-center gap-1.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+                  >
+                    <Play size={14} /> Resume
+                  </button>
+                )}
+                <button
+                  onClick={async () => { await stopTimer(); load() }}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-300 dark:border-red-800 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                >
+                  <Square size={12} fill="currentColor" /> Stop
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => session && startTimer(session.id, session.name)}
+                disabled={!!timer}
+                className="flex items-center gap-1.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer"
+                title={timer ? `Timer already running for ${timer.sessionName}` : 'Start session timer'}
+              >
+                <Play size={14} /> Start Timer
+              </button>
+            )
+          )}
           <Link
             to={`/sessions/${sessionId}/present`}
             className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors"
           >
             <Presentation size={16} /> Present
           </Link>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-slate-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+          >
+            <Trash2 size={14} /> Delete
+          </button>
         </div>
       </div>
+
+      {(session.status === 'active' || isCompleted) && (
+        <SessionSummaryBanner
+          assignedCount={assignments.length}
+          totalTesters={testers.length}
+          assignedScenarios={new Set(assignments.map(a => a.scenario_id)).size}
+          totalScenarios={scenarios.length}
+          isCompleted={isCompleted}
+          bugCount={sessionBugCount}
+          durationSeconds={session.duration_seconds ?? null}
+          timerElapsed={isTimerForThis ? elapsed : null}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Scenarios */}
@@ -487,12 +580,20 @@ export default function SessionSetupPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Scenarios</h2>
             {!isCompleted && (
-              <button
-                onClick={() => setShowAddScenario(true)}
-                className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
-              >
-                <Plus size={12} /> Add
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setShowCopyScenarios(true)}
+                  className="flex items-center gap-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  <Copy size={12} /> Copy from...
+                </button>
+                <button
+                  onClick={() => setShowAddScenario(true)}
+                  className="flex items-center gap-1 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
+                >
+                  <Plus size={12} /> Add
+                </button>
+              </div>
             )}
           </div>
 
@@ -695,6 +796,15 @@ export default function SessionSetupPage() {
             className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"
           />
         </ConfirmModal>
+      )}
+
+      {showCopyScenarios && sessionId && (
+        <CopyScenariosModal
+          currentSessionId={sessionId}
+          activeTeamId={activeTeamId}
+          onCopy={copyScenarios}
+          onClose={() => setShowCopyScenarios(false)}
+        />
       )}
     </div>
   )

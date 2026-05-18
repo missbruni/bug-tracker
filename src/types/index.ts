@@ -94,6 +94,7 @@ export interface Session {
   name: string
   date: string | null
   status: SessionStatus
+  duration_seconds?: number | null
   created_at: string
 }
 
