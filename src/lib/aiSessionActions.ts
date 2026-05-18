@@ -2,6 +2,8 @@ import { supabase } from '../supabaseClient'
 import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID, type PinAccessLevel } from './teamScope'
+import { generateBugId } from './aiParsers'
+import type { Severity } from '../constants'
 
 interface ActionContext {
   sessionId: string | null
@@ -12,18 +14,43 @@ interface ActionContext {
 
 const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
 const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_tester', 'delete_tester', 'edit_tester'])
-const BUG_ACTIONS = new Set(['edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment'])
+const BUG_ACTIONS = new Set(['create_bug', 'edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment'])
 const TEAM_ACTIONS = new Set(['create_team', 'create_product', 'edit_product'])
 
+const SEVERITY_PREFIX: Record<Severity, string> = {
+  critical: 'CRT',
+  high: 'HI',
+  low: 'LO',
+}
+
+const parseSeverity = (value?: string): Severity => {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === 'critical' || normalized === 'high' || normalized === 'low') return normalized
+  return 'high'
+}
+
+const syncSeverityPrefixInTitle = (title: string, currentSeverity: Severity, nextSeverity: Severity): string => {
+  if (currentSeverity === nextSeverity) return title
+
+  const currentPrefix = SEVERITY_PREFIX[currentSeverity]
+  const nextPrefix = SEVERITY_PREFIX[nextSeverity]
+  const match = title.match(/^(\s*)(\[?)(CRT|HI|LO)(\]?)(?=(?:\s*[-:]|\s|$))/)
+
+  if (!match || match[3] !== currentPrefix) return title
+
+  const [, leading, openBracket, , closeBracket] = match
+  return title.replace(/^(\s*)(\[?)(CRT|HI|LO)(\]?)/, `${leading}${openBracket}${nextPrefix}${closeBracket}`)
+}
+
 // ─── Bug matching helper ─────────────────────────────────────
-async function findBugByQuery(query: string, activeTeamId: string | null): Promise<{ id: string; title: string } | null> {
+async function findBugByQuery(query: string, activeTeamId: string | null): Promise<{ id: string; title: string; severity: Severity } | null> {
   if (!supabase || !query.trim()) return null
   const q = query.trim()
 
   // Try exact ID match first (e.g. "HI-03", "CRT-01")
   if (/^[A-Z]{2,3}-\d+$/i.test(q)) {
     const { data } = await scopeToTeam(
-      supabase.from('bugs').select('id, title').ilike('id', q).limit(1),
+      supabase.from('bugs').select('id, title, severity').ilike('id', q).limit(1),
       activeTeamId,
     )
     if (data?.length) return data[0]
@@ -33,7 +60,7 @@ async function findBugByQuery(query: string, activeTeamId: string | null): Promi
   const { data: titleMatch } = await scopeToTeam(
     supabase
       .from('bugs')
-      .select('id, title')
+      .select('id, title, severity')
       .ilike('title', `%${q}%`)
       .limit(1),
     activeTeamId,
@@ -42,7 +69,7 @@ async function findBugByQuery(query: string, activeTeamId: string | null): Promi
 
   // Try exact ID match as fallback (user might pass lowercase)
   const { data: idFallback } = await scopeToTeam(
-    supabase.from('bugs').select('id, title').ilike('id', `%${q}%`).limit(1),
+    supabase.from('bugs').select('id, title, severity').ilike('id', `%${q}%`).limit(1),
     activeTeamId,
   )
   if (idFallback?.length) return idFallback[0]
@@ -377,6 +404,43 @@ export async function executeSessionActionWithSession(
 
     // ─── Bug Actions ──────────────────────────────────────────
 
+    case 'create_bug': {
+      const title = action.title?.trim()
+      if (!title) return { action: 'create_bug', success: false, message: 'Bug title is required' }
+
+      const severity = parseSeverity(action.severity)
+      const id = await generateBugId(severity, activeTeamId)
+      let testerName = action.tester?.trim() || 'Unknown'
+      let testerId: string | null = null
+
+      if (action.tester?.trim()) {
+        const { data: testerMatch } = await scopeToTeam(
+          supabase.from('testers').select('id, name').ilike('name', action.tester.trim()).limit(1),
+          activeTeamId,
+        )
+        if (testerMatch?.length) {
+          testerName = testerMatch[0].name
+          testerId = testerMatch[0].id
+        }
+      }
+
+      const { error } = await supabase.from('bugs').insert(withTeamPayload({
+        id,
+        title,
+        description: action.description?.trim() || '',
+        severity,
+        tester: testerName,
+        tester_id: testerId,
+        device: action.device?.trim() || '—',
+        page: action.page?.trim() || '—',
+        category: action.category?.trim() || null,
+        reviewed: false,
+      }, activeTeamId))
+
+      if (error) return { action: 'create_bug', success: false, message: error.message }
+      return { action: 'create_bug', success: true, message: `Created bug ${id} "${title}"` }
+    }
+
     case 'edit_bug': {
       const bugQuery = action.bug?.trim()
       if (!bugQuery) return { action: 'edit_bug', success: false, message: 'Bug reference required' }
@@ -386,7 +450,12 @@ export async function executeSessionActionWithSession(
       const updates: Record<string, unknown> = {}
       if (action.title) updates.title = action.title
       if (action.description) updates.description = action.description
-      if (action.severity) updates.severity = action.severity
+      if (action.severity) {
+        const nextSeverity = parseSeverity(action.severity)
+        updates.severity = nextSeverity
+        const baseTitle = String(updates.title ?? bug.title)
+        updates.title = syncSeverityPrefixInTitle(baseTitle, bug.severity, nextSeverity)
+      }
       if (action.tester) {
         updates.tester = action.tester
         // Try to resolve tester_id

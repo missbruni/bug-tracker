@@ -17,6 +17,25 @@ interface UseBugActionsParams {
   onReviewed?: (bug: Bug, undo: () => void, message?: string) => void
 }
 
+const SEVERITY_PREFIX: Record<Severity, string> = {
+  critical: 'CRT',
+  high: 'HI',
+  low: 'LO',
+}
+
+const syncSeverityPrefixInTitle = (title: string, currentSeverity: Severity, nextSeverity: Severity) => {
+  if (currentSeverity === nextSeverity) return title
+
+  const currentPrefix = SEVERITY_PREFIX[currentSeverity]
+  const nextPrefix = SEVERITY_PREFIX[nextSeverity]
+  const match = title.match(/^(\s*)(\[?)(CRT|HI|LO)(\]?)(?=(?:\s*[-:]|\s|$))/)
+
+  if (!match || match[3] !== currentPrefix) return title
+
+  const [, leading, openBracket, , closeBracket] = match
+  return title.replace(/^(\s*)(\[?)(CRT|HI|LO)(\]?)/, `${leading}${openBracket}${nextPrefix}${closeBracket}`)
+}
+
 export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onReviewed }: UseBugActionsParams) {
   const mountedRef = useRef(true)
   const { activeTeamId } = useTeamAccess()
@@ -245,10 +264,11 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
   }
 
   const saveBugEdit = async (editFields: { title: string; description: string; severity: Severity; tester: string; device: string; page: string; category: string }) => {
+    const normalizedTitle = syncSeverityPrefixInTitle(editFields.title, bug.severity, editFields.severity)
     const normalizedTester = editFields.tester || 'Unknown'
     const matchedTester = await findTesterByName(normalizedTester, activeTeamId)
     const updates = {
-      title: editFields.title,
+      title: normalizedTitle,
       description: editFields.description,
       severity: editFields.severity,
       tester: normalizedTester,

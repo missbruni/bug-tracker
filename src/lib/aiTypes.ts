@@ -30,6 +30,7 @@ export type SessionActionType =
   | 'delete_session'
   | 'delete_scenarios'
   // Bug actions
+  | 'create_bug'
   | 'edit_bug'
   | 'resolve_bug'
   | 'reopen_bug'
