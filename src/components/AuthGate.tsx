@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import React, { type ReactNode } from "react"
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../lib/useAuth";
 import { type PinAccessLevel } from "../lib/teamScope";
@@ -10,11 +10,11 @@ interface AuthGateProps {
 }
 
 export default function AuthGate({ children }: AuthGateProps) {
-  const [pinUnlocked, setPinUnlocked] = useState(false);
-  const [pinConfigured, setPinConfigured] = useState(true);
-  const [pinChecking, setPinChecking] = useState(true);
+  const [pinUnlocked, setPinUnlocked] = React.useState(false);
+  const [pinConfigured, setPinConfigured] = React.useState(true);
+  const [pinChecking, setPinChecking] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false;
 
     const refreshPinSession = async () => {
@@ -42,7 +42,7 @@ export default function AuthGate({ children }: AuthGateProps) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handlePinLock = () => {
       void logoutPinSession();
       cachePinRole(null);

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React from 'react'
 import { X, Send, Check, AlertCircle, Settings, Trash2, ExternalLink, Bug, CalendarPlus, Bot } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { stripJsonBlock } from '../lib/aiParsers'
@@ -39,7 +39,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
   } = useAiAssistant(open)
 
   // Escape key to close
-  useEffect(() => {
+  React.useEffect(() => {
     if (!open) return
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handleEsc)

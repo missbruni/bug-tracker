@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import React, { type ReactNode } from "react"
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../supabaseClient";
 import { AuthContext, type AuthContextValue } from "./auth-context";
@@ -80,11 +76,11 @@ async function validateSessionDomain(session: Session | null): Promise<{
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [authError, setAuthError] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let active = true;
 
     if (!supabase) {

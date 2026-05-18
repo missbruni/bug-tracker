@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { Play, Pause, Square, X } from 'lucide-react'
 import { useSessionTimer } from '../lib/sessionTimer'
@@ -32,12 +32,12 @@ function formatTimer(ms: number): string {
 
 export default function SessionTimerBar() {
   const { timer, elapsed, pauseTimer, resumeTimer, stopTimer, discardTimer } = useSessionTimer()
-  const [showStopConfirm, setShowStopConfirm] = useState(false)
-  const [bump, setBump] = useState(false)
-  const prevMinutes = useRef(-1)
+  const [showStopConfirm, setShowStopConfirm] = React.useState(false)
+  const [bump, setBump] = React.useState(false)
+  const prevMinutes = React.useRef(-1)
 
   const currentMinutes = Math.floor(elapsed / 60000)
-  useEffect(() => {
+  React.useEffect(() => {
     if (prevMinutes.current !== -1 && currentMinutes !== prevMinutes.current) {
       setBump(true)
       const t = setTimeout(() => setBump(false), 300)

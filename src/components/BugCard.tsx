@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import React from "react"
 import {
 	ChevronDown,
 	ChevronRight,
@@ -36,17 +36,17 @@ export default function BugCard({
 	onPersistError,
 	onReviewed,
 }: BugCardProps) {
-	const [expanded, setExpanded] = useState(false);
-	const [pendingDelete, setPendingDelete] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [commentText, setCommentText] = useState("");
-	const [showCommentInput, setShowCommentInput] = useState(false);
-	const [publishingMode, setPublishingMode] = useState<
+	const [expanded, setExpanded] = React.useState(false);
+	const [pendingDelete, setPendingDelete] = React.useState(false);
+	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [commentText, setCommentText] = React.useState("");
+	const [showCommentInput, setShowCommentInput] = React.useState(false);
+	const [publishingMode, setPublishingMode] = React.useState<
 		"backlog" | "devin" | null
 	>(null);
-	const [editing, setEditing] = useState(false);
+	const [editing, setEditing] = React.useState(false);
 	const publishing = publishingMode !== null;
-	const fileRef = useRef<HTMLInputElement>(null);
+	const fileRef = React.useRef<HTMLInputElement>(null);
 	const style = SEVERITY_STYLES.dark[bug.severity];
 	const backlogUrl = bug.backlog_url || null;
 	const devinUrl = bug.devin_url || null;

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import { Users, Target, Clock, Bug, Pencil } from 'lucide-react'
 
 interface SessionSummaryBannerProps {
@@ -73,11 +73,11 @@ export default function SessionSummaryBanner({
 }: SessionSummaryBannerProps) {
   const coveragePercent = totalScenarios > 0 ? Math.round((assignedScenarios / totalScenarios) * 100) : 0
   const bugRate = getBugRateLabel(bugCount, assignedCount)
-  const [editingDuration, setEditingDuration] = useState(false)
-  const [durationInput, setDurationInput] = useState('')
-  const durationInputRef = useRef<HTMLInputElement>(null)
+  const [editingDuration, setEditingDuration] = React.useState(false)
+  const [durationInput, setDurationInput] = React.useState('')
+  const durationInputRef = React.useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (editingDuration && durationInputRef.current) {
       durationInputRef.current.focus()
       durationInputRef.current.select()

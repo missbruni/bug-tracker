@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import React from 'react'
 import { Paperclip } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
@@ -35,18 +35,18 @@ interface AddBugFormProps {
 }
 
 export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, testers, sessions = [], activeSessionId = null }: AddBugFormProps) {
-  const [title, setTitle] = useState('')
-  const [desc, setDesc] = useState('')
-  const [severity, setSeverity] = useState<Severity>('high')
-  const [selectedTesterId, setSelectedTesterId] = useState(() => localStorage.getItem('lastTesterId') || '')
-  const [newTesterName, setNewTesterName] = useState('')
-  const [newTesterDevices, setNewTesterDevices] = useState<string[]>([])
-  const [device, setDevice] = useState('')
-  const [page, setPage] = useState('')
-  const [category, setCategory] = useState('')
-  const [sessionId, setSessionId] = useState<string | null>(activeSessionId)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [files, setFiles] = useState<Attachment[]>([])
+  const [title, setTitle] = React.useState('')
+  const [desc, setDesc] = React.useState('')
+  const [severity, setSeverity] = React.useState<Severity>('high')
+  const [selectedTesterId, setSelectedTesterId] = React.useState(() => localStorage.getItem('lastTesterId') || '')
+  const [newTesterName, setNewTesterName] = React.useState('')
+  const [newTesterDevices, setNewTesterDevices] = React.useState<string[]>([])
+  const [device, setDevice] = React.useState('')
+  const [page, setPage] = React.useState('')
+  const [category, setCategory] = React.useState('')
+  const [sessionId, setSessionId] = React.useState<string | null>(activeSessionId)
+  const fileRef = React.useRef<HTMLInputElement>(null)
+  const [files, setFiles] = React.useState<Attachment[]>([])
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || [])
@@ -62,7 +62,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
     }
   }
 
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
 
   const toggleNewTesterDevice = (deviceName: string) => {
     setNewTesterDevices(prev => prev.includes(deviceName)

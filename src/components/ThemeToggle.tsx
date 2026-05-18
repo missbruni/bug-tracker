@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { Sun, Moon } from 'lucide-react'
 import { playToggleSound } from '../lib/audio'
 
@@ -7,10 +7,10 @@ const initialDark = storedTheme ? storedTheme === 'dark' : true
 document.documentElement.classList.toggle('dark', initialDark)
 
 export default function ThemeToggle() {
-  const [darkMode, setDarkMode] = useState(initialDark)
-  const [themeKey, setThemeKey] = useState(0)
+  const [darkMode, setDarkMode] = React.useState(initialDark)
+  const [themeKey, setThemeKey] = React.useState(0)
 
-  useEffect(() => {
+  React.useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
     window.dispatchEvent(new CustomEvent('themechange', { detail: { dark: darkMode } }))

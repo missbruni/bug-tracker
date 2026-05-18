@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import React from 'react'
 import { Megaphone, X } from 'lucide-react'
 
 const DISMISSED_KEY = 'ai-banner-dismissed'
 
 export default function AiBanner() {
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_KEY) === 'true')
+  const [dismissed, setDismissed] = React.useState(() => localStorage.getItem(DISMISSED_KEY) === 'true')
 
   if (dismissed) return null
 

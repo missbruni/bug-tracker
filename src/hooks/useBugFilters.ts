@@ -1,4 +1,4 @@
-import { useState, useEffect, useDeferredValue } from 'react'
+import React from 'react'
 import { SEVERITIES } from '../constants'
 import { matchesDateFilter } from '../lib/dateFilter'
 import type { Bug, Question, SessionOption } from '../types'
@@ -79,21 +79,21 @@ interface UseBugFiltersReturn {
 }
 
 export function useBugFilters(bugs: Bug[], questions: Question[], sessions: SessionOption[] = []): UseBugFiltersReturn {
-  const [severityFilter, setSeverityFilter] = useState(() => {
+  const [severityFilter, setSeverityFilter] = React.useState(() => {
     const severityFromUrl = getParam('severity')
     if (!severityFromUrl) return 'all'
 
     return normalizeSeverityFilterValue(parseSeverityTokens(severityFromUrl)) || 'all'
   })
-  const [search, setSearch] = useState(() => getParam('q') || '')
-  const deferredSearch = useDeferredValue(search)
-  const [testerFilter, setTesterFilter] = useState(() => getParam('tester') || 'all')
-  const [dateFilter, setDateFilter] = useState(() => getParam('date') || 'all')
-  const [sortOrder, setSortOrder] = useState(() => getParam('sort') || 'default')
-  const [sessionFilter, setSessionFilter] = useState(() => getParam('session') || 'all')
+  const [search, setSearch] = React.useState(() => getParam('q') || '')
+  const deferredSearch = React.useDeferredValue(search)
+  const [testerFilter, setTesterFilter] = React.useState(() => getParam('tester') || 'all')
+  const [dateFilter, setDateFilter] = React.useState(() => getParam('date') || 'all')
+  const [sortOrder, setSortOrder] = React.useState(() => getParam('sort') || 'default')
+  const [sessionFilter, setSessionFilter] = React.useState(() => getParam('session') || 'all')
 
   // Sync filters to URL
-  useEffect(() => {
+  React.useEffect(() => {
     const p = new URLSearchParams()
     if (search) p.set('q', search)
     if (severityFilter !== 'all') p.set('severity', severityFilter)
@@ -107,7 +107,7 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
 
   const testers = [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort()
 
-  useEffect(() => {
+  React.useEffect(() => {
     const onSetBugFiltersFromAi = (event: Event) => {
       const payload = (event as CustomEvent<BugFiltersActionPayload>).detail
       if (!payload) return

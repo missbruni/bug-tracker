@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy, GripVertical } from 'lucide-react'
 import SessionSummaryBanner from '../components/SessionSummaryBanner'
@@ -18,48 +18,48 @@ import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../ty
 export default function SessionSetupPage() {
   const { id: sessionId } = useParams<{ id: string }>()
   const { activeTeamId } = useTeamAccess()
-  const [session, setSession] = useState<Session | null>(null)
-  const [scenarios, setScenarios] = useState<Scenario[]>([])
-  const [testers, setTesters] = useState<Tester[]>([])
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
-  const [expandedScenarioId, setExpandedScenarioId] = useState<string | null>(null)
-  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
-  const [showStatusMenu, setShowStatusMenu] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleteConfirmText, setDeleteConfirmText] = useState('')
-  const [deletingSession, setDeletingSession] = useState(false)
-  const [editingName, setEditingName] = useState(false)
-  const [editNameValue, setEditNameValue] = useState('')
-  const [teamName, setTeamName] = useState<string | null>(null)
-  const [productName, setProductName] = useState<string | null>(null)
-  const [sessionBugCount, setSessionBugCount] = useState(0)
+  const [session, setSession] = React.useState<Session | null>(null)
+  const [scenarios, setScenarios] = React.useState<Scenario[]>([])
+  const [testers, setTesters] = React.useState<Tester[]>([])
+  const [assignments, setAssignments] = React.useState<Assignment[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [selectedScenarioId, setSelectedScenarioId] = React.useState<string | null>(null)
+  const [expandedScenarioId, setExpandedScenarioId] = React.useState<string | null>(null)
+  const [showCompleteConfirm, setShowCompleteConfirm] = React.useState(false)
+  const [showStatusMenu, setShowStatusMenu] = React.useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = React.useState('')
+  const [deletingSession, setDeletingSession] = React.useState(false)
+  const [editingName, setEditingName] = React.useState(false)
+  const [editNameValue, setEditNameValue] = React.useState('')
+  const [teamName, setTeamName] = React.useState<string | null>(null)
+  const [productName, setProductName] = React.useState<string | null>(null)
+  const [sessionBugCount, setSessionBugCount] = React.useState(0)
   const navigate = useNavigate()
   const { timer, elapsed, startTimer, pauseTimer, resumeTimer, stopTimer } = useSessionTimer()
   const isTimerForThis = timer?.sessionId === sessionId
 
   // Add/edit scenario state
-  const [showAddScenario, setShowAddScenario] = useState(false)
-  const [showCopyScenarios, setShowCopyScenarios] = useState(false)
-  const [addingScenario, setAddingScenario] = useState(false)
-  const [shufflingAssignments, setShufflingAssignments] = useState(false)
-  const [resettingAssignments, setResettingAssignments] = useState(false)
-  const [newLetter, setNewLetter] = useState('')
-  const [newTitle, setNewTitle] = useState('')
-  const [newDesc, setNewDesc] = useState('')
-  const [newDevice, setNewDevice] = useState('')
+  const [showAddScenario, setShowAddScenario] = React.useState(false)
+  const [showCopyScenarios, setShowCopyScenarios] = React.useState(false)
+  const [addingScenario, setAddingScenario] = React.useState(false)
+  const [shufflingAssignments, setShufflingAssignments] = React.useState(false)
+  const [resettingAssignments, setResettingAssignments] = React.useState(false)
+  const [newLetter, setNewLetter] = React.useState('')
+  const [newTitle, setNewTitle] = React.useState('')
+  const [newDesc, setNewDesc] = React.useState('')
+  const [newDevice, setNewDevice] = React.useState('')
 
-  const [dragOverScenarioId, setDragOverScenarioId] = useState<string | null>(null)
+  const [dragOverScenarioId, setDragOverScenarioId] = React.useState<string | null>(null)
 
-  const [editScenarioId, setEditScenarioId] = useState<string | null>(null)
-  const [editLetter, setEditLetter] = useState('')
-  const [editTitle, setEditTitle] = useState('')
-  const [editDesc, setEditDesc] = useState('')
-  const [editDevice, setEditDevice] = useState('')
-  const [reloadCounter, setReloadCounter] = useState(0)
+  const [editScenarioId, setEditScenarioId] = React.useState<string | null>(null)
+  const [editLetter, setEditLetter] = React.useState('')
+  const [editTitle, setEditTitle] = React.useState('')
+  const [editDesc, setEditDesc] = React.useState('')
+  const [editDevice, setEditDevice] = React.useState('')
+  const [reloadCounter, setReloadCounter] = React.useState(0)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const load = async () => {
       if (!supabase || !sessionId) return
       const [sessRes, scenRes, testRes, assignRes] = await Promise.all([
@@ -126,7 +126,7 @@ export default function SessionSetupPage() {
   }, [sessionId, activeTeamId, reloadCounter])
 
   // Reload when AI assistant modifies session data
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (!detail?.sessionId || detail.sessionId === sessionId) {
@@ -138,7 +138,7 @@ export default function SessionSetupPage() {
   }, [sessionId])
 
   // Navigate away if this session is deleted via AI
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (detail?.sessionId === sessionId) navigate('/sessions')

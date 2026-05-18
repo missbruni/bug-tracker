@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import { useLocation } from 'react-router-dom'
 import { chatCompletion, hasAiConfig, type ChatMessage } from '../lib/aiProvider'
 import { supabase } from '../supabaseClient'
@@ -37,24 +37,24 @@ function loadPersistedState(): { messages: Message[]; currentSessionId: string |
 // ─── Hook ───────────────────────────────────────────────────
 
 export default function useAiAssistant(open: boolean) {
-  const persisted = useRef(loadPersistedState())
-  const [messages, setMessages] = useState<Message[]>(persisted.current.messages)
-  const [input, setInput] = useState('')
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState('')
-  const chatEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const persisted = React.useRef(loadPersistedState())
+  const [messages, setMessages] = React.useState<Message[]>(persisted.current.messages)
+  const [input, setInput] = React.useState('')
+  const [sending, setSending] = React.useState(false)
+  const [error, setError] = React.useState('')
+  const chatEndRef = React.useRef<HTMLDivElement>(null)
+  const inputRef = React.useRef<HTMLTextAreaElement>(null)
 
   const location = useLocation()
   const { pathname } = location
   const { activeTeamId, pinRole } = useTeamAccess()
 
   // Session context
-  const [sessionContext, setSessionContext] = useState('')
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(persisted.current.currentSessionId)
+  const [sessionContext, setSessionContext] = React.useState('')
+  const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(persisted.current.currentSessionId)
 
   // Persist chat state
-  useEffect(() => {
+  React.useEffect(() => {
     const data = {
       messages: messages.map(m => ({ ...m, bugs: m.bugs?.map(b => ({ ...b, _attachments: undefined })) })),
       currentSessionId,
@@ -70,7 +70,7 @@ export default function useAiAssistant(open: boolean) {
   }
 
   // ─── Context fetching ─────────────────────────────────────
-  useEffect(() => {
+  React.useEffect(() => {
     if (!open || !supabase) return
     ;(async () => {
       const parts: string[] = []
@@ -233,7 +233,7 @@ export default function useAiAssistant(open: boolean) {
   }, [open, currentSessionId, pathname, activeTeamId])
 
   // ─── Focus & keyboard ─────────────────────────────────────
-  useEffect(() => {
+  React.useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 200)
   }, [open])
 

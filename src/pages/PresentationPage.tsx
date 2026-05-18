@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X, Package } from 'lucide-react'
 import { supabase } from '../supabaseClient'
@@ -47,14 +47,14 @@ export default function PresentationPage() {
   const { id: sessionId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { activeTeamId } = useTeamAccess()
-  const [session, setSession] = useState<Session | null>(null)
-  const [slides, setSlides] = useState<Slide[]>([])
-  const [current, setCurrent] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [teamName, setTeamName] = useState<string | null>(null)
-  const [productName, setProductName] = useState<string | null>(null)
+  const [session, setSession] = React.useState<Session | null>(null)
+  const [slides, setSlides] = React.useState<Slide[]>([])
+  const [current, setCurrent] = React.useState(0)
+  const [loading, setLoading] = React.useState(true)
+  const [teamName, setTeamName] = React.useState<string | null>(null)
+  const [productName, setProductName] = React.useState<string | null>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const load = async () => {
       if (!supabase || !sessionId) return
       const [sessRes, scenRes, assignRes, testRes] = await Promise.all([
@@ -108,7 +108,7 @@ export default function PresentationPage() {
     void load()
   }, [sessionId, activeTeamId])
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault()

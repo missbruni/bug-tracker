@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React from 'react'
 import { SEVERITIES, type Severity } from '../constants'
 import { generateBugId } from '../lib/aiParsers'
 import { fetchPinSession } from '../lib/pinAuth'
@@ -167,11 +167,11 @@ function getPinTesterName(role: PinAccessLevel | null): string {
 export default function ExtensionBridge() {
   const { user } = useAuth()
   const { activeTeamId } = useTeamAccess()
-  const [allowedDomains, setAllowedDomains] = useState<string[]>([])
-  const [pinAuthenticated, setPinAuthenticated] = useState(false)
-  const [pinRole, setPinRole] = useState<PinAccessLevel | null>(null)
+  const [allowedDomains, setAllowedDomains] = React.useState<string[]>([])
+  const [pinAuthenticated, setPinAuthenticated] = React.useState(false)
+  const [pinRole, setPinRole] = React.useState<PinAccessLevel | null>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false
 
     const loadPinSession = async () => {
@@ -210,7 +210,7 @@ export default function ExtensionBridge() {
     }
   }, [])
 
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false
 
     const loadAllowedDomains = async () => {
@@ -260,7 +260,7 @@ export default function ExtensionBridge() {
     }
   }, [activeTeamId])
 
-  useEffect(() => {
+  React.useEffect(() => {
     const email = user?.email?.trim() || null
     const authenticated = Boolean(user) || pinAuthenticated
     const authMode = user ? 'supabase' : pinAuthenticated ? 'pin' : 'none'

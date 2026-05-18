@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import React from 'react'
 
 const SPRITE_URL = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/191814/fly-sprite.png'
 const BUG_WIDTH = 13
@@ -73,15 +73,15 @@ interface CrawlingBugsProps {
 
 export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
   const numBugs = Math.min(Math.max(count, 0), MAX_BUGS)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const bugsRef = useRef<BugState[]>([])
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number>(0)
-  const lastTimeRef = useRef(0)
-  const spriteRef = useRef<HTMLImageElement | null>(null)
-  const spriteLoadedRef = useRef(false)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const bugsRef = React.useRef<BugState[]>([])
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+  const animRef = React.useRef<number>(0)
+  const lastTimeRef = React.useRef(0)
+  const spriteRef = React.useRef<HTMLImageElement | null>(null)
+  const spriteLoadedRef = React.useRef(false)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.src = SPRITE_URL
@@ -96,7 +96,7 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
     }
   }, [numBugs])
 
-  useEffect(() => {
+  React.useEffect(() => {
     const container = containerRef.current
     const canvas = canvasRef.current
     if (!container || !canvas) return

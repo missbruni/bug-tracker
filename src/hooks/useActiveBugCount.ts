@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam } from '../lib/teamScope'
 
 export function useActiveBugCount(initialCount = 3): number {
-  const [count, setCount] = useState(initialCount)
+  const [count, setCount] = React.useState(initialCount)
   const { activeTeamId } = useTeamAccess()
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!supabase) return
     const sb = supabase
 

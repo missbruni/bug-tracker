@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React from 'react'
 import { SEVERITY_STYLES } from '../constants'
 import type { Severity } from '../constants'
 
@@ -19,8 +19,8 @@ interface BugEditFormProps {
 }
 
 export default function BugEditForm({ initial, onSave, onCancel }: BugEditFormProps) {
-  const [fields, setFields] = useState<EditFields>(initial)
-  const [saving, setSaving] = useState(false)
+  const [fields, setFields] = React.useState<EditFields>(initial)
+  const [saving, setSaving] = React.useState(false)
 
   const handleSave = async () => {
     if (!fields.title.trim() || saving) return

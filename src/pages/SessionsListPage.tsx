@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React from "react"
 import { Link } from "react-router-dom";
 import {
 	Plus,
@@ -95,21 +95,21 @@ export default function SessionsListPage() {
 		queryKey: sessionsQueryKey,
 		queryFn: () => fetchSessions(activeTeamId),
 	});
-	const [showCreate, setShowCreate] = useState(false);
-	const [newName, setNewName] = useState("");
-	const [newDate, setNewDate] = useState(() => new Date().toISOString().split("T")[0]);
-	const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
+	const [showCreate, setShowCreate] = React.useState(false);
+	const [newName, setNewName] = React.useState("");
+	const [newDate, setNewDate] = React.useState(() => new Date().toISOString().split("T")[0]);
+	const [feedbackSession, setFeedbackSession] = React.useState<Session | null>(null);
 	const [completeConfirmSession, setCompleteConfirmSession] =
-		useState<Session | null>(null);
-	const [statusMenuId, setStatusMenuId] = useState<string | null>(null);
+		React.useState<Session | null>(null);
+	const [statusMenuId, setStatusMenuId] = React.useState<string | null>(null);
 	const [deleteConfirmSession, setDeleteConfirmSession] =
-		useState<Session | null>(null);
-	const [deleteConfirmText, setDeleteConfirmText] = useState("");
-	const [search, setSearch] = useState("");
-	const [creatingSession, setCreatingSession] = useState(false);
-	const [deletingSession, setDeletingSession] = useState(false);
-	const [newProductId, setNewProductId] = useState("");
-	const [teamProducts, setTeamProducts] = useState<Product[]>([]);
+		React.useState<Session | null>(null);
+	const [deleteConfirmText, setDeleteConfirmText] = React.useState("");
+	const [search, setSearch] = React.useState("");
+	const [creatingSession, setCreatingSession] = React.useState(false);
+	const [deletingSession, setDeletingSession] = React.useState(false);
+	const [newProductId, setNewProductId] = React.useState("");
+	const [teamProducts, setTeamProducts] = React.useState<Product[]>([]);
 
 	// Load products for the active team
 	const { data: productsData } = useQuery({
@@ -125,7 +125,7 @@ export default function SessionsListPage() {
 	});
 
 	// Keep local state in sync
-	useEffect(() => {
+	React.useEffect(() => {
 		setTeamProducts(productsData || []);
 		if (productsData?.length === 1) setNewProductId(productsData[0].id);
 	}, [productsData]);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React from 'react'
 import { Plus, Sparkles } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
@@ -38,20 +38,20 @@ export default function App() {
   const filters = useBugFilters(bugs, questions, sessions)
   const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
 
-  const [lightbox, setLightbox] = useState<LightboxState | null>(null)
-  const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
+  const [lightbox, setLightbox] = React.useState<LightboxState | null>(null)
+  const snackbarTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'))
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = (e: Event) => setIsDark((e as CustomEvent).detail.dark)
     window.addEventListener('themechange', handler)
     return () => window.removeEventListener('themechange', handler)
   }, [])
 
   const sevStyles = isDark ? SEVERITY_STYLES.dark : SEVERITY_STYLES.light
-  const searchRef = useRef<HTMLInputElement>(null)
+  const searchRef = React.useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()

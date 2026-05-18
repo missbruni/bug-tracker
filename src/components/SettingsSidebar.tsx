@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { X, Settings, Eye, EyeOff, ExternalLink, Check, Sparkles } from 'lucide-react'
 import { getDevinApiKey, setDevinApiKey, removeDevinApiKey, isValidDevinKey } from '../lib/devin'
 import { getAiConfig, setAiConfig, removeAiConfig, type AiProviderType, type AiProviderConfig } from '../lib/aiProvider'
@@ -16,24 +16,24 @@ interface SettingsSidebarProps {
 }
 
 export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps) {
-  const [devinKey, setDevinKey] = useState(() => getDevinApiKey())
-  const [showKey, setShowKey] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [keyError, setKeyError] = useState('')
+  const [devinKey, setDevinKey] = React.useState(() => getDevinApiKey())
+  const [showKey, setShowKey] = React.useState(false)
+  const [saved, setSaved] = React.useState(false)
+  const [keyError, setKeyError] = React.useState('')
 
   // AI Assistant config state
-  const [aiProvider, setAiProvider] = useState<AiProviderType>('azure_openai')
-  const [aiKey, setAiKey] = useState('')
-  const [aiEndpoint, setAiEndpoint] = useState('')
-  const [aiDeployment, setAiDeployment] = useState('')
-  const [aiModel, setAiModel] = useState('')
-  const [aiBaseUrl, setAiBaseUrl] = useState('')
-  const [showAiKey, setShowAiKey] = useState(false)
-  const [aiSaved, setAiSaved] = useState(false)
-  const [aiError, setAiError] = useState('')
-  const [openPbiOnPublishSuccess, setOpenPbiOnPublishSuccessState] = useState(true)
+  const [aiProvider, setAiProvider] = React.useState<AiProviderType>('azure_openai')
+  const [aiKey, setAiKey] = React.useState('')
+  const [aiEndpoint, setAiEndpoint] = React.useState('')
+  const [aiDeployment, setAiDeployment] = React.useState('')
+  const [aiModel, setAiModel] = React.useState('')
+  const [aiBaseUrl, setAiBaseUrl] = React.useState('')
+  const [showAiKey, setShowAiKey] = React.useState(false)
+  const [aiSaved, setAiSaved] = React.useState(false)
+  const [aiError, setAiError] = React.useState('')
+  const [openPbiOnPublishSuccess, setOpenPbiOnPublishSuccessState] = React.useState(true)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (open) {
       setDevinKey(getDevinApiKey())
       setOpenPbiOnPublishSuccessState(shouldOpenPbiOnPublishSuccess())
@@ -49,7 +49,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
     }
   }, [open])
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!open) return
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()

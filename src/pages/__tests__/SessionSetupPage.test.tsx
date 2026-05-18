@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { test, expect, describe, afterEach } from 'bun:test'
-import { useState } from 'react'
+import React from 'react'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -9,8 +9,8 @@ afterEach(() => cleanup())
 // ─── Inline Title Edit ──────────────────────────────────────
 
 function InlineTitle({ name, isCompleted, onSave }: { name: string; isCompleted: boolean; onSave: (n: string) => void }) {
-  const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(name)
+  const [editing, setEditing] = React.useState(false)
+  const [value, setValue] = React.useState(name)
 
   const save = () => {
     const trimmed = value.trim()

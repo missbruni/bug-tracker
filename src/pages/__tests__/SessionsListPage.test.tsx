@@ -1,13 +1,13 @@
 /// <reference lib="dom" />
 import { test, expect, describe, afterEach } from 'bun:test'
-import { useState } from 'react'
+import React from 'react'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 
 // Pure UI test for the delete confirmation dialog pattern
 // (Does not import SessionsListPage to avoid supabase mock conflicts)
 
 function DeleteConfirmDialog({ name, onDelete, onCancel }: { name: string; onDelete: () => void; onCancel: () => void }) {
-  const [text, setText] = useState('')
+  const [text, setText] = React.useState('')
   return (
     <div>
       <h3>Delete session?</h3>

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import React from 'react'
 import { supabase } from '../supabaseClient'
 import { N8N_WEBHOOK_URL } from '../constants'
 import { playTickSound } from '../lib/audio'
@@ -37,10 +37,10 @@ const syncSeverityPrefixInTitle = (title: string, currentSeverity: Severity, nex
 }
 
 export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onReviewed }: UseBugActionsParams) {
-  const mountedRef = useRef(true)
+  const mountedRef = React.useRef(true)
   const { activeTeamId } = useTeamAccess()
 
-  useEffect(() => {
+  React.useEffect(() => {
     return () => { mountedRef.current = false }
   }, [])
 

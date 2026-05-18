@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { Pencil, Trash2, Check, X, Users, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
@@ -88,17 +88,17 @@ export default function TeamCard({
   onConfirmDelete,
   onCancelDelete,
 }: TeamCardProps) {
-  const [addingProduct, setAddingProduct] = useState(false)
-  const [newProductName, setNewProductName] = useState('')
-  const [newProductDesc, setNewProductDesc] = useState('')
-  const [newProductLinks, setNewProductLinks] = useState<ProductLink[]>([{ label: '', url: '' }])
-  const [creatingProduct, setCreatingProduct] = useState(false)
-  const [editingProductId, setEditingProductId] = useState<string | null>(null)
-  const [editProductName, setEditProductName] = useState('')
-  const [editProductDesc, setEditProductDesc] = useState('')
-  const [editProductLinks, setEditProductLinks] = useState<ProductLink[]>([{ label: '', url: '' }])
-  const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
-  const [productsExpanded, setProductsExpanded] = useState(true)
+  const [addingProduct, setAddingProduct] = React.useState(false)
+  const [newProductName, setNewProductName] = React.useState('')
+  const [newProductDesc, setNewProductDesc] = React.useState('')
+  const [newProductLinks, setNewProductLinks] = React.useState<ProductLink[]>([{ label: '', url: '' }])
+  const [creatingProduct, setCreatingProduct] = React.useState(false)
+  const [editingProductId, setEditingProductId] = React.useState<string | null>(null)
+  const [editProductName, setEditProductName] = React.useState('')
+  const [editProductDesc, setEditProductDesc] = React.useState('')
+  const [editProductLinks, setEditProductLinks] = React.useState<ProductLink[]>([{ label: '', url: '' }])
+  const [deletingProductId, setDeletingProductId] = React.useState<string | null>(null)
+  const [productsExpanded, setProductsExpanded] = React.useState(true)
 
   const handleAddProduct = async () => {
     if (!newProductName.trim() || creatingProduct) return

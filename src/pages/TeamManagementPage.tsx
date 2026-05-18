@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React from 'react'
 import { Plus, ShieldCheck } from 'lucide-react'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
@@ -20,20 +20,20 @@ export default function TeamManagementPage() {
     deleteTeam,
   } = useTeamAccess()
 
-  const [showAdd, setShowAdd] = useState(false)
-  const [newTeamName, setNewTeamName] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
-  const [teamStats, setTeamStats] = useState<Record<string, TeamStats>>({})
-  const [products, setProducts] = useState<Product[]>([])
+  const [showAdd, setShowAdd] = React.useState(false)
+  const [newTeamName, setNewTeamName] = React.useState('')
+  const [creating, setCreating] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [search, setSearch] = React.useState('')
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const [editName, setEditName] = React.useState('')
+  const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null)
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  const [toast, setToast] = React.useState<{ message: string; tone: 'success' | 'error' } | null>(null)
+  const [teamStats, setTeamStats] = React.useState<Record<string, TeamStats>>({})
+  const [products, setProducts] = React.useState<Product[]>([])
 
-  useEffect(() => {
+  React.useEffect(() => {
     const loadTeamStats = async () => {
       if (!supabase || !teams.length) return
       const [testersRes, sessionsRes, bugsRes, productsRes] = await Promise.all([
@@ -63,7 +63,7 @@ export default function TeamManagementPage() {
   }, [teams.length])
 
   // Refresh when AI creates a team or product
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = () => {
       void refreshTeams()
     }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react"
 import { ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import type { Bug, SessionOption } from "../types";
 import type { Severity } from "../constants";
@@ -38,8 +38,8 @@ export default function FilterBar({
 	testers,
 	sessions,
 }: FilterBarProps) {
-	const [sheetOpen, setSheetOpen] = useState(false);
-	const [closing, setClosing] = useState(false);
+	const [sheetOpen, setSheetOpen] = React.useState(false);
+	const [closing, setClosing] = React.useState(false);
 
 	const closeSheet = () => {
 		setClosing(true);

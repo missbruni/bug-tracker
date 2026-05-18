@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import React from 'react'
 import { Check, Pencil, Loader2, Paperclip } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
 import { getImageFilesFromPaste } from '../lib/attachments'
@@ -18,8 +18,8 @@ export default function AiBugPreviewCard({
   onAddFiles: (files: File[]) => void
   onRemoveFile: (index: number) => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = React.useState(false)
+  const fileRef = React.useRef<HTMLInputElement>(null)
   const sevStyle = SEVERITY_STYLES.dark[bug.severity]
   const attachments = bug._attachments || []
 

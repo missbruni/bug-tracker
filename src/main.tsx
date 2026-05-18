@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect } from "react";
+import React, { Suspense, lazy } from "react"
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -33,41 +33,41 @@ function RouteFallback() {
 function Layout() {
 	const { user, signOut } = useAuth();
 	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } = useTeamAccess();
-	const [showBugs, setShowBugs] = useState(
+	const [showBugs, setShowBugs] = React.useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
 	const activeBugCount = useActiveBugCount();
-	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [aiPanelOpen, setAiPanelOpen] = useState(
+	const [settingsOpen, setSettingsOpen] = React.useState(false);
+	const [aiPanelOpen, setAiPanelOpen] = React.useState(
 		() => sessionStorage.getItem("aiPanelOpen") === "true",
 	);
-	const [aiPanelMounted, setAiPanelMounted] = useState(
+	const [aiPanelMounted, setAiPanelMounted] = React.useState(
 		() => sessionStorage.getItem("aiPanelOpen") === "true",
 	);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		sessionStorage.setItem("aiPanelOpen", String(aiPanelOpen));
 	}, [aiPanelOpen]);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (aiPanelOpen) {
 			setAiPanelMounted(true);
 		}
 	}, [aiPanelOpen]);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const handler = () => setSettingsOpen(true);
 		window.addEventListener("openSettings", handler);
 		return () => window.removeEventListener("openSettings", handler);
 	}, []);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const handler = () => setAiPanelOpen((prev) => { playAiSound(prev === false); return !prev });
 		window.addEventListener("openAiAssistant", handler);
 		return () => window.removeEventListener("openAiAssistant", handler);
 	}, []);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === "b") {
 				e.preventDefault();

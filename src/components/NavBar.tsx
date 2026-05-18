@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useEffect, useState } from "react";
+import React, { type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom";
 import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock, Building2 } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
@@ -47,14 +47,14 @@ export default function NavBar({
 		: NAV_ITEMS;
 
 	const location = useLocation();
-	const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-	const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+	const tabRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
+	const [indicatorStyle, setIndicatorStyle] = React.useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
 	const activeIndex = navItems.findIndex(({ to }) =>
 		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
 	);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const el = tabRefs.current[activeIndex];
 		if (el) {
 			setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });

@@ -1,5 +1,5 @@
 import { Bug } from "lucide-react";
-import { useRef } from "react";
+import React from "react";
 import { playBugSound } from "../lib/audio";
 
 interface LogoProps {
@@ -8,7 +8,7 @@ interface LogoProps {
 }
 
 export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
-	const bugButtonRef = useRef<HTMLButtonElement | null>(null);
+	const bugButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
 	return (
 		<h1

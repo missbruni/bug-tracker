@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -49,9 +49,9 @@ export interface NewBugInput {
 export function useBugs(): UseBugsReturn {
   const queryClient = useQueryClient()
   const { activeTeamId } = useTeamAccess()
-  const [snackbar, setSnackbar] = useState<SnackbarState | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const snackbarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [snackbar, setSnackbar] = React.useState<SnackbarState | null>(null)
+  const [showAddForm, setShowAddForm] = React.useState(false)
+  const snackbarTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { data, isLoading: loading } = useQuery({
     queryKey: ['bugs-data', activeTeamId],
@@ -126,7 +126,7 @@ export function useBugs(): UseBugsReturn {
   }
 
   // Real-time subscriptions so all users stay in sync
-  useEffect(() => {
+  React.useEffect(() => {
     if (!supabase) return
 
     const sb = supabase

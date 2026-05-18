@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 
 interface DeleteConfirmModalProps {
   title: string
@@ -19,9 +19,9 @@ export default function DeleteConfirmModal({
   confirmButtonText = 'Delete permanently',
   error,
 }: DeleteConfirmModalProps) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = React.useState('')
 
-  useEffect(() => {
+  React.useEffect(() => {
     setInput('')
   }, [confirmToken])
 

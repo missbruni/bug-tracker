@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
+import React, { createContext, type ReactNode } from 'react'
 import { supabase } from '../supabaseClient'
 import {
   ACTIVE_TEAM_SESSION_KEY,
@@ -76,10 +70,10 @@ function setStoredActiveTeamId(teamId: string | null) {
 }
 
 export function TeamAccessProvider({ children }: { children: ReactNode }) {
-  const [teams, setTeams] = useState<TeamRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [pinRole, setPinRole] = useState<PinAccessLevel | null>(null)
-  const [activeTeamIdState, setActiveTeamIdState] = useState<string | null>(() => getStoredActiveTeamId())
+  const [teams, setTeams] = React.useState<TeamRecord[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [pinRole, setPinRole] = React.useState<PinAccessLevel | null>(null)
+  const [activeTeamIdState, setActiveTeamIdState] = React.useState<string | null>(() => getStoredActiveTeamId())
 
   const refreshTeams = async () => {
     if (!supabase) {
@@ -106,11 +100,11 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }
 
-  useEffect(() => {
+  React.useEffect(() => {
     void refreshTeams()
   }, [])
 
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false
 
     const updatePinRole = async () => {
@@ -150,7 +144,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     return fallbackTeam ? [fallbackTeam.id] : []
   })()
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!teams.length) {
       if (activeTeamIdState !== null) {
         setActiveTeamIdState(null)
@@ -294,5 +288,5 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTeamAccess() {
-  return useContext(TeamAccessContext)
+  return React.useContext(TeamAccessContext)
 }

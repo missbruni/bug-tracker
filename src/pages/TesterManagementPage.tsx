@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { Plus, Trash2, Pencil, X, Check } from 'lucide-react'
 import InlineDeleteConfirm from '../components/InlineDeleteConfirm'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -27,19 +27,19 @@ export default function TesterManagementPage() {
     queryKey: testersQueryKey,
     queryFn: () => fetchTesters(activeTeamId),
   })
-  const [showAdd, setShowAdd] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newDevices, setNewDevices] = useState<string[]>([])
-  const [addingTester, setAddingTester] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editDevices, setEditDevices] = useState<string[]>([])
-  const [pendingDeleteTesterId, setPendingDeleteTesterId] = useState<string | null>(null)
-  const [deletingTesterId, setDeletingTesterId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
-  const [search, setSearch] = useState('')
+  const [showAdd, setShowAdd] = React.useState(false)
+  const [newName, setNewName] = React.useState('')
+  const [newDevices, setNewDevices] = React.useState<string[]>([])
+  const [addingTester, setAddingTester] = React.useState(false)
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const [editName, setEditName] = React.useState('')
+  const [editDevices, setEditDevices] = React.useState<string[]>([])
+  const [pendingDeleteTesterId, setPendingDeleteTesterId] = React.useState<string | null>(null)
+  const [deletingTesterId, setDeletingTesterId] = React.useState<string | null>(null)
+  const [toast, setToast] = React.useState<{ message: string; tone: 'success' | 'error' } | null>(null)
+  const [search, setSearch] = React.useState('')
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!toast) return
     const timer = window.setTimeout(() => setToast(null), 3500)
     return () => window.clearTimeout(timer)

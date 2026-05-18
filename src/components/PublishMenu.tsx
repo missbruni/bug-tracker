@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import React from 'react'
 import { ChevronDown, ExternalLink, Rocket } from 'lucide-react'
 import { hasDevinApiKey, openSettings } from '../lib/devin'
 
@@ -10,12 +10,12 @@ interface PublishMenuProps {
 }
 
 export default function PublishMenu({ publishing, publishingMode, backlogUrl, onPublish }: PublishMenuProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [devinKeyMissing, setDevinKeyMissing] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const splitRef = useRef<HTMLDivElement>(null)
+  const [menuOpen, setMenuOpen] = React.useState(false)
+  const [devinKeyMissing, setDevinKeyMissing] = React.useState(false)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+  const splitRef = React.useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!menuOpen) return
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {

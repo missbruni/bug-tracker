@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { X, Check, ChevronRight, FileText } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { scopeToTeam } from '../lib/teamScope'
@@ -19,16 +19,16 @@ interface CopyScenariosModalProps {
 }
 
 export default function CopyScenariosModal({ currentSessionId, activeTeamId, onCopy, onClose }: CopyScenariosModalProps) {
-  const [sessions, setSessions] = useState<SessionOption[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
-  const [scenarios, setScenarios] = useState<Scenario[]>([])
-  const [loadingScenarios, setLoadingScenarios] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [copying, setCopying] = useState(false)
+  const [sessions, setSessions] = React.useState<SessionOption[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [selectedSessionId, setSelectedSessionId] = React.useState<string | null>(null)
+  const [scenarios, setScenarios] = React.useState<Scenario[]>([])
+  const [loadingScenarios, setLoadingScenarios] = React.useState(false)
+  const [selected, setSelected] = React.useState<Set<string>>(new Set())
+  const [copying, setCopying] = React.useState(false)
 
   // Load other sessions
-  useEffect(() => {
+  React.useEffect(() => {
     if (!supabase) return
     ;(async () => {
       const { data } = await scopeToTeam(
@@ -41,7 +41,7 @@ export default function CopyScenariosModal({ currentSessionId, activeTeamId, onC
   }, [currentSessionId, activeTeamId])
 
   // Load scenarios when a session is selected
-  useEffect(() => {
+  React.useEffect(() => {
     if (!supabase || !selectedSessionId) {
       setScenarios([])
       setSelected(new Set())

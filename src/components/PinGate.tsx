@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import React, { type FormEvent } from "react"
 import { type PinAccessLevel } from "../lib/teamScope";
 import { submitPin } from "../lib/pinAuth";
 
@@ -8,9 +8,9 @@ interface PinGateProps {
 }
 
 export default function PinGate({ pinConfigured, onUnlock }: PinGateProps) {
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [pin, setPin] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
 
   if (!pinConfigured) {
     return (

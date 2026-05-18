@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { X, Star, Send, MessageSquareHeart } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -50,26 +50,26 @@ const LENGTH_BAR_COLORS: Record<string, string> = {
 
 export default function FeedbackModal({ sessionId, sessionName, onClose, inline }: Props) {
   const { activeTeamId } = useTeamAccess()
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
-  const [loading, setLoading] = useState(true)
-  const [submitted, setSubmitted] = useState(() => {
+  const [feedbacks, setFeedbacks] = React.useState<Feedback[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [submitted, setSubmitted] = React.useState(() => {
     const done = JSON.parse(localStorage.getItem('feedback_submitted') || '[]') as string[]
     return done.includes(sessionId)
   })
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
 
   // Form state
-  const [rating, setRating] = useState(0)
-  const [hoverRating, setHoverRating] = useState(0)
-  const [lengthFeel, setLengthFeel] = useState('')
-  const [clarity, setClarity] = useState(0)
-  const [hoverClarity, setHoverClarity] = useState(0)
-  const [helpfulness, setHelpfulness] = useState('')
-  const [workedWell, setWorkedWell] = useState('')
-  const [toImprove, setToImprove] = useState('')
-  const [name, setName] = useState('')
+  const [rating, setRating] = React.useState(0)
+  const [hoverRating, setHoverRating] = React.useState(0)
+  const [lengthFeel, setLengthFeel] = React.useState('')
+  const [clarity, setClarity] = React.useState(0)
+  const [hoverClarity, setHoverClarity] = React.useState(0)
+  const [helpfulness, setHelpfulness] = React.useState('')
+  const [workedWell, setWorkedWell] = React.useState('')
+  const [toImprove, setToImprove] = React.useState('')
+  const [name, setName] = React.useState('')
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!supabase) { setLoading(false); return }
     scopeToTeam(
       supabase.from('session_feedback').select('*').eq('session_id', sessionId).order('created_at'),

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import React from 'react'
 
 const WALK_SPEED = 1.4
 const MAX_WIGGLE = 5
@@ -16,8 +16,8 @@ function deg2rad(deg: number) {
 }
 
 function LoadingDots() {
-	const [count, setCount] = useState(0)
-	useEffect(() => {
+	const [count, setCount] = React.useState(0)
+	React.useEffect(() => {
 		const id = setInterval(() => setCount(c => (c + 1) % 4), 500)
 		return () => clearInterval(id)
 	}, [])
@@ -25,10 +25,10 @@ function LoadingDots() {
 }
 
 export default function PageLoader() {
-	const canvasRef = useRef<HTMLCanvasElement>(null)
-	const animRef = useRef<number>(0)
+	const canvasRef = React.useRef<HTMLCanvasElement>(null)
+	const animRef = React.useRef<number>(0)
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const canvas = canvasRef.current
 		if (!canvas) return
 

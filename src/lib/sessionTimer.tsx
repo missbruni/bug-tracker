@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import React, { createContext } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from './teamAccess'
@@ -57,17 +57,17 @@ const SessionTimerContext = createContext<SessionTimerContextValue | null>(null)
 
 export function SessionTimerProvider({ children }: { children: ReactNode }) {
   const { activeTeamId } = useTeamAccess()
-  const [timer, setTimer] = useState<TimerState | null>(loadState)
-  const [elapsed, setElapsed] = useState(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [timer, setTimer] = React.useState<TimerState | null>(loadState)
+  const [elapsed, setElapsed] = React.useState(0)
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Persist timer state to localStorage on change
-  useEffect(() => {
+  React.useEffect(() => {
     saveState(timer)
   }, [timer])
 
   // Tick the elapsed counter
-  useEffect(() => {
+  React.useEffect(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
@@ -169,7 +169,7 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
 }
 
 export function useSessionTimer(): SessionTimerContextValue {
-  const ctx = useContext(SessionTimerContext)
+  const ctx = React.useContext(SessionTimerContext)
   if (!ctx) throw new Error('useSessionTimer must be used within SessionTimerProvider')
   return ctx
 }
