@@ -31,6 +31,7 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key
    VITE_ALLOWED_EMAIL_DOMAIN=theaccessgroup.com
+   VITE_PRESENTATION_PIN=your-session-pin
    ```
 
 3. Run the app:
@@ -54,6 +55,8 @@ This app is hosted on Vercel and uses a Vercel Function for AI proxying.
    - `TEAM_PIN`
    - `GOD_PIN`
    - `PIN_SESSION_SECRET`
+   - `AI_PROXY_ALLOWED_HOSTS` (comma-separated host allowlist, e.g. `api.openai.com,*.openai.azure.com`)
+   - `VITE_PRESENTATION_PIN`
 4. In Supabase Auth settings, add your Vercel production URL to allowed redirect URLs.
 
 ## PIN Auth
@@ -67,3 +70,43 @@ This app is hosted on Vercel and uses a Vercel Function for AI proxying.
 - AI requests are routed through the same-origin endpoint `/api/ai-proxy`.
 - On Vercel (preview + production), this endpoint is served by `api/ai-proxy.ts`.
 - In local development, Vite serves the same route via middleware in `vite.config.js`.
+- In production, proxy targets must match `AI_PROXY_ALLOWED_HOSTS` (defaults to `api.openai.com,*.openai.azure.com`).
+
+## Chrome Extension (MVP)
+
+The repository now includes a Chrome extension in `extension/` for quick bug capture while testing other apps.
+
+### Load in Chrome
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the `extension/` folder in this repo
+
+### Configure once
+
+- Open Mushi production (`https://mushi-navy.vercel.app/`) in at least one tab so the extension can reuse the active session
+- Ensure your Supabase project includes `products.link` and `products.description` columns (run `supabase/products_link_description_migration.sql` if needed)
+
+### Capture flow
+
+- On a tested page, use `Alt + Shift + B` to open the capture composer
+- Add title, description, severity
+- Attach multiple screenshots (capture button) and/or upload image/video files
+- Submit to create a bug directly in Mushi
+
+### Domain gating
+
+- Capture is enabled only when the tested page domain matches product domains derived from `products.link` in the active team.
+- If no product links are configured, capture is disabled until links are added in Team Management.
+
+### Auth behavior
+
+- The extension reuses Mushi web app auth session.
+- If you are not logged in, it opens Mushi login and retries submission automatically after login.
+- The bug `tester` defaults to the logged-in user identity.
+
+### v1 limits
+
+- Chrome only (Manifest V3)
+- Video is upload-only (no in-extension recording)

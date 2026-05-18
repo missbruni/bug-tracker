@@ -34,10 +34,11 @@ export default function LoginScreen({
         <button
           type="button"
           disabled
-          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-400 py-2.5 text-sm font-bold text-white dark:text-mushi-bg disabled:cursor-not-allowed transition-colors cursor-not-allowed"
+          aria-disabled="true"
+          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-300 dark:bg-slate-700 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 disabled:cursor-not-allowed transition-colors"
         >
           <LogIn size={16} />
-          Sign in with Microsoft (Coming Soon)
+          Sign in with Microsoft
         </button>
 
         <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">

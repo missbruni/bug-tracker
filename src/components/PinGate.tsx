@@ -69,7 +69,7 @@ export default function PinGate({ pinConfigured, onUnlock }: PinGateProps) {
           disabled={submitting}
           className="w-full rounded-lg bg-blue-500 py-2.5 text-sm font-bold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {submitting ? "Checking..." : "Enter with PIN"}
+          {submitting ? "Mushi booting..." : "Enter with PIN"}
         </button>
       </form>
     </div>

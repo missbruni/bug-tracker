@@ -97,7 +97,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-gray-950">
         <div className="text-sm text-slate-500 dark:text-gray-500">
-          Checking authentication...
+          Warming up Mushi...
         </div>
       </div>
     );

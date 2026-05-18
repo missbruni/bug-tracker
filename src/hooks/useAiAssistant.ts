@@ -47,7 +47,7 @@ export default function useAiAssistant(open: boolean) {
 
   const location = useLocation()
   const { pathname } = location
-  const { activeTeamId } = useTeamAccess()
+  const { activeTeamId, pinRole } = useTeamAccess()
 
   // Session context
   const [sessionContext, setSessionContext] = useState('')
@@ -276,6 +276,7 @@ export default function useAiAssistant(open: boolean) {
       sessionId: currentSessionId,
       onSessionCreated: (id: string) => setCurrentSessionId(id),
       activeTeamId,
+      pinRole,
     }
 
     if (!currentSessionId) {
@@ -292,7 +293,7 @@ export default function useAiAssistant(open: boolean) {
       ...result,
       level: result.level ?? (result.success ? 'success' : 'error'),
     }
-  }, [currentSessionId, pathname, activeTeamId])
+  }, [currentSessionId, pathname, activeTeamId, pinRole])
 
   // ─── Send message ─────────────────────────────────────────
   const sendMessage = useCallback(async (overrideText?: string) => {

@@ -135,6 +135,7 @@ export default function PresentationPage() {
   }
 
   const appUrl = `${window.location.origin}/`
+  const presentationPin = import.meta.env.VITE_PRESENTATION_PIN?.trim()
 
   // Get all scenarios+assignments for the assignments slide
   const scenarioSlides = slides.filter(s => s.type === 'scenario')
@@ -375,7 +376,7 @@ export default function PresentationPage() {
                 </a>
                 <div className="mt-3">
                   <span className="inline-block bg-gray-800 border border-gray-700 px-4 py-1 rounded font-mono text-amber-400 tracking-wider">
-                    PIN: jabbajubs!
+                    PIN: {presentationPin || 'Check with facilitator'}
                   </span>
                 </div>
               </div>

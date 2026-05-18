@@ -1,13 +1,19 @@
 import { supabase } from '../supabaseClient'
 import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
-import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
+import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID, type PinAccessLevel } from './teamScope'
 
 interface ActionContext {
   sessionId: string | null
   onSessionCreated: (id: string) => void
   activeTeamId: string | null
+  pinRole: PinAccessLevel | null
 }
+
+const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
+const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_tester', 'delete_tester', 'edit_tester'])
+const BUG_ACTIONS = new Set(['edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment'])
+const TEAM_ACTIONS = new Set(['create_team', 'create_product', 'edit_product'])
 
 // ─── Bug matching helper ─────────────────────────────────────
 async function findBugByQuery(query: string, activeTeamId: string | null): Promise<{ id: string; title: string } | null> {
@@ -51,6 +57,14 @@ export async function executeSessionActionWithSession(
   if (!supabase) return { action: action.action, success: false, message: 'Database not connected' }
 
   const { sessionId, activeTeamId } = ctx
+
+  if (TEAM_ACTIONS.has(action.action) && ctx.pinRole !== 'god') {
+    return {
+      action: action.action,
+      success: false,
+      message: 'Only god mode can manage teams and products',
+    }
+  }
 
   switch (action.action) {
     case 'create_session': {
@@ -696,11 +710,6 @@ export async function executeSessionActionWithSession(
       return { action: action.action, success: false, message: 'Unknown action' }
   }
 }
-
-const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
-const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_tester', 'delete_tester', 'edit_tester'])
-const BUG_ACTIONS = new Set(['edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment'])
-const TEAM_ACTIONS = new Set(['create_team', 'create_product', 'edit_product'])
 
 export async function executeSessionAction(
   action: SessionAction,
