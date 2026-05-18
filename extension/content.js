@@ -35,7 +35,7 @@ const TYPE_SCALE = {
   button: '13px',
   cta: '16px',
 }
-const DEBUG_LOGS = true
+const DEBUG_LOGS = false
 
 function safeJSONStringify(value) {
   const seen = new WeakSet()

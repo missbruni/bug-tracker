@@ -1,5 +1,5 @@
 const ALLOWED_HEADERS = 'Content-Type, x-target-url, api-key, ocp-apim-subscription-key, authorization'
-const DEFAULT_ALLOWED_TARGET_HOSTS = ['api.openai.com', '*.openai.azure.com']
+const DEFAULT_ALLOWED_TARGET_HOSTS = ['api.openai.com', '*.openai.azure.com', '*.azure-api.net']
 
 function toSingleHeader(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return value[0] ?? ''

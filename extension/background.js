@@ -5,7 +5,7 @@ let getMushiContextLock = null
 const SETTINGS_DEFAULTS = {
   floatingShortcutEnabled: false,
 }
-const DEBUG_LOGS = true
+const DEBUG_LOGS = false
 
 function safeJSONStringify(value) {
   const seen = new WeakSet()

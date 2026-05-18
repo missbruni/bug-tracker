@@ -2,7 +2,7 @@ const statusNode = document.getElementById('status')
 const openMushiButton = document.getElementById('openMushi')
 const openComposerButton = document.getElementById('openComposer')
 const floatingShortcutToggle = document.getElementById('floatingShortcutToggle')
-const DEBUG_LOGS = true
+const DEBUG_LOGS = false
 
 function safeJSONStringify(value) {
   const seen = new WeakSet()
