@@ -25,7 +25,7 @@ interface BugCardProps {
 	onImageClick: (src: string, alt: string, type: string) => void;
 	onDelete: (bugId: string) => void;
 	onPersistError?: (message: string) => void;
-	onReviewed?: (bug: Bug, undo: () => void) => void;
+	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
 }
 
 export default function BugCard({

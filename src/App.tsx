@@ -172,9 +172,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       onDelete={deleteBugFromState}
                       onPersistError={showPersistError}
                       onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
-                      onReviewed={(b, undo) => {
+                      onReviewed={(b, undo, message) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
-                        setSnackbar({ message: `${b.id} marked as completed`, undo })
+                        setSnackbar({ message: message || `${b.id} marked as completed`, undo })
                         snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
                       }}
                     />
@@ -190,12 +190,12 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         )}
       </div>
       {snackbar && (
-        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${snackbar.undo ? 'bg-slate-800 dark:bg-gray-700' : 'bg-red-600'}`}>
+        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-lg ${snackbar.undo ? 'bg-blue-600 dark:bg-blue-500 text-slate-950' : 'bg-red-600 text-white'}`}>
           {snackbar.message}
           {snackbar.undo && (
             <button
               onClick={() => { snackbar.undo!(); clearSnackbar() }}
-              className="rounded-md bg-white/20 px-2.5 py-1 text-xs font-bold hover:bg-white/30 transition-colors cursor-pointer"
+              className="rounded-md bg-black/15 px-2.5 py-1 text-xs font-bold text-slate-950 hover:bg-black/25 transition-colors cursor-pointer"
             >
               Undo
             </button>

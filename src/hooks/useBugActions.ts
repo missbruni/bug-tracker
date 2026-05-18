@@ -4,6 +4,7 @@ import { N8N_WEBHOOK_URL } from '../constants'
 import { playTickSound } from '../lib/audio'
 import { findTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
+import { shouldOpenPbiOnPublishSuccess } from '../lib/azureSettings'
 import { buildAttachmentPath, parseAttachmentStoragePath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Bug, Attachment } from '../types'
 import type { Severity } from '../constants'
@@ -13,7 +14,7 @@ interface UseBugActionsParams {
   onUpdate: (bug: Bug) => void
   onDelete: (bugId: string) => void
   onPersistError?: (message: string) => void
-  onReviewed?: (bug: Bug, undo: () => void) => void
+  onReviewed?: (bug: Bug, undo: () => void, message?: string) => void
 }
 
 export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onReviewed }: UseBugActionsParams) {
@@ -105,7 +106,16 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
           return
         }
 
-        if (url) window.open(url, '_blank')
+        if (onReviewed) {
+          onReviewed(optimisticBug, async () => {
+            const revertedBug: Bug = { ...optimisticBug, reviewed: false }
+            onUpdate(revertedBug)
+            const reverted = await persistBugUpdate({ reviewed: false })
+            if (!reverted) onUpdate(optimisticBug)
+          }, 'Publish succeeded. Bug moved to completed.')
+        }
+
+        if (url && shouldOpenPbiOnPublishSuccess()) window.open(url, '_blank')
       } else {
         showUpdateError((data.error as string) || 'It was not possible to update the bug.')
       }

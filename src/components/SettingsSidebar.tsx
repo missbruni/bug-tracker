@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Settings, Eye, EyeOff, ExternalLink, Check, Sparkles } from 'lucide-react'
 import { getDevinApiKey, setDevinApiKey, removeDevinApiKey, isValidDevinKey } from '../lib/devin'
 import { getAiConfig, setAiConfig, removeAiConfig, type AiProviderType, type AiProviderConfig } from '../lib/aiProvider'
+import { setOpenPbiOnPublishSuccess, shouldOpenPbiOnPublishSuccess } from '../lib/azureSettings'
 
 const AI_PROVIDERS: { value: AiProviderType; label: string }[] = [
   { value: 'azure_openai', label: 'Azure OpenAI' },
@@ -30,10 +31,12 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
   const [showAiKey, setShowAiKey] = useState(false)
   const [aiSaved, setAiSaved] = useState(false)
   const [aiError, setAiError] = useState('')
+  const [openPbiOnPublishSuccess, setOpenPbiOnPublishSuccessState] = useState(true)
 
   useEffect(() => {
     if (open) {
       setDevinKey(getDevinApiKey())
+      setOpenPbiOnPublishSuccessState(shouldOpenPbiOnPublishSuccess())
       const cfg = getAiConfig()
       if (cfg) {
         setAiProvider(cfg.provider)
@@ -175,6 +178,32 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
               <ExternalLink size={10} />
               How to get your Devin API key
             </a>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400 mb-3">
+              Azure Integration
+            </h3>
+            <label className="flex items-start gap-2.5 rounded-md border border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-gray-800/60 px-3 py-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={openPbiOnPublishSuccess}
+                onChange={(e) => {
+                  const enabled = e.target.checked
+                  setOpenPbiOnPublishSuccessState(enabled)
+                  setOpenPbiOnPublishSuccess(enabled)
+                }}
+                className="mt-0.5 h-3.5 w-3.5 accent-blue-500"
+              />
+              <div>
+                <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">
+                  Open PBI in new tab after publish succeeds
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-0.5 leading-relaxed">
+                  Disable this if you want to stay in Mushi after publishing to backlog.
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* AI Assistant Section */}

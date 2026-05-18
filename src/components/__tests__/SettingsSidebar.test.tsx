@@ -4,7 +4,10 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import SettingsSidebar from '../SettingsSidebar'
 
 afterEach(() => cleanup())
-beforeEach(() => localStorage.removeItem('devin_api_key'))
+beforeEach(() => {
+  localStorage.removeItem('devin_api_key')
+  localStorage.removeItem('azure_open_pbi_on_success')
+})
 
 describe('SettingsSidebar', () => {
   test('renders when open', () => {
@@ -65,5 +68,18 @@ describe('SettingsSidebar', () => {
   test('renders link to Devin docs', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
     expect(screen.getByText('How to get your Devin API key')).toBeInTheDocument()
+  })
+
+  test('renders Azure publish setting enabled by default', () => {
+    render(<SettingsSidebar open={true} onClose={() => {}} />)
+    const azureToggle = screen.getByRole('checkbox', { name: /open pbi in new tab after publish succeeds/i })
+    expect(azureToggle).toBeChecked()
+  })
+
+  test('persists Azure publish setting when toggled off', () => {
+    render(<SettingsSidebar open={true} onClose={() => {}} />)
+    const azureToggle = screen.getByRole('checkbox', { name: /open pbi in new tab after publish succeeds/i })
+    fireEvent.click(azureToggle)
+    expect(localStorage.getItem('azure_open_pbi_on_success')).toBe('false')
   })
 })

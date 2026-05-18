@@ -1,4 +1,5 @@
 import { Bug } from "lucide-react";
+import { useRef } from "react";
 import { playBugSound } from "../lib/audio";
 
 interface LogoProps {
@@ -7,6 +8,8 @@ interface LogoProps {
 }
 
 export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
+	const bugButtonRef = useRef<HTMLButtonElement | null>(null);
+
 	return (
 		<h1
 			className="text-lg font-bold flex items-center gap-1"
@@ -22,8 +25,19 @@ export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
 				Mushi
 			</span>
 			<button
+				ref={bugButtonRef}
 				onClick={() => {
 					playBugSound();
+					if (typeof bugButtonRef.current?.animate === "function") {
+						bugButtonRef.current.animate(
+							[
+								{ transform: "scale(1)" },
+								{ transform: "scale(1.18)" },
+								{ transform: "scale(1)" },
+							],
+							{ duration: 220, easing: "ease-out" }
+						);
+					}
 					onToggleBugs?.();
 				}}
 				className={`transition-colors cursor-pointer ${
