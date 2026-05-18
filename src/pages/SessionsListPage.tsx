@@ -41,42 +41,42 @@ async function fetchSessions(activeTeamId: string | null): Promise<Session[]> {
 	if (!sessionsData) return [];
 
 	const enriched: Session[] = [];
-	for (const s of sessionsData) {
+	for (const sessionRow of sessionsData) {
 		const { count: scCount } = await scopeToTeam(
 			supabase
 				.from("scenarios")
 				.select("*", { count: "exact", head: true })
-				.eq("session_id", s.id),
+				.eq("session_id", sessionRow.id),
 			activeTeamId,
 		);
 		const { count: asCount } = await scopeToTeam(
 			supabase
 				.from("assignments")
 				.select("*", { count: "exact", head: true })
-				.eq("session_id", s.id),
+				.eq("session_id", sessionRow.id),
 			activeTeamId,
 		);
 		let feedbackAvg = 0;
 		let feedbackCount = 0;
-		if (s.status === "completed") {
+		if (sessionRow.status === "completed") {
 			const { data: fbData } = await scopeToTeam(
 				supabase
 					.from("session_feedback")
 					.select("rating")
-					.eq("session_id", s.id),
+					.eq("session_id", sessionRow.id),
 				activeTeamId,
 			);
 			if (fbData && fbData.length) {
 				feedbackCount = fbData.length;
 				feedbackAvg =
 					fbData.reduce(
-						(sum: number, f: { rating: number }) => sum + f.rating,
+						(sum: number, feedbackRow: { rating: number }) => sum + feedbackRow.rating,
 						0,
 					) / fbData.length;
 			}
 		}
 		enriched.push({
-			...s,
+			...sessionRow,
 			scenario_count: scCount ?? 0,
 			assignment_count: asCount ?? 0,
 			feedback_avg: feedbackAvg,
@@ -172,8 +172,8 @@ export default function SessionsListPage() {
 		const { error } = await statusQuery;
 		if (!error)
 			queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) =>
-				(prev || []).map((s) =>
-					s.id === session.id ? { ...s, status: next as Session["status"] } : s,
+				(prev || []).map((existingSession) =>
+					existingSession.id === session.id ? { ...existingSession, status: next as Session["status"] } : existingSession,
 				),
 			);
 	};
@@ -192,7 +192,7 @@ export default function SessionsListPage() {
 				activeTeamId,
 			);
 			const { error } = await deleteQuery;
-			if (!error) queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) => (prev || []).filter((s) => s.id !== id));
+			if (!error) queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) => (prev || []).filter((existingSession) => existingSession.id !== id));
 			setDeleteConfirmSession(null);
 			setDeleteConfirmText("");
 		} finally {
@@ -212,10 +212,10 @@ export default function SessionsListPage() {
 		const { error } = await completeQuery;
 		if (!error)
 			queryClient.setQueryData(sessionsQueryKey, (prev: Session[]) =>
-				(prev || []).map((s) =>
-					s.id === completeConfirmSession.id
-						? { ...s, status: "completed" }
-						: s,
+				(prev || []).map((existingSession) =>
+					existingSession.id === completeConfirmSession.id
+						? { ...existingSession, status: "completed" }
+						: existingSession,
 				),
 			);
 		setCompleteConfirmSession(null);
@@ -225,7 +225,7 @@ export default function SessionsListPage() {
 		<>
 			<SecondaryAppBar
 				description=""
-				stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{sessions.filter(s => s.status === 'active').length} active</span> / {sessions.length} total</>}
+				stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{sessions.filter(session => session.status === 'active').length} active</span> / {sessions.length} total</>}
 				search={search}
 				onSearchChange={setSearch}
 				searchPlaceholder="Search sessions..."
@@ -258,7 +258,7 @@ export default function SessionsListPage() {
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
 						<input
 							value={newName}
-							onChange={(e) => setNewName(e.target.value)}
+							onChange={(event) => setNewName(event.target.value)}
 							placeholder="Session name *"
 							autoFocus
 							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
@@ -266,17 +266,17 @@ export default function SessionsListPage() {
 						<input
 							type="date"
 							value={newDate}
-							onChange={(e) => setNewDate(e.target.value)}
+							onChange={(event) => setNewDate(event.target.value)}
 							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
 						/>
 						<select
 							value={newProductId}
-							onChange={(e) => setNewProductId(e.target.value)}
+							onChange={(event) => setNewProductId(event.target.value)}
 							className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
 						>
 							<option value="">Select product...</option>
-							{teamProducts.map((p) => (
-								<option key={p.id} value={p.id}>{p.name}</option>
+							{teamProducts.map((product) => (
+								<option key={product.id} value={product.id}>{product.name}</option>
 							))}
 						</select>
 					</div>
@@ -314,8 +314,8 @@ export default function SessionsListPage() {
 					{sessions
 						.filter(session => {
 							if (!search.trim()) return true;
-							const q = search.toLowerCase();
-							return session.name.toLowerCase().includes(q) || session.status.toLowerCase().includes(q);
+							const query = search.toLowerCase();
+							return session.name.toLowerCase().includes(query) || session.status.toLowerCase().includes(query);
 						})
 						.map((session) => {
 						const st = SESSION_STATUS_STYLES[session.status];
@@ -362,12 +362,12 @@ export default function SessionsListPage() {
 												{session.assignment_count} assigned
 											</span>
 											{session.product_id && (() => {
-												const prod = teamProducts.find(p => p.id === session.product_id);
-												if (!prod) return null;
+												const product = teamProducts.find(existingProduct => existingProduct.id === session.product_id);
+												if (!product) return null;
 												return (
 													<span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
 														<Package size={12} />
-														{prod.name}
+														{product.name}
 													</span>
 												);
 											})()}
@@ -376,8 +376,8 @@ export default function SessionsListPage() {
 									<div className="flex items-center gap-2 sm:shrink-0">
 										{session.status !== "completed" && !timer && (
 											<button
-												onClick={(e) => {
-													e.preventDefault();
+												onClick={(event) => {
+													event.preventDefault();
 													startTimer(session.id, session.name);
 												}}
 												className="flex items-center gap-1 rounded-md bg-blue-500 px-2.5 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
@@ -387,8 +387,8 @@ export default function SessionsListPage() {
 											</button>
 										)}
 										<button
-											onClick={(e) => {
-												e.preventDefault();
+											onClick={(event) => {
+												event.preventDefault();
 												setDeleteConfirmSession(session);
 												setDeleteConfirmText("");
 											}}
@@ -414,8 +414,8 @@ export default function SessionsListPage() {
 													</div>
 												)}
 												<button
-													onClick={(e) => {
-														e.preventDefault();
+													onClick={(event) => {
+														event.preventDefault();
 														setFeedbackSession(session);
 													}}
 													className="flex items-center gap-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors cursor-pointer"
@@ -483,7 +483,7 @@ export default function SessionsListPage() {
 					</p>
 					<input
 						value={deleteConfirmText}
-						onChange={(e) => setDeleteConfirmText(e.target.value)}
+						onChange={(event) => setDeleteConfirmText(event.target.value)}
 						placeholder={deleteConfirmSession.name}
 						autoFocus
 						className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"

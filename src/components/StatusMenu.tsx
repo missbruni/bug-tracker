@@ -17,7 +17,7 @@ export default function StatusMenu({ currentStatus, open, onToggle, onSelect, on
 	return (
 		<div className="relative">
 			<button
-				onClick={(e) => { e.preventDefault(); if (!disabled) onToggle() }}
+				onClick={(event) => { event.preventDefault(); if (!disabled) onToggle() }}
 				disabled={disabled}
 				className={`badge ${st.bg} ${disabled ? 'cursor-default' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
 			>
@@ -26,14 +26,14 @@ export default function StatusMenu({ currentStatus, open, onToggle, onSelect, on
 			</button>
 			{open && (
 				<>
-					<div className="fixed inset-0 z-40" onClick={(e) => { e.preventDefault(); onClose() }} />
+					<div className="fixed inset-0 z-40" onClick={(event) => { event.preventDefault(); onClose() }} />
 					<div className="absolute left-0 top-full mt-1 z-50 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 min-w-[120px]">
 						{(['draft', 'active', 'completed'] as const).map(s => {
 							const sty = SESSION_STATUS_STYLES[s]
 							return (
 								<button
 									key={s}
-									onClick={(e) => { e.preventDefault(); onSelect(s) }}
+									onClick={(event) => { event.preventDefault(); onSelect(s) }}
 									className={`w-full text-left px-3 py-1.5 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
 										currentStatus === s
 											? sty.bg

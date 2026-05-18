@@ -13,7 +13,7 @@ function DeleteConfirmDialog({ name, onDelete, onCancel }: { name: string; onDel
       <h3>Delete session?</h3>
       <p>This will permanently delete <span>{name}</span> and all its scenarios, assignments, and feedback. This action cannot be undone.</p>
       <p>Type <span>DELETE</span> to confirm:</p>
-      <input value={text} onChange={e => setText(e.target.value)} placeholder="Type DELETE here" />
+      <input value={text} onChange={event => setText(event.target.value)} placeholder="Type DELETE here" />
       <button onClick={onCancel}>Cancel</button>
       <button onClick={onDelete} disabled={text !== 'DELETE'}>Delete permanently</button>
     </div>

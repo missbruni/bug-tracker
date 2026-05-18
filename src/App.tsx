@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, Sparkles } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import Lightbox from './components/Lightbox'
@@ -43,7 +43,7 @@ export default function App() {
   const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'))
 
   React.useEffect(() => {
-    const handler = (e: Event) => setIsDark((e as CustomEvent).detail.dark)
+    const handler = (event: Event) => setIsDark((event as CustomEvent).detail.dark)
     window.addEventListener('themechange', handler)
     return () => window.removeEventListener('themechange', handler)
   }, [])
@@ -52,13 +52,13 @@ export default function App() {
   const searchRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault()
         searchRef.current?.focus()
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
-        e.preventDefault()
+      if ((event.metaKey || event.ctrlKey) && event.key === 'j') {
+        event.preventDefault()
         setShowAddForm((prev) => !prev)
       }
     }

@@ -90,7 +90,7 @@ export default function CopyScenariosModal({ currentSessionId, activeTeamId, onC
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col"
-        onClick={e => e.stopPropagation()}
+        onClick={event => event.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-gray-700">

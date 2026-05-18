@@ -149,45 +149,45 @@ export function useBugs(): UseBugsReturn {
         if (payload.eventType === 'INSERT') {
           const newBug = payload.new as Bug
           updateBugs((prev) => {
-            if (prev.some(b => b.id === newBug.id)) return prev
+            if (prev.some(existingBug => existingBug.id === newBug.id)) return prev
             return [...prev, { ...newBug, comments: [], attachments: [] }]
           })
         } else if (payload.eventType === 'UPDATE') {
           const updated = payload.new as Bug
-          updateBugs((prev) => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b))
+          updateBugs((prev) => prev.map(existingBug => existingBug.id === updated.id ? { ...existingBug, ...updated } : existingBug))
         } else if (payload.eventType === 'DELETE') {
           const deleted = payload.old as { id: string }
-          updateBugs((prev) => prev.filter(b => b.id !== deleted.id))
+          updateBugs((prev) => prev.filter(existingBug => existingBug.id !== deleted.id))
         }
       })
       .on('postgres_changes', scopeConfig('INSERT', 'comments'), (payload) => {
         const c = payload.new as { id: number; bug_id: string; text: string; time?: string }
-        updateBugs((prev) => prev.map(b => {
-          if (b.id !== c.bug_id) return b
-          if (b.comments.some(cm => cm.id === c.id)) return b
-          return { ...b, comments: [...b.comments, c] }
+        updateBugs((prev) => prev.map(existingBug => {
+          if (existingBug.id !== c.bug_id) return existingBug
+          if (existingBug.comments.some(comment => comment.id === c.id)) return existingBug
+          return { ...existingBug, comments: [...existingBug.comments, c] }
         }))
       })
       .on('postgres_changes', scopeConfig('DELETE', 'comments'), (payload) => {
         const c = payload.old as { id: number; bug_id: string }
-        updateBugs((prev) => prev.map(b => {
-          if (b.id !== c.bug_id) return b
-          return { ...b, comments: b.comments.filter(cm => cm.id !== c.id) }
+        updateBugs((prev) => prev.map(existingBug => {
+          if (existingBug.id !== c.bug_id) return existingBug
+          return { ...existingBug, comments: existingBug.comments.filter(comment => comment.id !== c.id) }
         }))
       })
       .on('postgres_changes', scopeConfig('INSERT', 'attachments'), (payload) => {
         const a = payload.new as Attachment & { bug_id: string }
-        updateBugs((prev) => prev.map(b => {
-          if (b.id !== a.bug_id) return b
-          if (b.attachments.some(at => at.id === a.id)) return b
-          return { ...b, attachments: [...b.attachments, a] }
+        updateBugs((prev) => prev.map(existingBug => {
+          if (existingBug.id !== a.bug_id) return existingBug
+          if (existingBug.attachments.some(attachment => attachment.id === a.id)) return existingBug
+          return { ...existingBug, attachments: [...existingBug.attachments, a] }
         }))
       })
       .on('postgres_changes', scopeConfig('DELETE', 'attachments'), (payload) => {
         const a = payload.old as { id: number; bug_id: string }
-        updateBugs((prev) => prev.map(b => {
-          if (b.id !== a.bug_id) return b
-          return { ...b, attachments: b.attachments.filter(at => at.id !== a.id) }
+        updateBugs((prev) => prev.map(existingBug => {
+          if (existingBug.id !== a.bug_id) return existingBug
+          return { ...existingBug, attachments: existingBug.attachments.filter(attachment => attachment.id !== a.id) }
         }))
       })
       .subscribe()
@@ -251,7 +251,7 @@ export function useBugs(): UseBugsReturn {
 
       const result = { id: row.id, name: row.name }
       setRegisteredTesters(prev => {
-        const next = prev.some(t => t.id === result.id) ? prev : [...prev, result]
+        const next = prev.some(existingTester => existingTester.id === result.id) ? prev : [...prev, result]
         return next.sort((a, b) => a.name.localeCompare(b.name))
       })
       return result
@@ -363,7 +363,7 @@ export function useBugs(): UseBugsReturn {
       const { error } = await deleteQuery
       if (error) { console.error('Failed to delete question:', error); return }
     }
-    setQuestions((prev) => prev.filter((x) => x.id !== q.id))
+    setQuestions((prev) => prev.filter((question) => question.id !== q.id))
   }
 
   return {

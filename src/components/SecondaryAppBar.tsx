@@ -49,7 +49,7 @@ export default function SecondaryAppBar({
               <input
                 ref={searchRef}
                 value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
+                onChange={(event) => onSearchChange(event.target.value)}
                 placeholder={searchPlaceholder}
                 className={`h-full w-full md:w-64 rounded-lg border border-slate-300 dark:border-gray-700 bg-slate-100 dark:bg-gray-800/60 pl-9 ${showSearchShortcut ? 'pr-16' : 'pr-3'} text-xs text-slate-900 dark:text-white outline-none focus:border-blue-400 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-400/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all`}
               />

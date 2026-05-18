@@ -26,14 +26,14 @@ export default function Lightbox({ src, alt, type, onClose }: LightboxProps) {
           controls
           autoPlay
           className="max-h-full max-w-full rounded-lg"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         />
       ) : (
         <img
           src={src}
           alt={alt}
           className="max-h-full max-w-full rounded-lg object-contain"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         />
       )}
     </div>

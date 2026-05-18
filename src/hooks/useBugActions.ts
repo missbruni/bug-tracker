@@ -86,7 +86,7 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
         body: JSON.stringify({
           id: bug.id,
           title: bug.title,
-          description: (bug.description || '') + (bug.comments.length ? '\n\n---\nComments:\n' + bug.comments.map(c => `- ${c.text}${c.time ? ` (${c.time})` : ''}`).join('\n') : ''),
+          description: (bug.description || '') + (bug.comments.length ? '\n\n---\nComments:\n' + bug.comments.map(comment => `- ${comment.text}${comment.time ? ` (${comment.time})` : ''}`).join('\n') : ''),
           severity: bug.severity,
           tester: bug.tester,
           page: bug.page,

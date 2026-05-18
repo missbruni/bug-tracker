@@ -23,10 +23,10 @@ function InlineTitle({ name, isCompleted, onSave }: { name: string; isCompleted:
       <input
         data-testid="title-input"
         value={value}
-        onChange={e => setValue(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter') save()
-          if (e.key === 'Escape') setEditing(false)
+        onChange={event => setValue(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === 'Enter') save()
+          if (event.key === 'Escape') setEditing(false)
         }}
         onBlur={save}
         autoFocus

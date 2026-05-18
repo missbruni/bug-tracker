@@ -209,7 +209,7 @@ export default function TeamManagementPage() {
               autoFocus
               value={newTeamName}
               onChange={(event) => setNewTeamName(event.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateTeam(); if (e.key === 'Escape') { setShowAdd(false); setNewTeamName(''); setError(null) } }}
+              onKeyDown={(event) => { if (event.key === 'Enter') handleCreateTeam(); if (event.key === 'Escape') { setShowAdd(false); setNewTeamName(''); setError(null) } }}
               placeholder="e.g. Revenue Ops"
               className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
             />

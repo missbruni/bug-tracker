@@ -41,7 +41,7 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
   // Escape key to close
   React.useEffect(() => {
     if (!open) return
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handleEsc = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [open, onClose])
@@ -308,10 +308,10 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
             <textarea
               ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
                   sendMessage()
                 }
               }}

@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test'
-import { parseSessionActions, parseBugsFromResponse, stripJsonBlock } from '../aiParsers'
+import { parseSessionActions, stripJsonBlock } from '../aiParsers'
 import { buildSystemPrompt } from '../aiPrompt'
 
 describe('parseSessionActions — new action types', () => {

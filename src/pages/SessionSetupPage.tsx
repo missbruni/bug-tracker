@@ -127,8 +127,8 @@ export default function SessionSetupPage() {
 
   // Reload when AI assistant modifies session data
   React.useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail
       if (!detail?.sessionId || detail.sessionId === sessionId) {
         setReloadCounter((prev) => prev + 1)
       }
@@ -139,8 +139,8 @@ export default function SessionSetupPage() {
 
   // Navigate away if this session is deleted via AI
   React.useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail
       if (detail?.sessionId === sessionId) navigate('/sessions')
     }
     window.addEventListener('sessionDeleted', handler)
@@ -406,11 +406,11 @@ export default function SessionSetupPage() {
 
   const assignedTesterIds = new Set(assignments.map(a => a.tester_id))
 
-  const handleDrop = (scenarioId: string, e: React.DragEvent) => {
-    e.preventDefault()
+  const handleDrop = (scenarioId: string, event: React.DragEvent) => {
+    event.preventDefault()
     setDragOverScenarioId(null)
 
-    const draggedScenarioId = e.dataTransfer.getData('text/scenario-id')
+    const draggedScenarioId = event.dataTransfer.getData('text/scenario-id')
     if (draggedScenarioId) {
       if (draggedScenarioId !== scenarioId) {
         const fromIdx = scenarios.findIndex(s => s.id === draggedScenarioId)
@@ -434,7 +434,7 @@ export default function SessionSetupPage() {
       return
     }
 
-    const testerId = e.dataTransfer.getData('text/tester-id')
+    const testerId = event.dataTransfer.getData('text/tester-id')
     if (!testerId) return
     const tester = testers.find(t => t.id === testerId)
     const scenario = scenarios.find(s => s.id === scenarioId)
@@ -444,9 +444,9 @@ export default function SessionSetupPage() {
     assignTester(scenarioId, testerId)
   }
 
-  const handleDragOver = (scenarioId: string, e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
+  const handleDragOver = (scenarioId: string, event: React.DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
     if (dragOverScenarioId !== scenarioId) setDragOverScenarioId(scenarioId)
   }
 
@@ -484,9 +484,9 @@ export default function SessionSetupPage() {
             {editingName ? (
               <input
                 value={editNameValue}
-                onChange={e => setEditNameValue(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
+                onChange={event => setEditNameValue(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') {
                     const newName = editNameValue.trim()
                     if (newName && supabase) {
                       const oldName = session.name
@@ -500,7 +500,7 @@ export default function SessionSetupPage() {
                     }
                     setEditingName(false)
                   }
-                  if (e.key === 'Escape') setEditingName(false)
+                  if (event.key === 'Escape') setEditingName(false)
                 }}
                 onBlur={() => {
                   const newName = editNameValue.trim()
@@ -717,12 +717,12 @@ export default function SessionSetupPage() {
                   onMoveDown={() => moveScenario(scenario.id, 'down')}
                   onEdit={() => startEditScenario(scenario)}
                   onDelete={() => deleteScenario(scenario.id)}
-                  onDrop={!isCompleted ? (e) => handleDrop(scenario.id, e) : undefined}
-                  onDragOver={!isCompleted ? (e) => handleDragOver(scenario.id, e) : undefined}
+                  onDrop={!isCompleted ? (event) => handleDrop(scenario.id, event) : undefined}
+                  onDragOver={!isCompleted ? (event) => handleDragOver(scenario.id, event) : undefined}
                   onDragLeave={!isCompleted ? () => setDragOverScenarioId(null) : undefined}
-                  onDragStart={!isCompleted ? (e) => {
-                    e.dataTransfer.setData('text/scenario-id', scenario.id)
-                    e.dataTransfer.effectAllowed = 'move'
+                  onDragStart={!isCompleted ? (event) => {
+                    event.dataTransfer.setData('text/scenario-id', scenario.id)
+                    event.dataTransfer.effectAllowed = 'move'
                   } : undefined}
                 />
               )
@@ -782,9 +782,9 @@ export default function SessionSetupPage() {
                   <button
                     key={tester.id}
                     draggable={!isCompleted && !used}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/tester-id', tester.id)
-                      e.dataTransfer.effectAllowed = 'move'
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData('text/tester-id', tester.id)
+                      event.dataTransfer.effectAllowed = 'move'
                     }}
                     onClick={() => !isCompleted && selectedScenarioId && eligible && !used && assignTester(selectedScenarioId, tester.id)}
                     disabled={isCompleted || !selectedScenarioId || used || !eligible}
@@ -857,7 +857,7 @@ export default function SessionSetupPage() {
           </p>
           <input
             value={deleteConfirmText}
-            onChange={e => setDeleteConfirmText(e.target.value)}
+            onChange={event => setDeleteConfirmText(event.target.value)}
             placeholder={session.name}
             autoFocus
             className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"

@@ -59,15 +59,15 @@ export default function BugCard({
 		onReviewed,
 	});
 
-	const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const files = Array.from(e.target.files || []);
+	const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(event.target.files || []);
 		if (!files.length) return;
-		e.target.value = "";
+		event.target.value = "";
 		await actions.uploadFiles(files);
 	};
 
-	const handlePaste = async (e: React.ClipboardEvent) => {
-		const items = Array.from(e.clipboardData?.items || []);
+	const handlePaste = async (event: React.ClipboardEvent) => {
+		const items = Array.from(event.clipboardData?.items || []);
 		const imageFiles = items
 			.filter((item) => item.type.startsWith("image/"))
 			.map((item) => {
@@ -82,7 +82,7 @@ export default function BugCard({
 			})
 			.filter((f): f is File => f !== null);
 		if (imageFiles.length) {
-			e.preventDefault();
+			event.preventDefault();
 			await actions.uploadFiles(imageFiles);
 		}
 	};
@@ -183,13 +183,13 @@ export default function BugCard({
 						<span
 							role="button"
 							tabIndex={0}
-							onClick={(e) => {
-								e.stopPropagation();
+							onClick={(event) => {
+								event.stopPropagation();
 								startEditing();
 							}}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									e.stopPropagation();
+							onKeyDown={(event) => {
+								if (event.key === "Enter") {
+									event.stopPropagation();
 									startEditing();
 								}
 							}}
@@ -201,13 +201,13 @@ export default function BugCard({
 						<span
 							role="button"
 							tabIndex={0}
-							onClick={(e) => {
-								e.stopPropagation();
+							onClick={(event) => {
+								event.stopPropagation();
 								requestDelete();
 							}}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									e.stopPropagation();
+							onKeyDown={(event) => {
+								if (event.key === "Enter") {
+									event.stopPropagation();
 									requestDelete();
 								}
 							}}
@@ -228,7 +228,7 @@ export default function BugCard({
 								href={backlogUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								onClick={(e) => e.stopPropagation()}
+								onClick={(event) => event.stopPropagation()}
 								className="badge badge-green hover:brightness-110"
 							>
 								<ExternalLink size={10} />
@@ -240,7 +240,7 @@ export default function BugCard({
 								href={devinUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								onClick={(e) => e.stopPropagation()}
+								onClick={(event) => event.stopPropagation()}
 								className="badge badge-purple hover:brightness-110"
 							>
 								<Rocket size={10} />
@@ -363,8 +363,8 @@ export default function BugCard({
 							<div className="flex flex-1 items-center gap-2">
 								<input
 									value={commentText}
-									onChange={(e) => setCommentText(e.target.value)}
-									onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+									onChange={(event) => setCommentText(event.target.value)}
+									onKeyDown={(event) => event.key === "Enter" && handleAddComment()}
 									placeholder="Write a comment..."
 									className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500"
 									autoFocus

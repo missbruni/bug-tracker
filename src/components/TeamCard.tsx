@@ -153,8 +153,8 @@ export default function TeamCard({
         <div>
           <input
             value={editName}
-            onChange={(e) => onEditNameChange(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') onSaveEdit(); if (e.key === 'Escape') onCancelEdit() }}
+            onChange={(event) => onEditNameChange(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') onSaveEdit(); if (event.key === 'Escape') onCancelEdit() }}
             className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 mb-3"
             autoFocus
           />
@@ -299,14 +299,14 @@ export default function TeamCard({
                     <input
                       autoFocus
                       value={editProductName}
-                      onChange={(e) => setEditProductName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEditProduct(); if (e.key === 'Escape') setEditingProductId(null) }}
+                      onChange={(event) => setEditProductName(event.target.value)}
+                      onKeyDown={(event) => { if (event.key === 'Enter') saveEditProduct(); if (event.key === 'Escape') setEditingProductId(null) }}
                       placeholder="Product name *"
                       className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                     />
                     <input
                       value={editProductDesc}
-                      onChange={(e) => setEditProductDesc(e.target.value)}
+                      onChange={(event) => setEditProductDesc(event.target.value)}
                       placeholder="Description (optional)"
                       className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                     />
@@ -315,13 +315,13 @@ export default function TeamCard({
                         <div key={i} className="flex items-center gap-1.5">
                           <input
                             value={link.label}
-                            onChange={(e) => { const next = [...editProductLinks]; next[i] = { ...next[i], label: e.target.value }; setEditProductLinks(next) }}
+                            onChange={(event) => { const next = [...editProductLinks]; next[i] = { ...next[i], label: event.target.value }; setEditProductLinks(next) }}
                             placeholder="Label"
                             className="w-28 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                           />
                           <input
                             value={link.url}
-                            onChange={(e) => { const next = [...editProductLinks]; next[i] = { ...next[i], url: e.target.value }; setEditProductLinks(next) }}
+                            onChange={(event) => { const next = [...editProductLinks]; next[i] = { ...next[i], url: event.target.value }; setEditProductLinks(next) }}
                             placeholder="https://..."
                             className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                           />
@@ -374,7 +374,7 @@ export default function TeamCard({
                                   href={url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(event) => event.stopPropagation()}
                                   className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                                   title={url}
                                 >
@@ -431,14 +431,14 @@ export default function TeamCard({
                 <input
                   autoFocus
                   value={newProductName}
-                  onChange={(e) => setNewProductName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && newProductName.trim()) handleAddProduct(); if (e.key === 'Escape') setAddingProduct(false) }}
+                  onChange={(event) => setNewProductName(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === 'Enter' && newProductName.trim()) handleAddProduct(); if (event.key === 'Escape') setAddingProduct(false) }}
                   placeholder="Product name *"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                 />
                 <input
                   value={newProductDesc}
-                  onChange={(e) => setNewProductDesc(e.target.value)}
+                  onChange={(event) => setNewProductDesc(event.target.value)}
                   placeholder="Description (optional)"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                 />
@@ -447,13 +447,13 @@ export default function TeamCard({
                     <div key={i} className="flex items-center gap-1.5">
                       <input
                         value={link.label}
-                        onChange={(e) => { const next = [...newProductLinks]; next[i] = { ...next[i], label: e.target.value }; setNewProductLinks(next) }}
+                        onChange={(event) => { const next = [...newProductLinks]; next[i] = { ...next[i], label: event.target.value }; setNewProductLinks(next) }}
                         placeholder="Label"
                         className="w-28 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                       />
                       <input
                         value={link.url}
-                        onChange={(e) => { const next = [...newProductLinks]; next[i] = { ...next[i], url: e.target.value }; setNewProductLinks(next) }}
+                        onChange={(event) => { const next = [...newProductLinks]; next[i] = { ...next[i], url: event.target.value }; setNewProductLinks(next) }}
                         placeholder="https://..."
                         className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400"
                       />

@@ -218,7 +218,7 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">Your name <span className="font-normal text-slate-400 dark:text-gray-500">(optional — leave blank to stay anonymous)</span></label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Anonymous"
+                <input value={name} onChange={event => setName(event.target.value)} placeholder="Anonymous"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500" />
               </div>
 
@@ -262,13 +262,13 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">What worked well?</label>
-                <textarea value={workedWell} onChange={e => setWorkedWell(e.target.value)} rows={2} placeholder="Optional"
+                <textarea value={workedWell} onChange={event => setWorkedWell(event.target.value)} rows={2} placeholder="Optional"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y focus:border-blue-400 dark:focus:border-blue-500" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">What could we improve?</label>
-                <textarea value={toImprove} onChange={e => setToImprove(e.target.value)} rows={2} placeholder="Optional"
+                <textarea value={toImprove} onChange={event => setToImprove(event.target.value)} rows={2} placeholder="Optional"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y focus:border-blue-400 dark:focus:border-blue-500" />
               </div>
 
@@ -287,7 +287,7 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}>
+        onClick={event => event.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
           <div className="flex items-center gap-2">

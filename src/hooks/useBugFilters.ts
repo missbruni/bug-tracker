@@ -138,7 +138,7 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
         if (testerValue.toLowerCase() === 'all') {
           setTesterFilter('all')
         } else {
-          const matchedTester = testers.find((t) => t.toLowerCase() === testerValue.toLowerCase())
+          const matchedTester = testers.find((testerName) => testerName.toLowerCase() === testerValue.toLowerCase())
           if (matchedTester) {
             setTesterFilter(matchedTester)
           }
@@ -182,61 +182,61 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
   const filtered = (() => {
     const selectedActiveSeverities = getSelectedActiveSeverities(severityFilter)
 
-    return bugs.filter((b) => {
-      if (severityFilter === 'completed') { if (!b.reviewed) return false }
-      else { if (b.reviewed) return false }
+    return bugs.filter((bug) => {
+      if (severityFilter === 'completed') { if (!bug.reviewed) return false }
+      else { if (bug.reviewed) return false }
       if (selectedActiveSeverities.size > 0) {
-        if (!selectedActiveSeverities.has(b.severity)) return false
-      } else if (severityFilter !== 'all' && severityFilter !== 'completed' && b.severity !== severityFilter) return false
-      if (testerFilter !== 'all' && !b.tester.includes(testerFilter)) return false
+        if (!selectedActiveSeverities.has(bug.severity)) return false
+      } else if (severityFilter !== 'all' && severityFilter !== 'completed' && bug.severity !== severityFilter) return false
+      if (testerFilter !== 'all' && !bug.tester.includes(testerFilter)) return false
       if (sessionFilter !== 'all') {
-        const bugSessionId = b.session_id
+        const bugSessionId = bug.session_id
         if (sessionFilter === 'none') { if (bugSessionId) return false }
         else if (bugSessionId !== sessionFilter) return false
       }
       if (deferredSearch) {
-        const q = deferredSearch.toLowerCase()
+        const query = deferredSearch.toLowerCase()
         if (
-          !b.title.toLowerCase().includes(q) &&
-          !(b.description || '').toLowerCase().includes(q) &&
-          !b.id.toLowerCase().includes(q) &&
-          !b.tester.toLowerCase().includes(q) &&
-          !b.device.toLowerCase().includes(q) &&
-          !(b.category || '').toLowerCase().includes(q) &&
-          !b.page.toLowerCase().includes(q)
+          !bug.title.toLowerCase().includes(query) &&
+          !(bug.description || '').toLowerCase().includes(query) &&
+          !bug.id.toLowerCase().includes(query) &&
+          !bug.tester.toLowerCase().includes(query) &&
+          !bug.device.toLowerCase().includes(query) &&
+          !(bug.category || '').toLowerCase().includes(query) &&
+          !bug.page.toLowerCase().includes(query)
         )
           return false
       }
-      if (!matchesDateFilter(b.created_at, dateFilter)) return false
+      if (!matchesDateFilter(bug.created_at, dateFilter)) return false
       return true
-    }).sort((a, b) => {
-      if (sortOrder === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-      if (sortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    }).sort((firstBug, secondBug) => {
+      if (sortOrder === 'newest') return new Date(secondBug.created_at || 0).getTime() - new Date(firstBug.created_at || 0).getTime()
+      if (sortOrder === 'oldest') return new Date(firstBug.created_at || 0).getTime() - new Date(secondBug.created_at || 0).getTime()
       return 0
     })
   })()
 
-  const activeBugs = bugs.filter(b => !b.reviewed)
+  const activeBugs = bugs.filter(bug => !bug.reviewed)
 
   const counts = (() => {
-    const c: Record<Severity, number> = { critical: 0, high: 0, low: 0 }
-    activeBugs.forEach((b) => c[b.severity]++)
-    return c
+    const countsBySeverity: Record<Severity, number> = { critical: 0, high: 0, low: 0 }
+    activeBugs.forEach((bug) => countsBySeverity[bug.severity]++)
+    return countsBySeverity
   })()
 
   const nextIds = ({
-    critical: Math.max(0, ...bugs.filter((b) => b.severity === 'critical').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
-    high: Math.max(0, ...bugs.filter((b) => b.severity === 'high').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
-    low: Math.max(0, ...bugs.filter((b) => b.severity === 'low').map((b) => parseInt(b.id.replace(/\D+/g, '')) || 0)) + 1,
+    critical: Math.max(0, ...bugs.filter((bug) => bug.severity === 'critical').map((bug) => parseInt(bug.id.replace(/\D+/g, '')) || 0)) + 1,
+    high: Math.max(0, ...bugs.filter((bug) => bug.severity === 'high').map((bug) => parseInt(bug.id.replace(/\D+/g, '')) || 0)) + 1,
+    low: Math.max(0, ...bugs.filter((bug) => bug.severity === 'low').map((bug) => parseInt(bug.id.replace(/\D+/g, '')) || 0)) + 1,
   })
 
   const grouped = (() => {
-    const g: Record<string, Bug[]> = {}
-    SEVERITIES.forEach((s) => { g[s] = filtered.filter((b) => b.severity === s) })
-    return g
+    const groupedBugs: Record<string, Bug[]> = {}
+    SEVERITIES.forEach((severity) => { groupedBugs[severity] = filtered.filter((bug) => bug.severity === severity) })
+    return groupedBugs
   })()
 
-  const filteredQuestions = questions.filter((q) => matchesDateFilter(q.created_at, dateFilter))
+  const filteredQuestions = questions.filter((question) => matchesDateFilter(question.created_at, dateFilter))
 
   return {
     severityFilter,

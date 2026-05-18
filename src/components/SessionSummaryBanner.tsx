@@ -170,10 +170,10 @@ export default function SessionSummaryBanner({
             <input
               ref={durationInputRef}
               value={durationInput}
-              onChange={e => setDurationInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') commitDuration()
-                if (e.key === 'Escape') setEditingDuration(false)
+              onChange={event => setDurationInput(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === 'Enter') commitDuration()
+                if (event.key === 'Escape') setEditingDuration(false)
               }}
               onBlur={commitDuration}
               placeholder="0h 00m"

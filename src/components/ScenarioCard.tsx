@@ -17,10 +17,10 @@ interface ScenarioCardProps {
 	onMoveDown: () => void
 	onEdit: () => void
 	onDelete: () => void
-	onDrop?: (e: React.DragEvent) => void
-	onDragOver?: (e: React.DragEvent) => void
-	onDragLeave?: (e: React.DragEvent) => void
-	onDragStart?: (e: React.DragEvent) => void
+	onDrop?: (event: React.DragEvent) => void
+	onDragOver?: (event: React.DragEvent) => void
+	onDragLeave?: (event: React.DragEvent) => void
+	onDragStart?: (event: React.DragEvent) => void
 }
 
 export default function ScenarioCard({
@@ -91,7 +91,7 @@ export default function ScenarioCard({
 					</span>
 				)}
 				{!isCompleted && (
-					<div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+					<div className="flex items-center gap-0.5 shrink-0" onClick={event => event.stopPropagation()}>
 						<button onClick={onMoveUp} disabled={index === 0}
 							className="p-1 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer disabled:cursor-default">
 							<ChevronUp size={14} />

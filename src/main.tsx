@@ -68,17 +68,17 @@ function Layout() {
 	}, []);
 
 	React.useEffect(() => {
-		const handler = (e: KeyboardEvent) => {
-			if ((e.metaKey || e.ctrlKey) && e.key === "b") {
-				e.preventDefault();
+		const handler = (event: KeyboardEvent) => {
+			if ((event.metaKey || event.ctrlKey) && event.key === "b") {
+				event.preventDefault();
 				setShowBugs((prev) => {
 					const next = !prev;
 					localStorage.setItem("showBugs", String(next));
 					return next;
 				});
 			}
-			if ((e.metaKey || e.ctrlKey) && e.key === "i") {
-				e.preventDefault();
+			if ((event.metaKey || event.ctrlKey) && event.key === "i") {
+				event.preventDefault();
 				setAiPanelOpen((prev) => { playAiSound(!prev); return !prev });
 			}
 		};

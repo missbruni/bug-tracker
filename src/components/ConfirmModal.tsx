@@ -32,7 +32,7 @@ export default function ConfirmModal({
 		>
 			<div
 				className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
-				onClick={(e) => e.stopPropagation()}
+				onClick={(event) => event.stopPropagation()}
 			>
 				<h2 className={titleClassName}>{title}</h2>
 				{children}

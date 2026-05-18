@@ -51,8 +51,8 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
 
   React.useEffect(() => {
     if (!open) return
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
@@ -127,8 +127,8 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
               <input
                 type={showKey ? 'text' : 'password'}
                 value={devinKey}
-                onChange={(e) => { setDevinKey(e.target.value); setSaved(false); setKeyError('') }}
-                onKeyDown={(e) => { if (e.key === 'Enter') save() }}
+                onChange={(event) => { setDevinKey(event.target.value); setSaved(false); setKeyError('') }}
+                onKeyDown={(event) => { if (event.key === 'Enter') save() }}
                 placeholder="apk_user_xxxxxxxx"
                 className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 pr-9 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-600 font-mono"
               />
@@ -188,8 +188,8 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
               <input
                 type="checkbox"
                 checked={openPbiOnPublishSuccess}
-                onChange={(e) => {
-                  const enabled = e.target.checked
+                onChange={(event) => {
+                  const enabled = event.target.checked
                   setOpenPbiOnPublishSuccessState(enabled)
                   setOpenPbiOnPublishSuccess(enabled)
                 }}
@@ -222,7 +222,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
             </label>
             <select
               value={aiProvider}
-              onChange={(e) => { setAiProvider(e.target.value as AiProviderType); setAiSaved(false); setAiError('') }}
+              onChange={(event) => { setAiProvider(event.target.value as AiProviderType); setAiSaved(false); setAiError('') }}
               className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 mb-3"
             >
               {AI_PROVIDERS.map((p) => (
@@ -236,7 +236,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 <input
                   type="text"
                   value={aiEndpoint}
-                  onChange={(e) => { setAiEndpoint(e.target.value); setAiSaved(false); setAiError('') }}
+                  onChange={(event) => { setAiEndpoint(event.target.value); setAiSaved(false); setAiError('') }}
                   placeholder="https://my-resource.openai.azure.com"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-600 font-mono mb-1.5"
                 />
@@ -247,7 +247,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 <input
                   type="text"
                   value={aiDeployment}
-                  onChange={(e) => { setAiDeployment(e.target.value); setAiSaved(false); setAiError('') }}
+                  onChange={(event) => { setAiDeployment(event.target.value); setAiSaved(false); setAiError('') }}
                   placeholder="gpt-4o"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-600 font-mono mb-1.5"
                 />
@@ -263,7 +263,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 <input
                   type="text"
                   value={aiBaseUrl}
-                  onChange={(e) => { setAiBaseUrl(e.target.value); setAiSaved(false); setAiError('') }}
+                  onChange={(event) => { setAiBaseUrl(event.target.value); setAiSaved(false); setAiError('') }}
                   placeholder="https://api.example.com"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-600 font-mono mb-3"
                 />
@@ -271,7 +271,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 <input
                   type="text"
                   value={aiModel}
-                  onChange={(e) => { setAiModel(e.target.value); setAiSaved(false); setAiError('') }}
+                  onChange={(event) => { setAiModel(event.target.value); setAiSaved(false); setAiError('') }}
                   placeholder="gpt-4o"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-600 font-mono mb-3"
                 />
@@ -284,7 +284,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 <input
                   type="text"
                   value={aiModel}
-                  onChange={(e) => { setAiModel(e.target.value); setAiSaved(false); setAiError('') }}
+                  onChange={(event) => { setAiModel(event.target.value); setAiSaved(false); setAiError('') }}
                   placeholder="gpt-4o (default)"
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-600 font-mono mb-3"
                 />
@@ -296,9 +296,9 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
               <input
                 type={showAiKey ? 'text' : 'password'}
                 value={aiKey}
-                onChange={(e) => { setAiKey(e.target.value); setAiSaved(false); setAiError('') }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                onChange={(event) => { setAiKey(event.target.value); setAiSaved(false); setAiError('') }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
                     const cfg: AiProviderConfig = { provider: aiProvider, apiKey: aiKey, endpoint: aiEndpoint, deploymentName: aiDeployment, model: aiModel, baseUrl: aiBaseUrl }
                     if (!aiKey.trim()) { setAiError('API key is required.'); return }
                     if (aiProvider === 'azure_openai' && !aiEndpoint.trim()) { setAiError('Endpoint URL is required for Azure OpenAI.'); return }

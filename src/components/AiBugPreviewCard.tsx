@@ -23,18 +23,18 @@ export default function AiBugPreviewCard({
   const sevStyle = SEVERITY_STYLES.dark[bug.severity]
   const attachments = bug._attachments || []
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const imageFiles = getImageFilesFromPaste(e)
+  const handlePaste = (event: React.ClipboardEvent) => {
+    const imageFiles = getImageFilesFromPaste(event)
     if (imageFiles.length) {
-      e.preventDefault()
+      event.preventDefault()
       onAddFiles(imageFiles)
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
     if (files.length) onAddFiles(files)
-    e.target.value = ''
+    event.target.value = ''
   }
 
   if (bug._created) {
@@ -90,7 +90,7 @@ export default function AiBugPreviewCard({
           <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-gray-700/50">
             <textarea
               value={bug.description}
-              onChange={(e) => onUpdate('description', e.target.value)}
+              onChange={(event) => onUpdate('description', event.target.value)}
               rows={2}
               className="w-full text-[11px] text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-900/50 outline-none border border-slate-300 dark:border-gray-600 rounded px-2 py-1 mt-1.5 resize-none focus:border-blue-500"
               placeholder="Description"
@@ -98,7 +98,7 @@ export default function AiBugPreviewCard({
             <div className="grid grid-cols-2 gap-1.5">
               <select
                 value={bug.severity}
-                onChange={(e) => onUpdate('severity', e.target.value)}
+                onChange={(event) => onUpdate('severity', event.target.value)}
                 className="text-[11px] text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-900/50 border border-slate-300 dark:border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500"
               >
                 {SEVERITIES.map((s) => (
@@ -107,19 +107,19 @@ export default function AiBugPreviewCard({
               </select>
               <input
                 value={bug.tester}
-                onChange={(e) => onUpdate('tester', e.target.value)}
+                onChange={(event) => onUpdate('tester', event.target.value)}
                 className="text-[11px] text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-900/50 outline-none border border-slate-300 dark:border-gray-600 rounded px-2 py-1 focus:border-blue-500"
                 placeholder="Tester"
               />
               <input
                 value={bug.device}
-                onChange={(e) => onUpdate('device', e.target.value)}
+                onChange={(event) => onUpdate('device', event.target.value)}
                 className="text-[11px] text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-900/50 outline-none border border-slate-300 dark:border-gray-600 rounded px-2 py-1 focus:border-blue-500"
                 placeholder="Device"
               />
               <select
                 value={bug.page}
-                onChange={(e) => onUpdate('page', e.target.value)}
+                onChange={(event) => onUpdate('page', event.target.value)}
                 className="text-[11px] text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-900/50 border border-slate-300 dark:border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500"
               >
                 <option value="" disabled hidden>Page</option>
@@ -130,7 +130,7 @@ export default function AiBugPreviewCard({
             </div>
             <input
               value={bug.category}
-              onChange={(e) => onUpdate('category', e.target.value)}
+              onChange={(event) => onUpdate('category', event.target.value)}
               className="w-full text-[11px] text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-900/50 outline-none border border-slate-300 dark:border-gray-600 rounded px-2 py-1 focus:border-blue-500"
               placeholder="Category (optional)"
             />

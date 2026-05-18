@@ -6,8 +6,8 @@ export function filesToAttachments(files: File[]): Attachment[] {
 }
 
 /** Extract pasted images from a ClipboardEvent. Returns File[] (empty if none). */
-export function getImageFilesFromPaste(e: React.ClipboardEvent): File[] {
-  const items = Array.from(e.clipboardData?.items || [])
+export function getImageFilesFromPaste(event: React.ClipboardEvent): File[] {
+  const items = Array.from(event.clipboardData?.items || [])
   return items
     .filter((item) => item.type.startsWith('image/'))
     .map((item) => {

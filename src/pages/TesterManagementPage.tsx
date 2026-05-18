@@ -71,7 +71,11 @@ export default function TesterManagementPage() {
       activeTeamId,
     )
     const { error } = await toggleQuery
-    if (!error) queryClient.setQueryData(testersQueryKey, (prev: Tester[]) => prev.map(t => t.id === tester.id ? { ...t, active: !t.active } : t))
+    if (!error) {
+      queryClient.setQueryData(testersQueryKey, (prev: Tester[]) =>
+        prev.map(existingTester => existingTester.id === tester.id ? { ...existingTester, active: !existingTester.active } : existingTester),
+      )
+    }
   }
 
   const confirmDeleteTester = async (tester: Tester) => {
@@ -155,7 +159,7 @@ export default function TesterManagementPage() {
       setPendingDeleteTesterId(null)
       return
     }
-    queryClient.setQueryData(testersQueryKey, (prev: Tester[]) => prev.filter(t => t.id !== tester.id))
+    queryClient.setQueryData(testersQueryKey, (prev: Tester[]) => prev.filter(existingTester => existingTester.id !== tester.id))
     setDeletingTesterId(null)
     setPendingDeleteTesterId(null)
     setToast({ message: `${tester.name} deleted.`, tone: 'success' })
@@ -179,22 +183,22 @@ export default function TesterManagementPage() {
     const { error } = await saveQuery
     if (!error) {
       queryClient.setQueryData(testersQueryKey, (prev: Tester[]) =>
-        prev.map(t => t.id === editingId ? { ...t, name: editName.trim(), devices: editDevices } : t)
+        prev.map(existingTester => existingTester.id === editingId ? { ...existingTester, name: editName.trim(), devices: editDevices } : existingTester)
           .sort((a, b) => a.name.localeCompare(b.name))
       )
       setEditingId(null)
     }
   }
 
-  const toggleDevice = (device: string, list: string[], setter: (d: string[]) => void) => {
-    setter(list.includes(device) ? list.filter(d => d !== device) : [...list, device])
+  const toggleDevice = (device: string, list: string[], setDeviceList: (devices: string[]) => void) => {
+    setDeviceList(list.includes(device) ? list.filter(existingDevice => existingDevice !== device) : [...list, device])
   }
 
   return (
     <>
       <SecondaryAppBar
         description=""
-        stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{testers.filter(t => t.active).length} active</span> / {testers.length} total</>}
+        stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{testers.filter(tester => tester.active).length} active</span> / {testers.length} total</>}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search testers, devices..."
@@ -224,24 +228,24 @@ export default function TesterManagementPage() {
           <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Tester</h2>
           <input
             value={newName}
-            onChange={e => setNewName(e.target.value)}
+            onChange={event => setNewName(event.target.value)}
             placeholder="Tester name"
             autoFocus
             className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 mb-3"
           />
           <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">Devices:</p>
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {COMMON_TESTER_DEVICES.map(d => (
+            {COMMON_TESTER_DEVICES.map(deviceName => (
               <button
-                key={d}
-                onClick={() => toggleDevice(d, newDevices, setNewDevices)}
+                key={deviceName}
+                onClick={() => toggleDevice(deviceName, newDevices, setNewDevices)}
                 className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
-                  newDevices.includes(d)
+                  newDevices.includes(deviceName)
                     ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
                     : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
                 }`}
               >
-                {d}
+                {deviceName}
               </button>
             ))}
           </div>
@@ -263,8 +267,8 @@ export default function TesterManagementPage() {
         {testers
           .filter(tester => {
             if (!search.trim()) return true
-            const q = search.toLowerCase()
-            return tester.name.toLowerCase().includes(q) || tester.devices.some(d => d.toLowerCase().includes(q))
+            const query = search.toLowerCase()
+            return tester.name.toLowerCase().includes(query) || tester.devices.some(deviceName => deviceName.toLowerCase().includes(query))
           })
           .map(tester => (
           <div
@@ -279,23 +283,23 @@ export default function TesterManagementPage() {
               <div>
                 <input
                   value={editName}
-                  onChange={e => setEditName(e.target.value)}
+                  onChange={event => setEditName(event.target.value)}
                   className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 mb-3"
                   autoFocus
                 />
                 <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">Devices:</p>
                 <div className="flex flex-wrap gap-1.5 mb-3">
-                  {COMMON_TESTER_DEVICES.map(d => (
+                  {COMMON_TESTER_DEVICES.map(deviceName => (
                     <button
-                      key={d}
-                      onClick={() => toggleDevice(d, editDevices, setEditDevices)}
+                      key={deviceName}
+                      onClick={() => toggleDevice(deviceName, editDevices, setEditDevices)}
                       className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
-                        editDevices.includes(d)
+                        editDevices.includes(deviceName)
                           ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
                           : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
                       }`}
                     >
-                      {d}
+                      {deviceName}
                     </button>
                   ))}
                 </div>
@@ -328,9 +332,9 @@ export default function TesterManagementPage() {
                     {tester.devices.length === 0 ? (
                       <span className="text-xs text-slate-400 dark:text-gray-600 italic">No devices configured</span>
                     ) : (
-                      tester.devices.map(d => (
-                        <span key={d} className="rounded-full bg-slate-100 dark:bg-gray-800 px-2 py-0.5 text-[11px] text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700">
-                          {d}
+                      tester.devices.map(deviceName => (
+                        <span key={deviceName} className="rounded-full bg-slate-100 dark:bg-gray-800 px-2 py-0.5 text-[11px] text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700">
+                          {deviceName}
                         </span>
                       ))
                     )}

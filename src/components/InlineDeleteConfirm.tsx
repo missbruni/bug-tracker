@@ -8,7 +8,7 @@ export default function InlineDeleteConfirm({ isDeleting, onConfirm, onCancel }:
   return (
     <span
       className="flex items-center gap-2 rounded-md bg-slate-100 dark:bg-mushi-surface border border-slate-200 dark:border-gray-700 px-3 py-1.5 font-heading"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
     >
       <span className="text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-mushi-threat">Delete?</span>
       {isDeleting ? (
@@ -16,14 +16,14 @@ export default function InlineDeleteConfirm({ isDeleting, onConfirm, onCancel }:
       ) : (
         <>
           <button
-            onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+            onClick={(event) => { event.stopPropagation(); onConfirm(); }}
             className="rounded-md bg-red-500 dark:bg-mushi-threat px-2 py-0.5 text-[10px] font-bold uppercase text-white dark:text-gray-900 cursor-pointer hover:bg-red-600 dark:hover:bg-mushi-threat/80 transition-colors"
             title="Confirm delete"
           >
             Yes
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onCancel(); }}
+            onClick={(event) => { event.stopPropagation(); onCancel(); }}
             className="rounded-md border border-gray-600 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400 dark:text-gray-400 cursor-pointer hover:bg-gray-700/30 transition-colors"
             title="Cancel delete"
           >

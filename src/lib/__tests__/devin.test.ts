@@ -1,5 +1,5 @@
 import { test, expect, describe, beforeEach } from 'bun:test'
-import { getDevinApiKey, hasDevinApiKey, setDevinApiKey, removeDevinApiKey, isValidDevinKey } from '../devin'
+import { getDevinApiKey, setDevinApiKey, removeDevinApiKey, isValidDevinKey } from '../devin'
 
 describe('devin utils', () => {
   beforeEach(() => {

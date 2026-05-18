@@ -32,7 +32,7 @@ export default function DeleteConfirmModal({
     >
       <div
         className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-sm p-6"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2">{title}</h3>
         <p className="text-xs text-slate-500 dark:text-gray-400 mb-3 leading-relaxed">{description}</p>
@@ -44,7 +44,7 @@ export default function DeleteConfirmModal({
         </p>
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(event) => setInput(event.target.value)}
           placeholder={confirmToken}
           autoFocus
           className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-red-400 dark:focus:border-red-500 mb-4 font-mono"

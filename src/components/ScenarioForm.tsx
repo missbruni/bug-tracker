@@ -36,27 +36,27 @@ export default function ScenarioForm({
 			<div className="grid grid-cols-[60px_1fr_1fr] gap-2 mb-2">
 				<input
 					value={letter}
-					onChange={e => onLetterChange(e.target.value)}
+					onChange={event => onLetterChange(event.target.value)}
 					placeholder="Letter"
 					maxLength={2}
 					className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-center font-bold text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500 uppercase"
 				/>
 				<input
 					value={title}
-					onChange={e => onTitleChange(e.target.value)}
+					onChange={event => onTitleChange(event.target.value)}
 					placeholder="Scenario title *"
 					className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500"
 				/>
 				<input
 					value={device}
-					onChange={e => onDeviceChange(e.target.value)}
+					onChange={event => onDeviceChange(event.target.value)}
 					placeholder="Device requirement (optional)"
 					className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-500"
 				/>
 			</div>
 			<textarea
 				value={description}
-				onChange={e => onDescriptionChange(e.target.value)}
+				onChange={event => onDescriptionChange(event.target.value)}
 				placeholder="Step-by-step instructions"
 				rows={4}
 				className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y mb-2 focus:border-blue-500"

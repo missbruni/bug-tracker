@@ -48,16 +48,16 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
   const fileRef = React.useRef<HTMLInputElement>(null)
   const [files, setFiles] = React.useState<Attachment[]>([])
 
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || [])
+  const handleFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(event.target.files || [])
     if (newFiles.length) setFiles((prev) => [...prev, ...filesToAttachments(newFiles)])
-    e.target.value = ''
+    event.target.value = ''
   }
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const imageFiles = getImageFilesFromPaste(e)
+  const handlePaste = (event: React.ClipboardEvent) => {
+    const imageFiles = getImageFilesFromPaste(event)
     if (imageFiles.length) {
-      e.preventDefault()
+      event.preventDefault()
       setFiles((prev) => [...prev, ...filesToAttachments(imageFiles)])
     }
   }
@@ -121,9 +121,9 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
     <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5" onPaste={handlePaste}>
       <h3 className="text-base font-bold text-slate-900 dark:text-gray-100 mb-3.5">Add New Bug</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Bug title *"
+        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Bug title *"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
-        <select value={selectedTesterId} onChange={(e) => setSelectedTesterId(e.target.value)}
+        <select value={selectedTesterId} onChange={(event) => setSelectedTesterId(event.target.value)}
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 transition-all">
           <option value="" disabled hidden>Tester *</option>
           <option value={ADD_NEW_TESTER_VALUE}>+ Add new tester</option>
@@ -133,7 +133,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
         </select>
         {selectedTesterId === ADD_NEW_TESTER_VALUE && (
           <div className="col-span-2 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-900/10 p-2.5">
-            <input value={newTesterName} onChange={(e) => setNewTesterName(e.target.value)} placeholder="New tester name *"
+            <input value={newTesterName} onChange={(event) => setNewTesterName(event.target.value)} placeholder="New tester name *"
               className="w-full rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all mb-2" />
             <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1.5">Tester Devices (optional):</p>
             <div className="flex flex-wrap gap-1.5">
@@ -154,21 +154,21 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
             </div>
           </div>
         )}
-        <input value={device} onChange={(e) => setDevice(e.target.value)} placeholder="Device / Browser"
+        <input value={device} onChange={(event) => setDevice(event.target.value)} placeholder="Device / Browser"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
-        <select value={page} onChange={(e) => setPage(e.target.value)}
+        <select value={page} onChange={(event) => setPage(event.target.value)}
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 transition-all">
           <option value="" disabled hidden>Page</option>
           {PAGES.map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
-        <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category (optional)"
+        <input value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Category (optional)"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
         {sessions.length > 0 && (
           <select
             value={sessionId || ''}
-            onChange={(e) => setSessionId(e.target.value || null)}
+            onChange={(event) => setSessionId(event.target.value || null)}
             className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 transition-all"
           >
             <option value="">No session</option>
@@ -188,7 +188,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
           ))}
         </div>
       </div>
-      <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" rows={3}
+      <textarea value={desc} onChange={(event) => setDesc(event.target.value)} placeholder="Description" rows={3}
         className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y mb-2.5 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2.5">

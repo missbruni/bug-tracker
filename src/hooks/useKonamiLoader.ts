@@ -7,9 +7,9 @@ export function useKonamiLoader(duration = 5000) {
   const bufferRef = React.useRef('')
 
   React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      bufferRef.current = (bufferRef.current + e.key).slice(-SECRET.length)
+    const handler = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+      bufferRef.current = (bufferRef.current + event.key).slice(-SECRET.length)
       if (bufferRef.current === SECRET) {
         bufferRef.current = ''
         setActive(true)
