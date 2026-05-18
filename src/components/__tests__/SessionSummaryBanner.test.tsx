@@ -91,6 +91,64 @@ describe('DurationDisplay', () => {
   })
 })
 
+// ─── parseDuration ────────────────────────────────────────
+
+function parseDuration(input: string): number | null {
+  const trimmed = input.trim().toLowerCase()
+  if (!trimmed) return null
+  let totalSeconds = 0
+  let matched = false
+  const hMatch = trimmed.match(/(\d+)\s*h/)
+  const mMatch = trimmed.match(/(\d+)\s*m/)
+  const sMatch = trimmed.match(/(\d+)\s*s/)
+  if (hMatch) { totalSeconds += parseInt(hMatch[1], 10) * 3600; matched = true }
+  if (mMatch) { totalSeconds += parseInt(mMatch[1], 10) * 60; matched = true }
+  if (sMatch) { totalSeconds += parseInt(sMatch[1], 10); matched = true }
+  if (!matched) {
+    const num = parseInt(trimmed, 10)
+    if (!isNaN(num)) { totalSeconds = num * 60; matched = true }
+  }
+  return matched ? totalSeconds : null
+}
+
+describe('parseDuration', () => {
+  test('parses hours and minutes', () => {
+    expect(parseDuration('1h 30m')).toBe(5400)
+    expect(parseDuration('2h 00m')).toBe(7200)
+  })
+
+  test('parses minutes only', () => {
+    expect(parseDuration('45m')).toBe(2700)
+    expect(parseDuration('90m')).toBe(5400)
+  })
+
+  test('parses minutes and seconds', () => {
+    expect(parseDuration('5m 30s')).toBe(330)
+  })
+
+  test('parses plain number as minutes', () => {
+    expect(parseDuration('30')).toBe(1800)
+    expect(parseDuration('60')).toBe(3600)
+  })
+
+  test('returns null for empty input', () => {
+    expect(parseDuration('')).toBeNull()
+    expect(parseDuration('  ')).toBeNull()
+  })
+
+  test('returns null for non-numeric input', () => {
+    expect(parseDuration('abc')).toBeNull()
+  })
+
+  test('parses hours only', () => {
+    expect(parseDuration('2h')).toBe(7200)
+  })
+
+  test('parses full h m s', () => {
+    expect(parseDuration('1h 15m 30s')).toBe(4530)
+  })
+})
+
 // ─── getBugRateLabel ───────────────────────────────────────
 
 function getBugRateLabel(bugCount: number, testerCount: number): { label: string; sublabel: string } {

@@ -10,11 +10,17 @@ interface ScenarioCardProps {
 	isExpanded: boolean
 	isCompleted: boolean
 	isDeviceLocked: boolean
+	isDragOver?: boolean
+	draggable?: boolean
 	onClick: () => void
 	onMoveUp: () => void
 	onMoveDown: () => void
 	onEdit: () => void
 	onDelete: () => void
+	onDrop?: (e: React.DragEvent) => void
+	onDragOver?: (e: React.DragEvent) => void
+	onDragLeave?: (e: React.DragEvent) => void
+	onDragStart?: (e: React.DragEvent) => void
 }
 
 export default function ScenarioCard({
@@ -26,17 +32,30 @@ export default function ScenarioCard({
 	isExpanded,
 	isCompleted,
 	isDeviceLocked,
+	isDragOver,
+	draggable,
 	onClick,
 	onMoveUp,
 	onMoveDown,
 	onEdit,
 	onDelete,
+	onDrop,
+	onDragOver,
+	onDragLeave,
+	onDragStart,
 }: ScenarioCardProps) {
 	return (
 		<div
 			onClick={onClick}
-			className={`rounded-lg border bg-white dark:bg-gray-900 p-3 cursor-pointer transition-all ${
-				isSelected
+			onDrop={onDrop}
+			onDragOver={onDragOver}
+			onDragLeave={onDragLeave}
+			draggable={draggable}
+			onDragStart={onDragStart}
+			className={`rounded-lg border bg-white dark:bg-gray-900 p-3 cursor-pointer transition-all select-none ${
+				isDragOver
+					? 'border-blue-500 ring-2 ring-blue-500/40 bg-blue-50 dark:bg-blue-900/20'
+					: isSelected
 					? 'border-blue-500 ring-1 ring-blue-500/30'
 					: isExpanded
 					? 'border-blue-500/50 ring-1 ring-blue-500/20'
@@ -46,7 +65,7 @@ export default function ScenarioCard({
 			<div className="flex items-center gap-3">
 				{isCompleted
 					? <ChevronDown size={14} className={`text-slate-400 dark:text-gray-500 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-					: <GripVertical size={14} className="text-slate-300 dark:text-gray-600 shrink-0" />
+					: <GripVertical size={14} className="text-slate-300 dark:text-gray-600 shrink-0 cursor-grab active:cursor-grabbing" />
 				}
 				<span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white dark:text-mushi-bg text-xs font-bold shrink-0">
 					{scenario.letter}

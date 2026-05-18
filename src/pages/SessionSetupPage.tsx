@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy } from 'lucide-react'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy, GripVertical } from 'lucide-react'
 import SessionSummaryBanner from '../components/SessionSummaryBanner'
 import FeedbackModal from '../components/FeedbackModal'
 import StatusMenu from '../components/StatusMenu'
@@ -49,6 +49,8 @@ export default function SessionSetupPage() {
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newDevice, setNewDevice] = useState('')
+
+  const [dragOverScenarioId, setDragOverScenarioId] = useState<string | null>(null)
 
   const [editScenarioId, setEditScenarioId] = useState<string | null>(null)
   const [editLetter, setEditLetter] = useState('')
@@ -406,6 +408,50 @@ export default function SessionSetupPage() {
 
   const assignedTesterIds = new Set(assignments.map(a => a.tester_id))
 
+  const handleDrop = (scenarioId: string, e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverScenarioId(null)
+
+    const draggedScenarioId = e.dataTransfer.getData('text/scenario-id')
+    if (draggedScenarioId) {
+      if (draggedScenarioId !== scenarioId) {
+        const fromIdx = scenarios.findIndex(s => s.id === draggedScenarioId)
+        const toIdx = scenarios.findIndex(s => s.id === scenarioId)
+        if (fromIdx >= 0 && toIdx >= 0) {
+          const reordered = [...scenarios]
+          const [moved] = reordered.splice(fromIdx, 1)
+          reordered.splice(toIdx, 0, moved)
+          const updated = reordered.map((s, i) => ({ ...s, sort_order: i + 1 }))
+          setScenarios(updated)
+          if (supabase) {
+            const sb = supabase
+            Promise.all(
+              updated.map(s =>
+                scopeToTeam(sb.from('scenarios').update({ sort_order: s.sort_order }).eq('id', s.id), activeTeamId)
+              )
+            )
+          }
+        }
+      }
+      return
+    }
+
+    const testerId = e.dataTransfer.getData('text/tester-id')
+    if (!testerId) return
+    const tester = testers.find(t => t.id === testerId)
+    const scenario = scenarios.find(s => s.id === scenarioId)
+    if (!tester || !scenario) return
+    if (assignedTesterIds.has(testerId)) return
+    if (!canAssign(scenario, tester)) return
+    assignTester(scenarioId, testerId)
+  }
+
+  const handleDragOver = (scenarioId: string, e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverScenarioId !== scenarioId) setDragOverScenarioId(scenarioId)
+  }
+
   if (loading) {
     return (
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-7 py-6">
@@ -571,6 +617,14 @@ export default function SessionSetupPage() {
           bugCount={sessionBugCount}
           durationSeconds={session.duration_seconds ?? null}
           timerElapsed={isTimerForThis ? elapsed : null}
+          onDurationChange={async (seconds) => {
+            if (!supabase) return
+            setSession(s => s ? { ...s, duration_seconds: seconds } : s)
+            await scopeToTeam(
+              supabase.from('sessions').update({ duration_seconds: seconds }).eq('id', session.id),
+              activeTeamId,
+            )
+          }}
         />
       )}
 
@@ -652,6 +706,8 @@ export default function SessionSetupPage() {
                   isExpanded={expandedScenarioId === scenario.id}
                   isCompleted={isCompleted}
                   isDeviceLocked={locked}
+                  isDragOver={dragOverScenarioId === scenario.id}
+                  draggable={!isCompleted}
                   onClick={() => {
                     if (isCompleted) {
                       setExpandedScenarioId(expandedScenarioId === scenario.id ? null : scenario.id)
@@ -663,6 +719,13 @@ export default function SessionSetupPage() {
                   onMoveDown={() => moveScenario(scenario.id, 'down')}
                   onEdit={() => startEditScenario(scenario)}
                   onDelete={() => deleteScenario(scenario.id)}
+                  onDrop={!isCompleted ? (e) => handleDrop(scenario.id, e) : undefined}
+                  onDragOver={!isCompleted ? (e) => handleDragOver(scenario.id, e) : undefined}
+                  onDragLeave={!isCompleted ? () => setDragOverScenarioId(null) : undefined}
+                  onDragStart={!isCompleted ? (e) => {
+                    e.dataTransfer.setData('text/scenario-id', scenario.id)
+                    e.dataTransfer.effectAllowed = 'move'
+                  } : undefined}
                 />
               )
             })}
@@ -709,7 +772,7 @@ export default function SessionSetupPage() {
 
           <div className="rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3">
             <p className="text-xs text-slate-500 dark:text-gray-500 mb-2">
-              {isCompleted ? 'Session completed — assignments are locked' : selectedScenarioId ? 'Click a name to assign' : 'Click a scenario first, then a tester'}
+              {isCompleted ? 'Session completed — assignments are locked' : selectedScenarioId ? 'Click a name to assign' : 'Click a scenario first, then a tester — or drag a name onto a scenario'}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {testers.map(tester => {
@@ -720,19 +783,25 @@ export default function SessionSetupPage() {
                 return (
                   <button
                     key={tester.id}
+                    draggable={!isCompleted && !used}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/tester-id', tester.id)
+                      e.dataTransfer.effectAllowed = 'move'
+                    }}
                     onClick={() => !isCompleted && selectedScenarioId && eligible && !used && assignTester(selectedScenarioId, tester.id)}
                     disabled={isCompleted || !selectedScenarioId || used || !eligible}
-                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-all ${
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium border transition-all select-none ${
                       used
                         ? 'opacity-60 line-through border-slate-300 dark:border-gray-600 text-slate-500 dark:text-gray-400 cursor-default'
                         : !eligible
                         ? 'opacity-40 border-red-200 dark:border-red-800 text-red-400 dark:text-red-600 cursor-not-allowed'
                         : selectedScenarioId
                         ? 'border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer'
-                        : 'border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-400 cursor-default'
+                        : 'border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-400 cursor-grab active:cursor-grabbing'
                     }`}
-                    title={!eligible ? `Missing device: ${scenario?.device_requirement}` : ''}
+                    title={!eligible ? `Missing device: ${scenario?.device_requirement}` : !isCompleted && !used ? 'Drag to a scenario to assign' : ''}
                   >
+                    {!isCompleted && !used && <GripVertical size={10} className="shrink-0 opacity-40" />}
                     {tester.name}
                   </button>
                 )

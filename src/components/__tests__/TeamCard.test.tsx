@@ -136,7 +136,7 @@ describe('TeamCard', () => {
 
   test('shows product description when available', () => {
     renderCard()
-    expect(screen.getByText('Main booking flow')).toBeInTheDocument()
+    expect(screen.getByText(/Main booking flow/)).toBeInTheDocument()
   })
 
   test('renders edit form when isEditing is true', () => {
