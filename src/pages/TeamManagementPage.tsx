@@ -268,7 +268,7 @@ export default function TeamManagementPage() {
         )}
 
         {toast && (
-          <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg ${toast.tone === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-lg ${toast.tone === 'success' ? 'bg-green-600 text-mushi-bg' : 'bg-red-600 text-white'}`}>
             {toast.message}
           </div>
         )}
