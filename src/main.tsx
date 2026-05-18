@@ -12,6 +12,7 @@ import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth } from "./lib/useAuth";
 import PageLoader from "./components/PageLoader";
+import ExtensionBridge from "./components/ExtensionBridge";
 import "./index.css";
 
 const AppPage = lazy(() => import("./App"));
@@ -107,6 +108,7 @@ function Layout() {
 
 	return (
 		<div className="min-h-screen bg-slate-50 dark:bg-gray-950 font-sans">
+			<ExtensionBridge />
 			<NavBar
 				showBugs={showBugs}
 				onToggleBugs={toggleBugs}

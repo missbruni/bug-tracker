@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Mushi Bug Capture",
+  "description": "Capture bugs from tested pages and send them directly to Mushi.",
+  "version": "0.1.0",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "action": {
+    "default_title": "Mushi Bug Capture",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

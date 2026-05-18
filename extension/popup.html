@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <title>Mushi Capture</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <div class="brand">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m8 2 1.88 1.88" />
+            <path d="M14.12 3.88 16 2" />
+            <path d="M9 7.13v-1a3 3 0 1 1 6 0v1" />
+            <path d="M12 20v-8" />
+            <path d="M6 13h.01" />
+            <path d="M18 13h.01" />
+            <path d="M18 16h.01" />
+            <path d="M6 16h.01" />
+            <path d="m18 8 1.88-1.88" />
+            <path d="M6.12 6.12 4.24 4.24" />
+            <rect x="8" y="8" width="8" height="12" rx="4" />
+          </svg>
+        </span>
+        <h1>Mushi Capture</h1>
+      </div>
+      <p class="hint">Shortcut on tested page: <strong>Alt + Shift + B</strong></p>
+
+      <div class="shortcut-setting">
+        <span class="shortcut-label">Show shortcut button</span>
+        <label class="toggle" for="floatingShortcutToggle" aria-label="Enable floating shortcut button">
+          <input id="floatingShortcutToggle" type="checkbox" />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+      </div>
+
+      <p class="endpoint">Connected to <strong>mushi-navy.vercel.app</strong></p>
+
+      <button id="openMushi" class="secondary full">Open Mushi</button>
+
+      <button id="openComposer" class="full">Open capture on this tab</button>
+
+      <p id="status" class="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

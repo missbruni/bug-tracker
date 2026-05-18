@@ -1,0 +1,445 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SEVERITIES, type Severity } from '../constants'
+import { generateBugId } from '../lib/aiParsers'
+import { fetchPinSession } from '../lib/pinAuth'
+import { queryClient } from '../lib/queryClient'
+import type { PinAccessLevel } from '../lib/teamScope'
+import { buildAttachmentPath, withTeamPayload } from '../lib/teamScope'
+import { findTesterByName } from '../lib/testerLookup'
+import { useAuth } from '../lib/useAuth'
+import { useTeamAccess } from '../lib/teamAccess'
+import { supabase } from '../supabaseClient'
+
+const EXTENSION_REQUEST_SOURCE = 'mushi-extension-content'
+const EXTENSION_RESPONSE_SOURCE = 'mushi-extension-bridge'
+
+type ExtensionBridgeAction = 'ping' | 'get_context' | 'create_bug'
+
+interface ExtensionBridgeRequest {
+  source: string
+  direction: 'to-page'
+  requestId: string
+  action: ExtensionBridgeAction
+  payload?: unknown
+}
+
+interface ExtensionBridgeResponse {
+  source: string
+  direction: 'to-content'
+  requestId: string
+  ok: boolean
+  data?: unknown
+  error?: string
+  code?: string
+}
+
+interface ExtensionAttachmentInput {
+  name: string
+  type: string
+  dataUrl: string
+}
+
+interface ExtensionCreateBugPayload {
+  title: string
+  description?: string
+  severity?: string
+  pageUrl?: string
+  pageTitle?: string
+  device?: string
+  category?: string | null
+  attachments?: ExtensionAttachmentInput[]
+}
+
+interface ExtensionCreateBugResult {
+  bugId: string
+  bugUrl: string
+  uploadedCount: number
+}
+
+interface ProductLinkRow {
+  link: string | null
+}
+
+function normalizeHostname(hostname: string): string {
+  return hostname.trim().toLowerCase().replace(/^www\./, '')
+}
+
+function extractDomainFromLink(link: string): string | null {
+  const raw = link.trim()
+  if (!raw) return null
+
+  const candidate = /^(https?:)?\/\//i.test(raw) ? raw : `https://${raw}`
+
+  try {
+    return normalizeHostname(new URL(candidate).hostname)
+  } catch {
+    return null
+  }
+}
+
+function normalizeSeverity(severity?: string): Severity {
+  if (severity && SEVERITIES.includes(severity as Severity)) {
+    return severity as Severity
+  }
+  return 'high'
+}
+
+function buildDescriptionWithPageContext(
+  description: string | undefined,
+  pageUrl: string | undefined,
+  pageTitle: string | undefined,
+): string {
+  const baseDescription = description?.trim() || ''
+  const url = pageUrl?.trim() || ''
+  const title = pageTitle?.trim() || ''
+
+  if (!url) return baseDescription
+
+  const contextLines = ['Captured page:']
+  if (title) contextLines.push(`Title: ${title}`)
+  contextLines.push(`URL: ${url}`)
+
+  if (!baseDescription) {
+    return contextLines.join('\n')
+  }
+
+  return `${baseDescription}\n\n${contextLines.join('\n')}`
+}
+
+function incrementBugId(currentId: string): string {
+  const match = currentId.match(/^([A-Z]+-)(\d+)$/)
+  if (!match) return `${currentId}-1`
+
+  const [, prefix, digits] = match
+  const next = Number(digits) + 1
+  return `${prefix}${String(next).padStart(digits.length, '0')}`
+}
+
+function dataUrlToFile(dataUrl: string, fallbackName: string, fallbackType: string): File {
+  const [header, encoded] = dataUrl.split(',', 2)
+  if (!header || !encoded) {
+    throw new Error('Invalid attachment payload.')
+  }
+
+  const mimeMatch = header.match(/^data:([^;]+);base64$/)
+  const mimeType = mimeMatch?.[1] || fallbackType || 'application/octet-stream'
+  const binary = atob(encoded)
+  const bytes = new Uint8Array(binary.length)
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+
+  const safeName = fallbackName.trim() || `attachment-${Date.now()}`
+  return new File([bytes], safeName, { type: mimeType })
+}
+
+function getUserDisplayName(user: ReturnType<typeof useAuth>['user']): string {
+  if (!user) return 'Unknown'
+
+  const metadata = user.user_metadata as Record<string, unknown> | undefined
+  const metadataName = typeof metadata?.name === 'string' ? metadata.name.trim() : ''
+  if (metadataName) return metadataName
+
+  if (user.email?.trim()) return user.email.trim()
+  return 'Unknown'
+}
+
+function getPinTesterName(role: PinAccessLevel | null): string {
+  if (role === 'god') return 'Bruna Lima'
+  if (role === 'team') return 'PIN Team User'
+  return 'PIN User'
+}
+
+export default function ExtensionBridge() {
+  const { user } = useAuth()
+  const { activeTeamId } = useTeamAccess()
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([])
+  const [pinAuthenticated, setPinAuthenticated] = useState(false)
+  const [pinRole, setPinRole] = useState<PinAccessLevel | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPinSession = async () => {
+      try {
+        const pinSession = await fetchPinSession()
+        if (cancelled) return
+        setPinAuthenticated(pinSession.authenticated)
+        setPinRole(pinSession.role)
+      } catch {
+        if (cancelled) return
+        setPinAuthenticated(false)
+        setPinRole(null)
+      }
+    }
+
+    const handlePinUnlocked = (event: Event) => {
+      const detail = (event as CustomEvent<{ role?: PinAccessLevel }>).detail
+      const role = detail?.role ?? null
+      setPinAuthenticated(true)
+      setPinRole(role)
+    }
+
+    const handlePinLock = () => {
+      setPinAuthenticated(false)
+      setPinRole(null)
+    }
+
+    void loadPinSession()
+    window.addEventListener('pin-unlocked', handlePinUnlocked)
+    window.addEventListener('pin-lock', handlePinLock)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('pin-unlocked', handlePinUnlocked)
+      window.removeEventListener('pin-lock', handlePinLock)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAllowedDomains = async () => {
+      if (!supabase || !activeTeamId) {
+        if (!cancelled) setAllowedDomains([])
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .select('link')
+        .eq('team_id', activeTeamId)
+
+      if (cancelled) return
+
+      if (error) {
+        console.error('Failed to load product domains for extension bridge:', error)
+        setAllowedDomains([])
+        return
+      }
+
+      const domains = Array.from(
+        new Set(
+          ((data || []) as ProductLinkRow[])
+            .map((row) => extractDomainFromLink(row.link || ''))
+            .filter((domain): domain is string => Boolean(domain)),
+        ),
+      ).sort((a, b) => a.localeCompare(b))
+
+      setAllowedDomains(domains)
+    }
+
+    void loadAllowedDomains()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeTeamId])
+
+  const createBugFromPayload = useCallback(
+    async (payload: ExtensionCreateBugPayload): Promise<ExtensionCreateBugResult> => {
+      if (!supabase) {
+        throw new Error('Database is not connected.')
+      }
+
+      if (!activeTeamId) {
+        throw new Error('No active team selected.')
+      }
+
+      const hasAuthContext = Boolean(user) || pinAuthenticated
+      if (!hasAuthContext) {
+        throw new Error('Not authenticated.')
+      }
+
+      const title = payload.title?.trim()
+      if (!title) {
+        throw new Error('Bug title is required.')
+      }
+
+      const severity = normalizeSeverity(payload.severity)
+      let finalId = await generateBugId(severity, activeTeamId)
+      const descriptionWithContext = buildDescriptionWithPageContext(
+        payload.description,
+        payload.pageUrl,
+        payload.pageTitle,
+      )
+
+      const tester = user ? getUserDisplayName(user) : getPinTesterName(pinRole)
+      const matchedTester = await findTesterByName(tester, activeTeamId)
+      const bugInsert = withTeamPayload(
+        {
+          id: finalId,
+          title,
+          description: descriptionWithContext,
+          severity,
+          tester,
+          tester_id: matchedTester?.id || null,
+          device: payload.device?.trim() || 'Chrome Extension',
+          page: payload.pageTitle?.trim() || 'Web capture',
+          category: payload.category?.trim() || null,
+        },
+        activeTeamId,
+      )
+
+      let inserted = false
+      let retries = 0
+
+      while (!inserted && retries < 20) {
+        bugInsert.id = finalId
+        const { error } = await supabase.from('bugs').insert(bugInsert)
+
+        if (!error) {
+          inserted = true
+          break
+        }
+
+        if (error.code === '23505') {
+          finalId = incrementBugId(finalId)
+          retries += 1
+          continue
+        }
+
+        throw new Error(error.message)
+      }
+
+      if (!inserted) {
+        throw new Error('Failed to create bug after retrying bug IDs.')
+      }
+
+      let uploadedCount = 0
+      const attachmentInputs = payload.attachments || []
+
+      for (const attachment of attachmentInputs) {
+        if (!attachment.dataUrl?.startsWith('data:')) continue
+
+        try {
+          const file = dataUrlToFile(attachment.dataUrl, attachment.name, attachment.type)
+          const storagePath = buildAttachmentPath(activeTeamId, finalId, file.name)
+
+          const { error: uploadError } = await supabase.storage
+            .from('attachments')
+            .upload(storagePath, file)
+
+          if (uploadError) {
+            console.error('Failed to upload extension attachment:', uploadError)
+            continue
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('attachments')
+            .getPublicUrl(storagePath)
+
+          const { error: insertAttachmentError } = await supabase
+            .from('attachments')
+            .insert(
+              withTeamPayload(
+                {
+                  bug_id: finalId,
+                  name: file.name,
+                  type: file.type || attachment.type || 'application/octet-stream',
+                  url: urlData.publicUrl,
+                },
+                activeTeamId,
+              ),
+            )
+
+          if (insertAttachmentError) {
+            console.error('Failed to persist extension attachment row:', insertAttachmentError)
+            continue
+          }
+
+          uploadedCount += 1
+        } catch (error) {
+          console.error('Failed to process extension attachment:', error)
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['bugs-data'] })
+
+      return {
+        bugId: finalId,
+        bugUrl: `${window.location.origin}/`,
+        uploadedCount,
+      }
+    },
+    [activeTeamId, pinAuthenticated, pinRole, user],
+  )
+
+  const contextPayload = useMemo(() => {
+    const email = user?.email?.trim() || null
+    const authenticated = Boolean(user) || pinAuthenticated
+    const authMode = user ? 'supabase' : pinAuthenticated ? 'pin' : 'none'
+    const displayName = user ? getUserDisplayName(user) : getPinTesterName(pinRole)
+
+    return {
+      authenticated,
+      authMode,
+      activeTeamId,
+      allowedDomains,
+      user: {
+        id: user?.id || null,
+        email,
+        name: displayName,
+      },
+      appBaseUrl: `${window.location.origin}/`,
+    }
+  }, [activeTeamId, allowedDomains, pinAuthenticated, pinRole, user])
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<unknown>) => {
+      if (event.source !== window) return
+
+      const request = event.data as ExtensionBridgeRequest | null
+      if (!request || typeof request !== 'object') return
+      if (request.source !== EXTENSION_REQUEST_SOURCE) return
+      if (request.direction !== 'to-page') return
+      if (!request.requestId || typeof request.requestId !== 'string') return
+
+      const respond = (response: Omit<ExtensionBridgeResponse, 'source' | 'direction' | 'requestId'>) => {
+        const payload: ExtensionBridgeResponse = {
+          source: EXTENSION_RESPONSE_SOURCE,
+          direction: 'to-content',
+          requestId: request.requestId,
+          ...response,
+        }
+        window.postMessage(payload, '*')
+      }
+
+      void (async () => {
+        try {
+          if (request.action === 'ping' || request.action === 'get_context') {
+            respond({ ok: true, data: contextPayload })
+            return
+          }
+
+          if (request.action === 'create_bug') {
+            if (!contextPayload.authenticated) {
+              respond({
+                ok: false,
+                error: 'Sign in to Mushi before creating bugs from the extension.',
+                code: 'UNAUTHENTICATED',
+              })
+              return
+            }
+
+            const payload = (request.payload || {}) as ExtensionCreateBugPayload
+            const result = await createBugFromPayload(payload)
+            respond({ ok: true, data: result })
+            return
+          }
+
+          respond({ ok: false, error: `Unknown extension action: ${request.action}` })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unexpected extension bridge error.'
+          respond({ ok: false, error: message })
+        }
+      })()
+    }
+
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [contextPayload, createBugFromPayload])
+
+  return null
+}
