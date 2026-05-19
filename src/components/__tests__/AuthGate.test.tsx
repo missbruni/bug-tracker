@@ -14,7 +14,6 @@ const authState: {
   loading: boolean
   session: Session | null
   authError: string | null
-  microsoftLoginEnabled: boolean
   allowedEmailDomain: string
   signInWithMicrosoft: () => Promise<void>
   clearAuthError: () => void
@@ -22,7 +21,6 @@ const authState: {
   loading: false,
   session: null,
   authError: null,
-  microsoftLoginEnabled: false,
   allowedEmailDomain: 'theaccessgroup.com',
   signInWithMicrosoft,
   clearAuthError,
@@ -58,7 +56,6 @@ beforeEach(() => {
   authState.loading = false
   authState.session = null
   authState.authError = null
-  authState.microsoftLoginEnabled = false
   authState.allowedEmailDomain = 'theaccessgroup.com'
   authState.signInWithMicrosoft = signInWithMicrosoft
 })
@@ -79,21 +76,7 @@ describe('AuthGate', () => {
     expect(screen.queryByText('App Content')).not.toBeInTheDocument()
   })
 
-  test('shows Microsoft button disabled when feature flag is off', async () => {
-    render(
-      <AuthGate>
-        <div>App Content</div>
-      </AuthGate>,
-    )
-
-    const microsoftButton = await screen.findByRole('button', { name: 'Sign in with Microsoft' })
-    expect(microsoftButton).toBeDisabled()
-    expect(screen.getByText('Microsoft login is temporarily disabled while tenant approval is pending.')).toBeInTheDocument()
-  })
-
-  test('enables Microsoft sign-in when feature flag is on', async () => {
-    authState.microsoftLoginEnabled = true
-
+  test('shows Microsoft sign-in button enabled', async () => {
     render(
       <AuthGate>
         <div>App Content</div>

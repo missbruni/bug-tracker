@@ -2,14 +2,12 @@ import { LogIn } from "lucide-react";
 
 interface LoginScreenProps {
   onMicrosoftSignIn: () => Promise<void>;
-  microsoftLoginEnabled: boolean;
   error: string | null;
   allowedEmailDomain: string;
 }
 
 export default function LoginScreen({
   onMicrosoftSignIn,
-  microsoftLoginEnabled,
   error,
   allowedEmailDomain,
 }: LoginScreenProps) {
@@ -31,27 +29,12 @@ export default function LoginScreen({
 
         <button
           type="button"
-          disabled={!microsoftLoginEnabled}
-          aria-disabled={!microsoftLoginEnabled}
-          onClick={() => {
-            if (!microsoftLoginEnabled) return;
-            void onMicrosoftSignIn();
-          }}
-          className={`mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors ${
-            microsoftLoginEnabled
-              ? "bg-blue-500 text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 dark:focus-visible:ring-blue-500/30"
-              : "bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:cursor-not-allowed"
-          }`}
+          onClick={() => void onMicrosoftSignIn()}
+          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors bg-blue-500 text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 dark:focus-visible:ring-blue-500/30"
         >
           <LogIn size={16} />
           Sign in with Microsoft
         </button>
-
-        {!microsoftLoginEnabled && (
-          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-            Microsoft login is temporarily disabled while tenant approval is pending.
-          </p>
-        )}
 
         {error && (
           <p role="alert" className="mt-3 text-xs text-red-500">

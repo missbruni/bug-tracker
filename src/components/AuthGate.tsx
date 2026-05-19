@@ -54,7 +54,6 @@ export default function AuthGate({ children }: AuthGateProps) {
     loading,
     session,
     authError,
-    microsoftLoginEnabled,
     allowedEmailDomain,
     signInWithMicrosoft,
   } = useAuth();
@@ -93,7 +92,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
   return (
     <LoginScreen
       onMicrosoftSignIn={signInWithMicrosoft}
-      microsoftLoginEnabled={microsoftLoginEnabled}
       error={authError}
       allowedEmailDomain={allowedEmailDomain}
     />
