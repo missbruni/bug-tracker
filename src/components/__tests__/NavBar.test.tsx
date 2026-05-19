@@ -10,6 +10,9 @@ function renderNavBar(props: {
   showBugs?: boolean
   onToggleBugs?: () => void
   bugCount?: number
+  userDisplayName?: string
+  userEmail?: string
+  userAvatarUrl?: string
   onLogout?: () => void
   onLock?: () => void
 } = {}) {
@@ -88,5 +91,25 @@ describe('NavBar', () => {
     fireEvent.click(lockBtn)
 
     expect(onLock).toHaveBeenCalledTimes(1)
+  })
+
+  test('renders compact user chip with initials and hides full email text', () => {
+    renderNavBar({
+      userDisplayName: 'Bruna Lima',
+      userEmail: 'bruna.lima@theaccessgroup.com',
+    })
+
+    expect(screen.getByText('Bruna Lima')).toBeInTheDocument()
+    expect(screen.getByText('BL')).toBeInTheDocument()
+    expect(screen.queryByText('bruna.lima@theaccessgroup.com')).not.toBeInTheDocument()
+  })
+
+  test('renders user avatar image when URL is provided', () => {
+    renderNavBar({
+      userDisplayName: 'Bruna Lima',
+      userAvatarUrl: 'https://example.com/avatar.png',
+    })
+
+    expect(screen.getByRole('img', { name: 'Bruna Lima avatar' })).toBeInTheDocument()
   })
 })

@@ -13,6 +13,13 @@ const NAV_ITEMS = [
 	{ to: "/testers", label: "Testers", icon: Users },
 ];
 
+function getInitials(value: string): string {
+	const words = value.trim().split(/\s+/).filter(Boolean);
+	if (!words.length) return "?";
+	if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+	return `${words[0][0] || ""}${words[words.length - 1][0] || ""}`.toUpperCase();
+}
+
 export default function NavBar({
 	children,
 	showBugs,
@@ -25,7 +32,9 @@ export default function NavBar({
 	onTeamChange,
 	showTeamsNav,
 	onOpenSettings,
-	userLabel,
+	userDisplayName,
+	userEmail,
+	userAvatarUrl,
 	onLogout,
 	onLock,
 }: {
@@ -40,7 +49,9 @@ export default function NavBar({
 	onTeamChange?: (teamId: string) => void;
 	showTeamsNav?: boolean;
 	onOpenSettings?: () => void;
-	userLabel?: string;
+	userDisplayName?: string;
+	userEmail?: string;
+	userAvatarUrl?: string;
 	onLogout?: () => void;
 	onLock?: () => void;
 }) {
@@ -113,7 +124,7 @@ export default function NavBar({
 						/>
 					</div>
 					{children && (
-						<div className="ml-auto flex items-center gap-2">
+						<div className="ml-auto flex items-center gap-1.5 sm:gap-2 cursor-default">
 							{activeTeamName && (
 								<span
 									className="hidden lg:inline whitespace-nowrap badge badge-slate"
@@ -138,19 +149,33 @@ export default function NavBar({
 							)}
 							<button
 								onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
-								className="flex items-center gap-1.5 rounded-full border border-blue-500 dark:border-mushi-primary bg-blue-50 dark:bg-mushi-primary/10 px-3 py-1 text-blue-600 dark:text-mushi-primary hover:bg-blue-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
+								className="flex items-center gap-1.5 rounded-full border border-blue-500 dark:border-mushi-primary bg-blue-50 dark:bg-mushi-primary/10 px-2 sm:px-3 py-1 text-blue-600 dark:text-mushi-primary hover:bg-blue-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
 								title="AI Assistant (⌘I)"
 							>
 								<Sparkles size={14} />
 								<span className="text-xs font-bold">AI</span>
 							</button>
-							{userLabel && (
-								<span
-									className="hidden lg:inline max-w-[220px] truncate text-xs text-slate-500 dark:text-gray-400"
-									title={userLabel}
+							{userDisplayName && (
+								<div
+									className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-1.5 sm:px-2 py-1"
+									title={userEmail || userDisplayName}
 								>
-									{userLabel}
-								</span>
+									{userAvatarUrl ? (
+										<img
+											src={userAvatarUrl}
+											alt={`${userDisplayName} avatar`}
+											className="h-6 w-6 rounded-full object-cover"
+											referrerPolicy="no-referrer"
+										/>
+									) : (
+										<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 dark:bg-gray-700 text-[10px] font-bold text-slate-700 dark:text-gray-200">
+											{getInitials(userDisplayName)}
+										</span>
+									)}
+									<span className="hidden xl:inline max-w-[140px] truncate text-xs font-semibold text-slate-600 dark:text-gray-300">
+										{userDisplayName}
+									</span>
+								</div>
 							)}
 							{onLogout && (
 								<button

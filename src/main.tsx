@@ -31,6 +31,19 @@ function RouteFallback() {
 	return <PageLoader />;
 }
 
+function normalizeUserDisplayName(value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) return "";
+	if (!trimmed.includes("@")) return trimmed;
+
+	const alias = trimmed.split("@")[0]?.replace(/[._-]+/g, " ").trim() || "";
+	return alias
+		.split(/\s+/)
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+}
+
 function Layout() {
 	const { user, signOut } = useAuth();
 	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } = useTeamAccess();
@@ -94,11 +107,22 @@ function Layout() {
 			return next;
 		});
 
-	const metadataName =
-		typeof user?.user_metadata?.name === "string"
-			? user.user_metadata.name.trim()
-			: "";
-	const userLabel = metadataName || user?.email;
+	const metadata = user?.user_metadata as Record<string, unknown> | undefined;
+	const metadataName = typeof metadata?.name === "string" ? metadata.name.trim() : "";
+	const metadataFullName = typeof metadata?.full_name === "string" ? metadata.full_name.trim() : "";
+	const givenName = typeof metadata?.given_name === "string" ? metadata.given_name.trim() : "";
+	const familyName = typeof metadata?.family_name === "string" ? metadata.family_name.trim() : "";
+	const derivedName = normalizeUserDisplayName([givenName, familyName].filter(Boolean).join(" ").trim());
+	const emailAlias = normalizeUserDisplayName(user?.email || "");
+	const userDisplayName =
+		normalizeUserDisplayName(metadataName) ||
+		normalizeUserDisplayName(metadataFullName) ||
+		derivedName ||
+		emailAlias ||
+		"Account";
+	const metadataAvatar = typeof metadata?.avatar_url === "string" ? metadata.avatar_url.trim() : "";
+	const metadataPicture = typeof metadata?.picture === "string" ? metadata.picture.trim() : "";
+	const userAvatarUrl = metadataAvatar || metadataPicture || undefined;
 	const isMicrosoftAuthenticated = Boolean(user);
 
 	const handleLogout = () => {
@@ -123,12 +147,16 @@ function Layout() {
 				onTeamChange={setActiveTeamId}
 				showTeamsNav={isGodMode}
 				onOpenSettings={() => setSettingsOpen(true)}
-				userLabel={isMicrosoftAuthenticated ? userLabel : undefined}
+				userDisplayName={isMicrosoftAuthenticated ? userDisplayName : undefined}
+				userEmail={isMicrosoftAuthenticated ? user?.email : undefined}
+				userAvatarUrl={isMicrosoftAuthenticated ? userAvatarUrl : undefined}
 				onLogout={isMicrosoftAuthenticated ? handleLogout : undefined}
 				onLock={!isMicrosoftAuthenticated ? handlePinLock : undefined}
 			>
 				<ThemeToggle />
-				<SoundToggle />
+				<div className="hidden md:block">
+					<SoundToggle />
+				</div>
 			</NavBar>
 			<SessionTimerBar />
 			<main
