@@ -59,8 +59,8 @@ describe('NavBar', () => {
 
   test('calls onToggleBugs when bug icon is clicked', () => {
     const onToggleBugs = mock(() => {})
-    renderNavBar({ showBugs: true, onToggleBugs })
-    const toggleBtn = screen.getByTitle('Hide crawling bugs (⌘B)')
+    renderNavBar({ showBugs: false, onToggleBugs })
+    const toggleBtn = screen.getByTitle('Show crawling bugs (⌘B)')
     fireEvent.click(toggleBtn)
     expect(onToggleBugs).toHaveBeenCalledTimes(1)
   })
