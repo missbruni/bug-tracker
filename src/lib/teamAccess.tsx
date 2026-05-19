@@ -33,6 +33,7 @@ interface TeamAccessContextValue {
   createTeam: (name: string) => Promise<TeamCreationResult>
   updateTeam: (teamId: string, name: string) => Promise<TeamMutationResult>
   deleteTeam: (teamId: string) => Promise<TeamMutationResult>
+  restoreTeam: (team: TeamRecord, makeActive?: boolean) => Promise<TeamMutationResult>
 }
 
 const defaultContextValue: TeamAccessContextValue = {
@@ -51,6 +52,7 @@ const defaultContextValue: TeamAccessContextValue = {
   }),
   updateTeam: async () => ({ error: 'Team context unavailable.' }),
   deleteTeam: async () => ({ error: 'Team context unavailable.' }),
+  restoreTeam: async () => ({ error: 'Team context unavailable.' }),
 }
 
 const TeamAccessContext = createContext<TeamAccessContextValue>(defaultContextValue)
@@ -248,6 +250,36 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
       return { error: null }
   }
 
+  const restoreTeam = async (team: TeamRecord, makeActive = false): Promise<TeamMutationResult> => {
+      if (!supabase) return { error: 'Database is not connected.' }
+      if (!isGodMode) return { error: 'Only god mode can restore teams.' }
+
+      const { data, error } = await supabase
+        .from('teams')
+        .insert({
+          id: team.id,
+          organization_id: team.organization_id,
+          name: team.name,
+          slug: team.slug,
+        })
+        .select('id, organization_id, name, slug, created_at')
+        .single()
+
+      if (error || !data) {
+        return { error: error?.message || 'Failed to restore team.' }
+      }
+
+      const restoredTeam = data as TeamRecord
+      setTeams((prev) => [...prev, restoredTeam].sort((a, b) => a.name.localeCompare(b.name)))
+
+      if (makeActive) {
+        setActiveTeamIdState(restoredTeam.id)
+        setStoredActiveTeamId(restoredTeam.id)
+      }
+
+      return { error: null }
+  }
+
   const deleteTeam = async (teamId: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
       if (!isGodMode) return { error: 'Only god mode can delete teams.' }
@@ -282,6 +314,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     createTeam,
     updateTeam,
     deleteTeam,
+    restoreTeam,
   }
 
   return <TeamAccessContext.Provider value={value}>{children}</TeamAccessContext.Provider>

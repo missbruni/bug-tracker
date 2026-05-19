@@ -18,6 +18,7 @@ export default function TeamManagementPage() {
     createTeam,
     updateTeam,
     deleteTeam,
+    restoreTeam,
   } = useTeamAccess()
 
   const [showAdd, setShowAdd] = React.useState(false)
@@ -29,7 +30,11 @@ export default function TeamManagementPage() {
   const [editName, setEditName] = React.useState('')
   const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
-  const [toast, setToast] = React.useState<{ message: string; tone: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = React.useState<{
+    message: string
+    tone: 'success' | 'error'
+    undo?: () => Promise<void> | void
+  } | null>(null)
   const [teamStats, setTeamStats] = React.useState<Record<string, TeamStats>>({})
   const [products, setProducts] = React.useState<Product[]>([])
 
@@ -155,11 +160,26 @@ export default function TeamManagementPage() {
   const confirmDelete = async (teamId: string) => {
     if (deletingId) return
     setDeletingId(teamId)
+    const deletedTeam = teams.find((team) => team.id === teamId) || null
+    const wasActiveTeam = activeTeamId === teamId
     const result = await deleteTeam(teamId)
     if (result.error) {
       setToast({ message: result.error, tone: 'error' })
     } else {
-      setToast({ message: 'Team deleted.', tone: 'success' })
+      setToast({
+        message: 'Team deleted.',
+        tone: 'success',
+        undo: deletedTeam
+          ? async () => {
+            const restoreResult = await restoreTeam(deletedTeam, wasActiveTeam)
+            if (restoreResult.error) {
+              setToast({ message: restoreResult.error, tone: 'error' })
+              return
+            }
+            setToast({ message: 'Team restored.', tone: 'success' })
+          }
+          : undefined,
+      })
     }
     setDeletingId(null)
     setPendingDeleteId(null)
@@ -274,6 +294,19 @@ export default function TeamManagementPage() {
           <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${toast.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : 'text-red-600 dark:text-red-400'}`}>
             {toast.tone === 'success' ? <CheckCircle size={16} className="shrink-0" /> : <XCircle size={16} className="shrink-0" />}
             {toast.message}
+            {toast.undo && (
+              <button
+                onClick={() => {
+                  const undo = toast.undo
+                  if (!undo) return
+                  setToast(null)
+                  void undo()
+                }}
+                className="rounded-md bg-teal-50 dark:bg-mushi-primary/10 px-2.5 py-1 text-xs font-bold text-teal-700 dark:text-mushi-primary hover:bg-teal-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
+              >
+                Undo
+              </button>
+            )}
           </div>
         )}
       </div>
