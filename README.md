@@ -31,6 +31,7 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key
    VITE_ALLOWED_EMAIL_DOMAIN=theaccessgroup.com
+   VITE_MS_LOGIN_ENABLED=false
    VITE_PRESENTATION_PIN=your-session-pin
    ```
 
@@ -52,9 +53,17 @@ This app is hosted on Vercel and uses a Vercel Function for AI proxying.
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_ALLOWED_EMAIL_DOMAIN`
+   - `VITE_MS_LOGIN_ENABLED` (`true` to enable Microsoft login button, default `false`)
    - `TEAM_PIN`
    - `GOD_PIN`
    - `PIN_SESSION_SECRET`
+   - `BACKLOG_WEBHOOK_URL` (optional, defaults to hosted n8n endpoint)
+   - `BACKLOG_ALLOWED_HOSTS` (optional host allowlist for `BACKLOG_WEBHOOK_URL`, default `n8n.dev.ax.accessacloud.com`)
+   - `BACKLOG_WEBHOOK_SECRET` (optional shared secret header value for n8n)
+   - `BACKLOG_WEBHOOK_SECRET_HEADER` (optional header name, default `x-mushi-webhook-secret`)
+   - `PUBLISH_RATE_LIMIT_MAX` / `PUBLISH_RATE_LIMIT_WINDOW_SECONDS` (optional publish endpoint throttling)
+   - `PIN_RATE_LIMIT_MAX` / `PIN_RATE_LIMIT_WINDOW_SECONDS` (optional global PIN attempt throttling)
+   - `PIN_FAILED_ATTEMPTS_MAX` / `PIN_FAILED_ATTEMPTS_WINDOW_SECONDS` / `PIN_FAILED_COOLDOWN_SECONDS` (optional PIN brute-force cooldown)
    - `AI_PROXY_ALLOWED_HOSTS` (comma-separated host allowlist, e.g. `api.openai.com,*.openai.azure.com`)
    - `VITE_PRESENTATION_PIN`
 4. In Supabase Auth settings, add your Vercel production URL to allowed redirect URLs.
