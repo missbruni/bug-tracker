@@ -8,8 +8,6 @@ export interface SeverityStyle {
 
 export type SeverityStyleMap = Record<Severity, SeverityStyle>
 
-export const N8N_WEBHOOK_URL = 'https://n8n.dev.ax.accessacloud.com/webhook/bug-to-backlog'
-
 export const SEVERITIES: Severity[] = ['critical', 'high', 'low']
 
 export const SEVERITY_STYLES: { light: SeverityStyleMap; dark: SeverityStyleMap } = {

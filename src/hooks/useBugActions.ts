@@ -1,6 +1,5 @@
 import React from 'react'
 import { supabase } from '../supabaseClient'
-import { N8N_WEBHOOK_URL } from '../constants'
 import { playTickSound } from '../lib/audio'
 import { findTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -80,7 +79,7 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     setPublishingMode(withDevin ? 'devin' : 'backlog')
     setPublishMenuOpen(false)
     try {
-      const res = await fetch(N8N_WEBHOOK_URL, {
+      const res = await fetch('/api/backlog/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
