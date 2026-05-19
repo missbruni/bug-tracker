@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../lib/useAuth";
 import { type PinAccessLevel } from "../lib/teamScope";
 import { cachePinRole, fetchPinSession, logoutPinSession } from "../lib/pinAuth";
+import { isMicrosoftLoginEnabled } from "../lib/authFlags";
 import LoginScreen from "./LoginScreen";
 
 interface AuthGateProps {
@@ -13,6 +14,7 @@ export default function AuthGate({ children }: AuthGateProps) {
   const [pinUnlocked, setPinUnlocked] = React.useState(false);
   const [pinConfigured, setPinConfigured] = React.useState(true);
   const [pinChecking, setPinChecking] = React.useState(true);
+  const microsoftLoginEnabled = isMicrosoftLoginEnabled();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -108,6 +110,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
     <LoginScreen
       onMicrosoftSignIn={signInWithMicrosoft}
       onPinUnlock={handlePinUnlock}
+      microsoftLoginEnabled={microsoftLoginEnabled}
       pinConfigured={pinConfigured}
       error={authError}
       allowedEmailDomain={allowedEmailDomain}

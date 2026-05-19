@@ -5,13 +5,16 @@ import { type PinAccessLevel } from "../lib/teamScope";
 interface LoginScreenProps {
   onMicrosoftSignIn: () => Promise<void>;
   onPinUnlock: (accessLevel: PinAccessLevel) => void;
+  microsoftLoginEnabled: boolean;
   pinConfigured: boolean;
   error: string | null;
   allowedEmailDomain: string;
 }
 
 export default function LoginScreen({
+  onMicrosoftSignIn,
   onPinUnlock,
+  microsoftLoginEnabled,
   pinConfigured,
   error,
   allowedEmailDomain,
@@ -34,17 +37,31 @@ export default function LoginScreen({
 
         <button
           type="button"
-          disabled
-          aria-disabled="true"
-          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-300 dark:bg-slate-700 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 disabled:cursor-not-allowed transition-colors"
+          disabled={!microsoftLoginEnabled}
+          aria-disabled={!microsoftLoginEnabled}
+          onClick={() => {
+            if (!microsoftLoginEnabled) return;
+            void onMicrosoftSignIn();
+          }}
+          className={`mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors ${
+            microsoftLoginEnabled
+              ? "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+              : "bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:cursor-not-allowed"
+          }`}
         >
           <LogIn size={16} />
           Sign in with Microsoft
         </button>
 
-        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-          Microsoft login is temporarily disabled while tenant approval is pending.
-        </p>
+        {microsoftLoginEnabled ? (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Temporary PIN access is available for approved admin/team users while Microsoft approval is pending.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+            Microsoft login is temporarily disabled while tenant approval is pending.
+          </p>
+        )}
 
         {error && (
           <p role="alert" className="mt-3 text-xs text-red-500">
