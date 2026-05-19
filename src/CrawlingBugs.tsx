@@ -110,7 +110,9 @@ interface CrawlingBugsProps {
 }
 
 export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
-  const numBugs = Math.min(Math.max(count, 0), MAX_BUGS)
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  const mobileMax = 6
+  const numBugs = Math.min(Math.max(count, 0), isMobile ? Math.min(MAX_BUGS, mobileMax) : MAX_BUGS)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const bugsRef = React.useRef<BugState[]>([])
   const canvasRef = React.useRef<HTMLCanvasElement>(null)
