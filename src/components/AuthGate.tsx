@@ -1,7 +1,6 @@
 import React, { type ReactNode } from "react"
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../lib/useAuth";
-import { type PinAccessLevel } from "../lib/teamScope";
 import { cachePinRole, fetchPinSession, logoutPinSession } from "../lib/pinAuth";
 import LoginScreen from "./LoginScreen";
 
@@ -11,7 +10,6 @@ interface AuthGateProps {
 
 export default function AuthGate({ children }: AuthGateProps) {
   const [pinUnlocked, setPinUnlocked] = React.useState(false);
-  const [pinConfigured, setPinConfigured] = React.useState(true);
   const [pinChecking, setPinChecking] = React.useState(true);
 
   React.useEffect(() => {
@@ -23,12 +21,10 @@ export default function AuthGate({ children }: AuthGateProps) {
         const session = await fetchPinSession();
         if (cancelled) return;
         setPinUnlocked(session.authenticated);
-        setPinConfigured(session.configured);
         cachePinRole(session.authenticated ? session.role : null);
       } catch {
         if (cancelled) return;
         setPinUnlocked(false);
-        setPinConfigured(false);
         cachePinRole(null);
       } finally {
         if (!cancelled) setPinChecking(false);
@@ -61,18 +57,7 @@ export default function AuthGate({ children }: AuthGateProps) {
     microsoftLoginEnabled,
     allowedEmailDomain,
     signInWithMicrosoft,
-    clearAuthError,
   } = useAuth();
-
-  const handlePinUnlock = (accessLevel: PinAccessLevel) => {
-    cachePinRole(accessLevel);
-    window.dispatchEvent(
-      new CustomEvent("pin-unlocked", { detail: { role: accessLevel } }),
-    );
-    clearAuthError();
-    setPinUnlocked(true);
-    setPinChecking(false);
-  };
 
   if (!supabase) {
     return (
@@ -108,9 +93,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
   return (
     <LoginScreen
       onMicrosoftSignIn={signInWithMicrosoft}
-      onPinUnlock={handlePinUnlock}
       microsoftLoginEnabled={microsoftLoginEnabled}
-      pinConfigured={pinConfigured}
       error={authError}
       allowedEmailDomain={allowedEmailDomain}
     />

@@ -1,21 +1,15 @@
 import { LogIn } from "lucide-react";
-import PinGate from "./PinGate";
-import { type PinAccessLevel } from "../lib/teamScope";
 
 interface LoginScreenProps {
   onMicrosoftSignIn: () => Promise<void>;
-  onPinUnlock: (accessLevel: PinAccessLevel) => void;
   microsoftLoginEnabled: boolean;
-  pinConfigured: boolean;
   error: string | null;
   allowedEmailDomain: string;
 }
 
 export default function LoginScreen({
   onMicrosoftSignIn,
-  onPinUnlock,
   microsoftLoginEnabled,
-  pinConfigured,
   error,
   allowedEmailDomain,
 }: LoginScreenProps) {
@@ -53,11 +47,7 @@ export default function LoginScreen({
           Sign in with Microsoft
         </button>
 
-        {microsoftLoginEnabled ? (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Temporary PIN access is available for approved admin/team users while Microsoft approval is pending.
-          </p>
-        ) : (
+        {!microsoftLoginEnabled && (
           <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
             Microsoft login is temporarily disabled while tenant approval is pending.
           </p>
@@ -69,7 +59,11 @@ export default function LoginScreen({
           </p>
         )}
 
-        <PinGate pinConfigured={pinConfigured} onUnlock={onPinUnlock} />
+        <div className="mt-6 border-t border-slate-200 dark:border-gray-800 pt-5">
+          <p className="text-xs text-slate-500 dark:text-gray-400 text-center">
+            Please use your Microsoft account to login.
+          </p>
+        </div>
       </div>
     </div>
   );

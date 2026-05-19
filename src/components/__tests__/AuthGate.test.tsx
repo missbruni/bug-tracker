@@ -108,7 +108,7 @@ describe('AuthGate', () => {
     })
 
     expect(signInWithMicrosoft).toHaveBeenCalled()
-    expect(screen.getByText('Temporary PIN access is available for approved admin/team users while Microsoft approval is pending.')).toBeInTheDocument()
+    expect(screen.getByText('Please use your Microsoft account to login.')).toBeInTheDocument()
   })
 
   test('renders children when pin session is authenticated', async () => {

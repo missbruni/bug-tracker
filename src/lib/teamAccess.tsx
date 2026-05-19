@@ -10,6 +10,7 @@ import {
   type TeamRecord,
 } from './teamScope'
 import { cachePinRole, fetchPinSession } from './pinAuth'
+import { useAuth } from './useAuth'
 
 interface TeamCreationResult {
   team: TeamRecord | null
@@ -72,6 +73,7 @@ function setStoredActiveTeamId(teamId: string | null) {
 }
 
 export function TeamAccessProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [teams, setTeams] = React.useState<TeamRecord[]>([])
   const [loading, setLoading] = React.useState(true)
   const [pinRole, setPinRole] = React.useState<PinAccessLevel | null>(null)
@@ -137,7 +139,13 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const isGodMode = pinRole === 'god'
+  const ownerEmails = (import.meta.env.VITE_APP_OWNER_EMAILS as string || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+  const isAppOwner = Boolean(user?.email && ownerEmails.includes(user.email.toLowerCase()))
+
+  const isGodMode = pinRole === 'god' || isAppOwner
   const fallbackTeam = teams.find((team) => team.slug === DEFAULT_TEAM_SLUG) || teams[0] || null
 
   const allowedTeamIds = (() => {
