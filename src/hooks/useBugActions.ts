@@ -207,36 +207,38 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     }
   }
 
-  const deleteBug = async (): Promise<boolean> => {
+  const softDeleteBug = (): void => {
+    onDelete(bug.id)
+  }
 
-    if (supabase) {
-      const storagePaths = bug.attachments
-        .map((att) => parseAttachmentStoragePath(att.url))
-        .filter(Boolean)
-        .map((path) => path!)
+  const hardDeleteBug = async (): Promise<boolean> => {
+    if (!supabase) return true
 
-      if (storagePaths.length) {
-        const { error: storageError } = await supabase.storage.from('attachments').remove(storagePaths)
-        if (storageError) console.error('Failed to delete attachment files:', storageError)
-      }
+    const storagePaths = bug.attachments
+      .map((att) => parseAttachmentStoragePath(att.url))
+      .filter(Boolean)
+      .map((path) => path!)
 
-      let commentsDelete = supabase.from('comments').delete().eq('bug_id', bug.id)
-      commentsDelete = scopeToTeam(commentsDelete, activeTeamId)
-      const { error: commentsError } = await commentsDelete
-      if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return false }
-
-      let attachmentsDelete = supabase.from('attachments').delete().eq('bug_id', bug.id)
-      attachmentsDelete = scopeToTeam(attachmentsDelete, activeTeamId)
-      const { error: attachmentsError } = await attachmentsDelete
-      if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return false }
-
-      let bugDelete = supabase.from('bugs').delete().eq('id', bug.id)
-      bugDelete = scopeToTeam(bugDelete, activeTeamId)
-      const { error: bugError } = await bugDelete
-      if (bugError) { console.error('Failed to delete bug:', bugError); return false }
+    if (storagePaths.length) {
+      const { error: storageError } = await supabase.storage.from('attachments').remove(storagePaths)
+      if (storageError) console.error('Failed to delete attachment files:', storageError)
     }
 
-    onDelete(bug.id)
+    let commentsDelete = supabase.from('comments').delete().eq('bug_id', bug.id)
+    commentsDelete = scopeToTeam(commentsDelete, activeTeamId)
+    const { error: commentsError } = await commentsDelete
+    if (commentsError) { console.error('Failed to delete bug comments:', commentsError); return false }
+
+    let attachmentsDelete = supabase.from('attachments').delete().eq('bug_id', bug.id)
+    attachmentsDelete = scopeToTeam(attachmentsDelete, activeTeamId)
+    const { error: attachmentsError } = await attachmentsDelete
+    if (attachmentsError) { console.error('Failed to delete bug attachments:', attachmentsError); return false }
+
+    let bugDelete = supabase.from('bugs').delete().eq('id', bug.id)
+    bugDelete = scopeToTeam(bugDelete, activeTeamId)
+    const { error: bugError } = await bugDelete
+    if (bugError) { console.error('Failed to delete bug:', bugError); return false }
+
     return true
   }
 
@@ -297,7 +299,8 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     deleteComment,
     deleteAttachment,
     toggleReviewed,
-    deleteBug,
+    softDeleteBug,
+    hardDeleteBug,
     uploadFiles,
     saveBugEdit,
   }

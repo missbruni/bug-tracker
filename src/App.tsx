@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
 import Lightbox from './components/Lightbox'
@@ -27,6 +27,7 @@ export default function App() {
     clearSnackbar,
     updateBug,
     deleteBugFromState,
+    restoreBug,
     showPersistError,
     addBug,
     addTester,
@@ -40,6 +41,7 @@ export default function App() {
 
   const [lightbox, setLightbox] = React.useState<LightboxState | null>(null)
   const snackbarTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const deleteTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'))
 
   React.useEffect(() => {
@@ -170,11 +172,27 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       bug={bug}
                       onUpdate={updateBug}
                       onDelete={deleteBugFromState}
+                      onDeleteWithUndo={(deletedBug, hardDelete) => {
+                        if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+                        if (deleteTimer.current) clearTimeout(deleteTimer.current)
+                        setSnackbar({
+                          message: `"${deletedBug.title}" deleted`,
+                          tone: 'success',
+                          undo: () => {
+                            if (deleteTimer.current) clearTimeout(deleteTimer.current)
+                            restoreBug(deletedBug)
+                          },
+                        })
+                        deleteTimer.current = setTimeout(() => {
+                          void hardDelete()
+                        }, 5000)
+                        snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
+                      }}
                       onPersistError={showPersistError}
                       onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
                       onReviewed={(b, undo, message) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
-                        setSnackbar({ message: message || `${b.id} marked as completed`, undo })
+                        setSnackbar({ message: message || `${b.id} marked as completed`, tone: 'success', undo })
                         snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
                       }}
                     />
@@ -190,12 +208,13 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         )}
       </div>
       {snackbar && (
-        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-lg ${snackbar.undo ? 'bg-blue-600 dark:bg-blue-500 text-slate-950' : 'bg-red-600 text-white'}`}>
+        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${snackbar.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : snackbar.tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+          {snackbar.tone === 'success' ? <CheckCircle size={16} className="shrink-0" /> : snackbar.tone === 'warning' ? <AlertTriangle size={16} className="shrink-0" /> : <XCircle size={16} className="shrink-0" />}
           {snackbar.message}
           {snackbar.undo && (
             <button
               onClick={() => { snackbar.undo!(); clearSnackbar() }}
-              className="rounded-md bg-black/15 px-2.5 py-1 text-xs font-bold text-slate-950 hover:bg-black/25 transition-colors cursor-pointer"
+              className="rounded-md bg-teal-50 dark:bg-mushi-primary/10 px-2.5 py-1 text-xs font-bold text-teal-700 dark:text-mushi-primary hover:bg-teal-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
             >
               Undo
             </button>

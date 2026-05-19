@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, Trash2, Pencil, X, Check } from 'lucide-react'
+import { Plus, Trash2, Pencil, X, Check, CheckCircle, XCircle } from 'lucide-react'
 import InlineDeleteConfirm from '../components/InlineDeleteConfirm'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
@@ -370,7 +370,8 @@ export default function TesterManagementPage() {
       </>)}
 
       {toast && (
-        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-lg ${toast.tone === 'success' ? 'bg-green-600 text-mushi-bg' : 'bg-red-600 text-white'}`}>
+        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${toast.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : 'text-red-600 dark:text-red-400'}`}>
+          {toast.tone === 'success' ? <CheckCircle size={16} className="shrink-0" /> : <XCircle size={16} className="shrink-0" />}
           {toast.message}
         </div>
       )}

@@ -138,7 +138,10 @@ export function playSquashSound(): void {
     void ctx.resume().then(() => {
       const src = ctx.createBufferSource()
       src.buffer = squashBuffer!
-      src.connect(ctx.destination)
+      const gain = ctx.createGain()
+      gain.gain.setValueAtTime(0.3, ctx.currentTime)
+      src.connect(gain)
+      gain.connect(ctx.destination)
       src.start(0)
     }).catch(() => {})
   } catch { /* ignore audio errors */ }

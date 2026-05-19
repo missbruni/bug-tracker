@@ -9,6 +9,7 @@ import type { Severity } from '../constants'
 
 interface SnackbarState {
   message: string
+  tone?: 'success' | 'error' | 'warning'
   undo?: () => void
 }
 
@@ -23,6 +24,7 @@ interface UseBugsReturn {
   clearSnackbar: () => void
   updateBug: (updated: Bug) => void
   deleteBugFromState: (bugId: string) => void
+  restoreBug: (bug: Bug) => void
   showPersistError: () => void
   addBug: (newBug: NewBugInput) => Promise<void>
   addTester: (name: string, devices?: string[]) => Promise<Pick<Tester, 'id' | 'name'> | null>
@@ -200,12 +202,19 @@ export function useBugs(): UseBugsReturn {
   }
 
   const showPersistError = () => {
-    setSnackbar({ message: 'It was not possible to update the bug.' })
+    setSnackbar({ message: 'It was not possible to update the bug.', tone: 'error' })
     window.setTimeout(() => setSnackbar(null), 4000)
   }
 
   const deleteBugFromState = (bugId: string) => {
     setBugs((prev) => prev.filter((b) => b.id !== bugId))
+  }
+
+  const restoreBug = (bug: Bug) => {
+    setBugs((prev) => {
+      if (prev.some((b) => b.id === bug.id)) return prev
+      return [...prev, bug].sort((a, b) => a.id.localeCompare(b.id))
+    })
   }
 
   const clearSnackbar = () => {
@@ -377,6 +386,7 @@ export function useBugs(): UseBugsReturn {
     clearSnackbar,
     updateBug,
     deleteBugFromState,
+    restoreBug,
     showPersistError,
     addBug,
     addTester,

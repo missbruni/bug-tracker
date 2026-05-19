@@ -24,6 +24,7 @@ interface BugCardProps {
 	onUpdate: (bug: Bug) => void;
 	onImageClick: (src: string, alt: string, type: string) => void;
 	onDelete: (bugId: string) => void;
+	onDeleteWithUndo?: (bug: Bug, hardDelete: () => Promise<boolean>) => void;
 	onPersistError?: (message: string) => void;
 	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
 }
@@ -33,12 +34,13 @@ export default function BugCard({
 	onUpdate,
 	onImageClick,
 	onDelete,
+	onDeleteWithUndo,
 	onPersistError,
 	onReviewed,
 }: BugCardProps) {
 	const [expanded, setExpanded] = React.useState(false);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
-	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [isDeleting] = React.useState(false);
 	const [commentText, setCommentText] = React.useState("");
 	const [showCommentInput, setShowCommentInput] = React.useState(false);
 	const [publishingMode, setPublishingMode] = React.useState<
@@ -108,14 +110,12 @@ export default function BugCard({
 		setPendingDelete(false);
 	};
 
-	const confirmDelete = async () => {
+	const confirmDelete = () => {
 		if (isDeleting) return;
-		setIsDeleting(true);
-		const deleted = await actions.deleteBug();
-		if (deleted) return;
-		setIsDeleting(false);
-		setPendingDelete(false);
-		onPersistError?.("Failed to delete bug.");
+		actions.softDeleteBug();
+		if (onDeleteWithUndo) {
+			onDeleteWithUndo(bug, actions.hardDeleteBug);
+		}
 	};
 
 	return (
