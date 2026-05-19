@@ -45,7 +45,7 @@ export default function LoginScreen({
           }}
           className={`mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors ${
             microsoftLoginEnabled
-              ? "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+              ? "bg-blue-500 text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 dark:focus-visible:ring-blue-500/30"
               : "bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:cursor-not-allowed"
           }`}
         >

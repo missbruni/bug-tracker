@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../supabaseClient";
 import { AuthContext, type AuthContextValue } from "./auth-context";
 import { queryClient } from "./queryClient";
+import { isMicrosoftLoginEnabled } from "./authFlags";
 
 const DEFAULT_ALLOWED_EMAIL_DOMAIN = "theaccessgroup.com";
 const configuredAllowedEmailDomain = (
@@ -13,6 +14,7 @@ const configuredAllowedEmailDomain = (
 
 const allowedEmailDomain =
   configuredAllowedEmailDomain || DEFAULT_ALLOWED_EMAIL_DOMAIN;
+const microsoftLoginEnabled = isMicrosoftLoginEnabled();
 
 const OAUTH_SEARCH_PARAMS = ["code", "state", "error", "error_description"];
 
@@ -149,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "azure",
       options: {
+        scopes: "email",
         redirectTo: getOAuthRedirectTo(),
         queryParams: { prompt: "select_account" },
       },
@@ -178,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null,
     loading,
     authError,
+    microsoftLoginEnabled,
     allowedEmailDomain,
     signInWithMicrosoft,
     signOut,

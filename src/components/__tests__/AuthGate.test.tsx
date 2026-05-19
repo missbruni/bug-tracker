@@ -9,12 +9,12 @@ const fetchPinSession = mock(async () => ({ authenticated: false, role: null, co
 const logoutPinSession = mock(async () => {})
 const cachePinRole = mock(() => {})
 const submitPin = mock(async () => ({ role: 'team' as const }))
-const microsoftLoginEnabled = { value: false }
 
 const authState: {
   loading: boolean
   session: Session | null
   authError: string | null
+  microsoftLoginEnabled: boolean
   allowedEmailDomain: string
   signInWithMicrosoft: () => Promise<void>
   clearAuthError: () => void
@@ -22,6 +22,7 @@ const authState: {
   loading: false,
   session: null,
   authError: null,
+  microsoftLoginEnabled: false,
   allowedEmailDomain: 'theaccessgroup.com',
   signInWithMicrosoft,
   clearAuthError,
@@ -33,10 +34,6 @@ mock.module('../../supabaseClient', () => ({
 
 mock.module('../../lib/useAuth', () => ({
   useAuth: () => authState,
-}))
-
-mock.module('../../lib/authFlags', () => ({
-  isMicrosoftLoginEnabled: () => microsoftLoginEnabled.value,
 }))
 
 mock.module('../../lib/pinAuth', () => ({
@@ -57,11 +54,11 @@ beforeEach(() => {
   submitPin.mockClear()
   logoutPinSession.mockClear()
   cachePinRole.mockClear()
-  microsoftLoginEnabled.value = false
 
   authState.loading = false
   authState.session = null
   authState.authError = null
+  authState.microsoftLoginEnabled = false
   authState.allowedEmailDomain = 'theaccessgroup.com'
   authState.signInWithMicrosoft = signInWithMicrosoft
 })
@@ -95,7 +92,7 @@ describe('AuthGate', () => {
   })
 
   test('enables Microsoft sign-in when feature flag is on', async () => {
-    microsoftLoginEnabled.value = true
+    authState.microsoftLoginEnabled = true
 
     render(
       <AuthGate>
