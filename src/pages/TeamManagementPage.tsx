@@ -199,7 +199,7 @@ export default function TeamManagementPage() {
       <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Teams</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Create and manage teams across the organization.</p>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Create and manage teams across the organization. Click on a team to set it as active.</p>
         </div>
 
         {showAdd && (

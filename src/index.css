@@ -8,10 +8,11 @@
   --color-mushi-primary:   #00ffcc;
   --color-mushi-accent:    #ff007a;
   --color-mushi-secondary: #ff00ff;
-  --color-mushi-tertiary:  #7000ff;
+  --color-mushi-tertiary:  #c084fc;
   --color-mushi-neutral:   #10141a;
   --color-mushi-outline:   rgba(0, 255, 204, 0.2);
   --color-mushi-threat:    #FFB4AB;
+  --color-mushi-warning:   #FFD600;
 
   --font-heading: "Space Grotesk", sans-serif;
   --font-sans:    "Inter", sans-serif;
@@ -19,6 +20,12 @@
   --radius:       8px;
 
   --shadow-mushi-glow: 0 0 15px rgba(0, 255, 204, 0.3);
+
+  /* ─── On-surface contrast text (auto-contrast for buttons) ─── */
+  --color-on-primary:   #ffffff;
+  --color-on-warning:   #1a1a1a;
+  --color-on-danger:    #ffffff;
+  --color-on-success:   #ffffff;
 
   --animate-scale-in: scaleIn 0.3s ease-out;
   --animate-slide-up: slideUp 0.25s ease-out;
@@ -58,6 +65,18 @@
   --color-red-800: #831843;
   --color-red-900: #500724;
 
+  /* Warning: amber → golden */
+  --color-amber-50:  #FFF8E1;
+  --color-amber-100: #FFF0C2;
+  --color-amber-200: #FFE49A;
+  --color-amber-300: #FFD54F;
+  --color-amber-400: #FFC107;
+  --color-amber-500: #FFB300;
+  --color-amber-600: #FFA000;
+  --color-amber-700: #FF8F00;
+  --color-amber-800: #E65100;
+  --color-amber-900: #BF360C;
+
   /* Success: green → teal (primary) */
   --color-green-50:  #e6f7f5;
   --color-green-100: #b3ece5;
@@ -96,10 +115,19 @@
   --color-blue-700: #00bb99;
   --color-blue-900: rgba(0, 255, 204, 0.08);
 
+  /* Warning: amber → neon golden */
+  --color-amber-50:  rgba(255, 214, 0, 0.05);
+  --color-amber-100: rgba(255, 214, 0, 0.1);
+  --color-amber-200: rgba(255, 214, 0, 0.2);
+  --color-amber-300: rgba(255, 214, 0, 0.4);
+  --color-amber-400: #FFD600;
+  --color-amber-500: #FFD600;
+  --color-amber-600: #FFC400;
+  --color-amber-700: #FFB300;
+  --color-amber-800: rgba(255, 214, 0, 0.3);
+  --color-amber-900: rgba(255, 214, 0, 0.08);
+
   /* Accent aliases → mint */
-  --color-amber-400: #00ffcc;
-  --color-amber-500: #00ffcc;
-  --color-amber-600: #00ddb3;
   --color-indigo-400: #00ffcc;
   --color-indigo-500: rgba(0, 255, 204, 0.1);
   --color-indigo-600: #00ffcc;
@@ -132,6 +160,12 @@
   --color-slate-800: #252a31;
   --color-slate-900: #1c2026;
 
+  /* On-surface contrast text overrides for dark mode */
+  --color-on-primary:   #0a0e14;
+  --color-on-warning:   #0a0e14;
+  --color-on-danger:    #ffffff;
+  --color-on-success:   #0a0e14;
+
   /* Success: green → mint (primary) */
   --color-green-50:  rgba(0, 255, 204, 0.05);
   --color-green-100: rgba(0, 255, 204, 0.1);
@@ -163,6 +197,23 @@ button:not(:disabled):not([aria-disabled="true"]) {
 button:disabled,
 button[aria-disabled="true"] {
   cursor: not-allowed;
+}
+
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; }
+  4%       { opacity: 1; }
+  4.5%     { opacity: 0.4; }
+  5%       { opacity: 1; }
+  5.3%     { opacity: 0.5; }
+  5.6%     { opacity: 1; }
+  54%      { opacity: 1; }
+  54.5%    { opacity: 0.6; }
+  55%      { opacity: 1; }
+  82%      { opacity: 1; }
+  82.4%    { opacity: 0.3; }
+  82.8%    { opacity: 1; }
+  83%      { opacity: 0.5; }
+  83.3%    { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -258,10 +309,37 @@ button[aria-disabled="true"] {
   }
 }
 
+@utility card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-slate-200, #e2e8f0);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.dark .card {
+  background-color: var(--color-gray-900, #111827);
+  border-color: var(--color-gray-700, #374151);
+  box-shadow: none;
+}
+
+@utility card-nested {
+  background-color: rgba(248, 250, 252, 0.5);
+  border: 1px solid var(--color-slate-200, #e2e8f0);
+  border-radius: var(--radius);
+}
+.dark .card-nested {
+  background-color: rgba(31, 41, 55, 0.5);
+  border-color: var(--color-gray-700, #374151);
+}
+
 @utility glass {
   background-color: color-mix(in srgb, var(--color-mushi-surface) 10%, transparent);
   backdrop-filter: blur(12px);
 }
+
+@utility text-on-primary { color: var(--color-on-primary); }
+@utility text-on-warning { color: var(--color-on-warning); }
+@utility text-on-danger  { color: var(--color-on-danger); }
+@utility text-on-success { color: var(--color-on-success); }
 
 @utility border-active {
   border: 1px solid var(--color-mushi-primary);

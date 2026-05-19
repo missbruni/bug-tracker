@@ -143,10 +143,10 @@ export default function TeamCard({
 
   return (
     <div
-      className={`rounded-xl border px-5 py-4 transition-colors ${
+      className={`card rounded-xl px-5 py-4 transition-colors ${
         isActive
-          ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
-          : 'border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm'
+          ? 'border-blue-500!'
+          : ''
       } ${deleting ? 'opacity-50' : ''}`}
     >
       {isEditing ? (
@@ -226,45 +226,45 @@ export default function TeamCard({
             <Link
               to="/sessions"
               onClick={() => onSelect()}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-violet-400 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-amber-400 dark:hover:border-mushi-warning/50 hover:bg-amber-50 dark:hover:bg-mushi-warning/10 transition-colors"
             >
-              <div className="rounded-lg bg-violet-100 dark:bg-violet-900/30 p-2">
-                <CalendarDays size={16} className="text-violet-600 dark:text-violet-400" />
+              <div className="rounded-lg bg-amber-100 dark:bg-mushi-warning/15 p-2">
+                <CalendarDays size={16} className="text-amber-500 dark:text-mushi-warning" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
                   {stats?.sessions ?? 0}
                 </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-violet-600 dark:group-hover:text-violet-400">Sessions</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-amber-500 dark:group-hover:text-mushi-warning">Sessions</span>
               </div>
             </Link>
             <Link
               to="/"
               onClick={() => onSelect()}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-red-400 dark:hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-fuchsia-400 dark:hover:border-mushi-secondary/60 hover:bg-fuchsia-50 dark:hover:bg-mushi-secondary/10 transition-colors"
             >
-              <div className={`rounded-lg p-2 ${(stats?.activeBugs ?? 0) > 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-slate-100 dark:bg-gray-700'}`}>
-                <Bug size={16} className={(stats?.activeBugs ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-gray-500'} />
+              <div className={`rounded-lg p-2 ${(stats?.activeBugs ?? 0) > 0 ? 'bg-fuchsia-100 dark:bg-mushi-secondary/15' : 'bg-slate-100 dark:bg-gray-700'}`}>
+                <Bug size={16} className={(stats?.activeBugs ?? 0) > 0 ? 'text-fuchsia-600 dark:text-mushi-secondary' : 'text-slate-500 dark:text-gray-500'} />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
                   {stats?.activeBugs ?? 0}
                 </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-red-600 dark:group-hover:text-red-400">Active bugs</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-fuchsia-600 dark:group-hover:text-mushi-secondary">Active bugs</span>
               </div>
             </Link>
             <button
               onClick={() => setProductsExpanded(!productsExpanded)}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-red-400 dark:hover:border-mushi-threat/50 hover:bg-red-50 dark:hover:bg-mushi-threat/10 transition-colors cursor-pointer"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-violet-400 dark:hover:border-mushi-tertiary/50 hover:bg-violet-50 dark:hover:bg-mushi-tertiary/10 transition-colors cursor-pointer"
             >
-              <div className="rounded-lg bg-red-100 dark:bg-mushi-threat/15 p-2">
-                <Package size={16} className="text-red-500 dark:text-mushi-threat" />
+              <div className="rounded-lg bg-violet-100 dark:bg-mushi-tertiary/15 p-2">
+                <Package size={16} className="text-violet-600 dark:text-mushi-tertiary" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
                   {products.length}
                 </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-mushi-threat">Products</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-violet-600 dark:group-hover:text-mushi-tertiary">Products</span>
               </div>
               <div className="ml-auto">
                 {productsExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
@@ -353,18 +353,18 @@ export default function TeamCard({
                 ) : (
                   <div
                     key={product.id}
-                    className="group rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-red-400 dark:hover:border-mushi-threat/50 transition-colors"
+                    className="group rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-violet-400 dark:hover:border-mushi-tertiary/50 transition-colors"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="rounded-md bg-red-100 dark:bg-mushi-threat/15 p-1.5 mt-0.5">
-                        <Package size={14} className="text-red-500 dark:text-mushi-threat" />
+                      <div className="rounded-md bg-violet-100 dark:bg-mushi-tertiary/15 p-1.5 mt-0.5">
+                        <Package size={14} className="text-violet-600 dark:text-mushi-tertiary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">{product.name}</p>
                         <p className="text-xs text-slate-500 dark:text-gray-500 mt-0.5 line-clamp-2">
                           {product.description}
                           {product.description && (product.links?.length || product.link) ? ' · ' : ''}
-                          {(product.links?.length ? product.links.map(l => parseProductLink(l)) : product.link ? [{ label: '', url: product.link }] : []).map((lnk, i, arr) => {
+                          {(product.links?.length ? product.links.map(l => parseProductLink(l)) : product.link ? [{ label: '', url: product.link }] : []).map((lnk, i, _arr) => {
                             const url = lnk.url
                             const label = lnk.label || (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return 'Link' } })()
                             return (

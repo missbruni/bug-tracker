@@ -6,6 +6,7 @@ import { queryClient } from "./lib/queryClient";
 import AuthGate from "./components/AuthGate";
 import NavBar from "./components/NavBar";
 import ThemeToggle from "./components/ThemeToggle";
+import SoundToggle from "./components/SoundToggle";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { playAiSound } from "./lib/audio";
 import { AuthProvider } from "./lib/auth";
@@ -127,6 +128,7 @@ function Layout() {
 				onLock={!isMicrosoftAuthenticated ? handlePinLock : undefined}
 			>
 				<ThemeToggle />
+				<SoundToggle />
 			</NavBar>
 			<SessionTimerBar />
 			<main

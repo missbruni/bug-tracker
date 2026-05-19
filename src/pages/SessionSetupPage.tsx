@@ -465,7 +465,7 @@ export default function SessionSetupPage() {
           <AlertCircle size={28} className="mx-auto mb-3 text-red-400" />
           <h2 className="text-sm font-bold text-red-600 dark:text-red-400 mb-1">Session not found</h2>
           <p className="text-xs text-red-500/70 dark:text-red-400/60 mb-4">This session may have been deleted or the link is invalid.</p>
-          <Link to="/sessions" className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 transition-colors">
+          <Link to="/sessions" className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-on-danger hover:bg-red-600 transition-colors">
             ← Back to Sessions
           </Link>
         </div>
@@ -542,7 +542,7 @@ export default function SessionSetupPage() {
             {teamName && <span className="inline-flex items-center rounded-full border border-slate-300 dark:border-gray-600 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400">Team: {teamName}</span>}
             {teamName && productName && <span>·</span>}
             {productName && (
-              <span className="flex items-center gap-1 font-medium text-red-500 dark:text-mushi-threat">
+              <span className="flex items-center gap-1 font-medium text-violet-600 dark:text-mushi-tertiary">
                 <Package size={11} />
                 {productName}
               </span>
@@ -761,7 +761,7 @@ export default function SessionSetupPage() {
               </p>
               {getAssignedTester(selectedScenarioId) && (
                 <button onClick={() => unassign(selectedScenarioId)}
-                  className="mb-2 rounded-md bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 cursor-pointer">
+                  className="mb-2 rounded-md bg-red-500 px-3 py-1 text-xs font-semibold text-on-danger hover:bg-red-600 cursor-pointer">
                   Unassign {getAssignedTester(selectedScenarioId)?.name}
                 </button>
               )}
@@ -843,7 +843,7 @@ export default function SessionSetupPage() {
           title="Delete session?"
           titleClassName="text-sm font-bold text-red-600 dark:text-red-400 mb-2"
           confirmLabel="Delete permanently"
-          confirmClassName="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 cursor-pointer transition-colors"
+          confirmClassName="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-on-danger hover:bg-red-600 cursor-pointer transition-colors"
           onConfirm={deleteSession}
           onCancel={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeletingSession(false) }}
           disabled={deleteConfirmText !== session.name}

@@ -5,7 +5,7 @@ const MAX_WIGGLE = 5
 const MAX_SMALL_TURN = 10
 const MAX_LARGE_TURN = 150
 const EDGE_RESISTANCE = 20
-const BUG_SIZE = 32
+const BUG_SIZE = 48
 
 function random(min: number, max: number) {
 	return min + Math.random() * (max - min)
@@ -27,6 +27,8 @@ function LoadingDots() {
 export default function PageLoader() {
 	const canvasRef = React.useRef<HTMLCanvasElement>(null)
 	const animRef = React.useRef<number>(0)
+	const isDark = document.documentElement.classList.contains('dark')
+	const bugColor = isDark ? '#00FFCC' : '#00A38C'
 
 	React.useEffect(() => {
 		const canvas = canvasRef.current
@@ -62,7 +64,7 @@ export default function PageLoader() {
 			<g transform="rotate(6, 17.2, 17)"><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></g>`
 
 		const makeFrame = (legs: string) =>
-			`<svg xmlns="http://www.w3.org/2000/svg" width="${BUG_SIZE}" height="${BUG_SIZE}" viewBox="0 0 24 24" fill="none" stroke="#00FFCC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}${legs}</svg>`
+			`<svg xmlns="http://www.w3.org/2000/svg" width="${BUG_SIZE}" height="${BUG_SIZE}" viewBox="0 0 24 24" fill="none" stroke="${bugColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}${legs}</svg>`
 
 		const frames: HTMLImageElement[] = []
 		const urls: string[] = []
@@ -187,7 +189,7 @@ export default function PageLoader() {
 			ctx.rotate(deg2rad(90 - bug.displayAngle))
 
 			// glow
-			ctx.shadowColor = 'rgba(0, 255, 204, 0.5)'
+			ctx.shadowColor = isDark ? 'rgba(0, 255, 204, 0.5)' : 'rgba(0, 163, 140, 0.4)'
 			ctx.shadowBlur = 8
 
 			ctx.drawImage(frames[bug.frameIndex], -BUG_SIZE / 2, -BUG_SIZE / 2, BUG_SIZE, BUG_SIZE)
@@ -201,7 +203,7 @@ export default function PageLoader() {
 			if (animRef.current) cancelAnimationFrame(animRef.current)
 			urls.forEach(u => URL.revokeObjectURL(u))
 		}
-	}, [])
+	}, [isDark, bugColor])
 
 	return (
 		<div className="flex items-center justify-center min-h-[40vh]">

@@ -59,7 +59,7 @@ export default function DeleteConfirmModal({
           <button
             onClick={onConfirm}
             disabled={input !== confirmToken}
-            className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
+            className="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-on-danger hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-gray-700 disabled:text-slate-500 dark:disabled:text-gray-500 cursor-pointer disabled:cursor-default transition-colors"
           >
             {confirmButtonText}
           </button>

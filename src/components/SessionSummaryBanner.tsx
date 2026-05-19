@@ -140,7 +140,7 @@ export default function SessionSummaryBanner({
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors ${
                 i < assignedScenarios
-                  ? 'bg-red-400 dark:bg-mushi-accent'
+                  ? 'bg-purple-500 dark:bg-mushi-tertiary'
                   : 'bg-slate-200 dark:bg-gray-700'
               }`}
             />

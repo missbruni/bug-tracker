@@ -18,7 +18,7 @@ export default function ConfirmModal({
 	titleClassName = 'text-sm font-bold text-slate-900 dark:text-gray-100 mb-2',
 	children,
 	confirmLabel,
-	confirmClassName = 'rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 cursor-pointer transition-colors',
+	confirmClassName = 'rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-on-primary hover:bg-blue-600 cursor-pointer transition-colors',
 	cancelLabel = 'Cancel',
 	onConfirm,
 	onCancel,

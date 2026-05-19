@@ -184,7 +184,7 @@ export default function PresentationPage() {
                   {teamName && <span className="font-semibold text-blue-400">{teamName}</span>}
                   {teamName && productName && <span className="text-gray-600">·</span>}
                   {productName && (
-                    <span className="flex items-center gap-1.5 font-medium text-amber-400">
+                    <span className="flex items-center gap-1.5 font-medium text-violet-400">
                       <Package size={16} />
                       {productName}
                     </span>

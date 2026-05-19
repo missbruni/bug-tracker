@@ -323,7 +323,7 @@ export default function SessionsListPage() {
 							<Link
 								key={session.id}
 								to={`/sessions/${session.id}`}
-								className="block rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+								className="card block rounded-lg p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
 								style={{ borderLeft: `4px solid ${st.border}` }}
 							>
 								<div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -365,7 +365,7 @@ export default function SessionsListPage() {
 												const product = teamProducts.find(existingProduct => existingProduct.id === session.product_id);
 												if (!product) return null;
 												return (
-													<span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+													<span className="flex items-center gap-1 text-violet-600 dark:text-mushi-tertiary">
 														<Package size={12} />
 														{product.name}
 													</span>
@@ -465,7 +465,7 @@ export default function SessionsListPage() {
 					title="Delete session?"
 					titleClassName="text-sm font-bold text-red-600 dark:text-red-400 mb-2"
 					confirmLabel="Delete permanently"
-					confirmClassName="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 cursor-pointer transition-colors"
+					confirmClassName="rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-on-danger hover:bg-red-600 cursor-pointer transition-colors"
 					onConfirm={deleteSession}
 					onCancel={() => { setDeleteConfirmSession(null); setDeleteConfirmText(""); setDeletingSession(false) }}
 					disabled={deleteConfirmText !== deleteConfirmSession.name}

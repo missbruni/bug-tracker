@@ -12,7 +12,7 @@ export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
 
 	return (
 		<h1
-			className="text-lg font-bold flex items-center gap-1"
+			className="text-lg md:text-[1.5em] font-bold flex items-center gap-1"
 			style={{ fontFamily: "'Press Start 2P', cursive" }}
 		>
 			<span
@@ -20,6 +20,7 @@ export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
 				style={{
 					textShadow:
 						"0 0 4px rgba(0,255,204,0.5), 0 0 12px rgba(0,255,204,0.3), 0 0 24px rgba(0,255,204,0.15)",
+					animation: "neon-flicker 8s infinite",
 				}}
 			>
 				Mushi
@@ -47,12 +48,15 @@ export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
 				}`}
 				style={
 					showBugs
-						? { filter: "drop-shadow(0 0 4px rgba(201,68,205,0.5)) drop-shadow(0 0 10px rgba(201,68,205,0.3))" }
+						? {
+								filter: "drop-shadow(0 0 4px rgba(201,68,205,0.5)) drop-shadow(0 0 10px rgba(201,68,205,0.3))",
+								animation: "neon-flicker 11s infinite 2s",
+							}
 						: undefined
 				}
 				title={`${showBugs ? "Hide" : "Show"} crawling bugs (⌘B)`}
 			>
-				<Bug size={20} />
+				<Bug size={26} />
 			</button>
 		</h1>
 	);

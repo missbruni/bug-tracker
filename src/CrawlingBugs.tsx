@@ -1,4 +1,5 @@
 import React from 'react'
+import { playSquashSound } from './lib/audio'
 
 const SPRITE_URL = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/191814/fly-sprite.png'
 const BUG_WIDTH = 13
@@ -28,6 +29,43 @@ interface BugState {
   wingsOpen: boolean
 }
 
+interface SplatDrop {
+  angle: number
+  dist: number
+  size: number
+  width: number
+  isDot: boolean
+}
+
+interface SplatState {
+  x: number
+  y: number
+  zoom: number
+  drops: SplatDrop[]
+  blobSeed: number
+  progress: number
+}
+
+function createSplat(x: number, y: number, zoom: number): SplatState {
+  const armCount = 4 + Math.floor(Math.random() * 3)
+  const dotCount = 1 + Math.floor(Math.random() * 2)
+  const arms: SplatDrop[] = Array.from({ length: armCount }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    dist: 7 + Math.random() * 9,
+    size: 1.3 + Math.random() * 1.8,
+    width: 2 + Math.random() * 2.5,
+    isDot: false,
+  }))
+  const dots: SplatDrop[] = Array.from({ length: dotCount }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    dist: 13 + Math.random() * 6,
+    size: 0.6 + Math.random() * 1.2,
+    width: 0,
+    isDot: true,
+  }))
+  return { x, y, zoom, drops: [...arms, ...dots], blobSeed: Math.random() * Math.PI * 2, progress: 0 }
+}
+
 function random(min: number, max: number) {
   return min + Math.random() * (max - min)
 }
@@ -46,7 +84,7 @@ function createBug(containerW: number, containerH: number): BugState {
     smallTurnCounter: Math.round(random(5, 15)),
     largeTurnCounter: Math.round(random(20, 60)),
     largeTurnAngle: 0,
-    stationaryCounter: Math.round(random(80, 250)),
+    stationaryCounter: Math.round(random(150, 400)),
     stationary: false,
     zoom: random(ZOOM_MIN, ZOOM_MAX),
     wingsOpen: Math.random() > 0.5,
@@ -80,6 +118,7 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
   const lastTimeRef = React.useRef(0)
   const spriteRef = React.useRef<HTMLImageElement | null>(null)
   const spriteLoadedRef = React.useRef(false)
+  const splatsRef = React.useRef<SplatState[]>([])
 
   React.useEffect(() => {
     const img = new Image()
@@ -118,6 +157,29 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
     bugsRef.current = Array.from({ length: numBugs }, () =>
       createBug(rect.width, rect.height)
     )
+    splatsRef.current = []
+
+    const handleClick = (e: MouseEvent) => {
+      const r = canvas.getBoundingClientRect()
+      const cx = e.clientX - r.left
+      const cy = e.clientY - r.top
+      if (cx < 0 || cy < 0 || cx > r.width || cy > r.height) return
+      const HIT_RADIUS = 18
+      for (let i = bugsRef.current.length - 1; i >= 0; i--) {
+        const bug = bugsRef.current[i]
+        const dx = bug.x - cx
+        const dy = bug.y - cy
+        if (dx * dx + dy * dy < HIT_RADIUS * HIT_RADIUS * bug.zoom) {
+          e.stopPropagation()
+          e.preventDefault()
+          splatsRef.current.push(createSplat(bug.x, bug.y, bug.zoom))
+          bugsRef.current.splice(i, 1)
+          playSquashSound()
+          return
+        }
+      }
+    }
+    document.addEventListener('click', handleClick, true)
 
     const animate = (t: number) => {
       animRef.current = requestAnimationFrame(animate)
@@ -149,7 +211,7 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
         bug.stationaryCounter--
         if (bug.stationaryCounter <= 0) {
           bug.stationary = !bug.stationary
-          bug.stationaryCounter = Math.round(random(80, 250))
+          bug.stationaryCounter = bug.stationary ? Math.round(random(20, 60)) : Math.round(random(150, 400))
         }
 
         if (!bug.stationary) {
@@ -224,6 +286,76 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
         ctx.restore()
       }
 
+      // draw splats — organic blob shape
+      const SPLAT_MS = 2000
+      const FADE_AT = 0.75
+      const splatColor = '#C944CD'
+      splatsRef.current = splatsRef.current.filter(splat => {
+        splat.progress += dt / SPLAT_MS
+        if (splat.progress >= 1) return false
+        const p = splat.progress
+        const alpha = p < FADE_AT ? 0.7 : 0.7 * (1 - (p - FADE_AT) / (1 - FADE_AT))
+        if (alpha <= 0) return true
+
+        ctx.save()
+        ctx.translate(splat.x, splat.y)
+        ctx.fillStyle = splatColor
+        ctx.globalAlpha = alpha
+
+        // central wobbly blob
+        const cR = 5 * splat.zoom
+        ctx.beginPath()
+        for (let i = 0; i <= 24; i++) {
+          const a = (i / 24) * Math.PI * 2
+          const wobble = cR * (0.85 + 0.15 * Math.sin(a * 3 + splat.blobSeed) + 0.1 * Math.sin(a * 5 + splat.blobSeed * 2))
+          const bx = Math.cos(a) * wobble
+          const by = Math.sin(a) * wobble
+          if (i === 0) ctx.moveTo(bx, by)
+          else ctx.lineTo(bx, by)
+        }
+        ctx.closePath()
+        ctx.fill()
+
+        // arms and dots
+        for (const drop of splat.drops) {
+          if (drop.isDot) {
+            const dotX = Math.cos(drop.angle) * drop.dist * splat.zoom
+            const dotY = Math.sin(drop.angle) * drop.dist * splat.zoom
+            ctx.beginPath()
+            ctx.arc(dotX, dotY, drop.size * splat.zoom, 0, Math.PI * 2)
+            ctx.fill()
+            continue
+          }
+          // tapered arm with rounded tip
+          const len = drop.dist * splat.zoom
+          const tipR = drop.size * splat.zoom
+          const baseW = drop.width * splat.zoom
+          const cos = Math.cos(drop.angle)
+          const sin = Math.sin(drop.angle)
+          const nx = -sin
+          const ny = cos
+
+          ctx.beginPath()
+          ctx.moveTo(nx * baseW, ny * baseW)
+          ctx.quadraticCurveTo(
+            cos * len * 0.5 + nx * baseW * 0.4,
+            sin * len * 0.5 + ny * baseW * 0.4,
+            cos * len, sin * len
+          )
+          ctx.arc(cos * len, sin * len, tipR, drop.angle - Math.PI / 2, drop.angle + Math.PI / 2)
+          ctx.quadraticCurveTo(
+            cos * len * 0.5 - nx * baseW * 0.4,
+            sin * len * 0.5 - ny * baseW * 0.4,
+            -nx * baseW, -ny * baseW
+          )
+          ctx.closePath()
+          ctx.fill()
+        }
+
+        ctx.restore()
+        return true
+      })
+
       ctx.restore()
     }
 
@@ -231,6 +363,7 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
 
     return () => {
       ro.disconnect()
+      document.removeEventListener('click', handleClick, true)
       if (animRef.current) cancelAnimationFrame(animRef.current)
       lastTimeRef.current = 0
     }

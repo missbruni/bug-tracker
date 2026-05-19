@@ -120,7 +120,7 @@ export default function BugCard({
 
 	return (
 		<div
-			className={`group mb-2 rounded-lg border border-slate-200 dark:border-gray-700 transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60 dark:bg-gray-900/60 opacity-60" : "bg-white dark:bg-gray-900"} ${isDeleting ? "opacity-50" : ""}`}
+			className={`card group mb-2 rounded-lg transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
 			style={{
 				borderLeft: `4px solid ${bug.reviewed ? "#94a3b8" : style.badge}`,
 			}}
@@ -180,6 +180,30 @@ export default function BugCard({
 							</span>
 						)}
 						<TesterBadge>{bug.tester}</TesterBadge>
+						{backlogUrl && (
+							<a
+								href={backlogUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={(event) => event.stopPropagation()}
+								className="badge badge-green hover:brightness-110"
+							>
+								<ExternalLink size={10} />
+								View in Backlog
+							</a>
+						)}
+						{devinUrl && (
+							<a
+								href={devinUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={(event) => event.stopPropagation()}
+								className="badge badge-purple hover:brightness-110"
+							>
+								<Rocket size={10} />
+								View Devin
+							</a>
+						)}
 						<span
 							role="button"
 							tabIndex={0}
@@ -222,30 +246,6 @@ export default function BugCard({
 								onConfirm={() => void confirmDelete()}
 								onCancel={cancelDelete}
 							/>
-						)}
-						{backlogUrl && (
-							<a
-								href={backlogUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								onClick={(event) => event.stopPropagation()}
-								className="badge badge-green hover:brightness-110"
-							>
-								<ExternalLink size={10} />
-								View in Backlog
-							</a>
-						)}
-						{devinUrl && (
-							<a
-								href={devinUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								onClick={(event) => event.stopPropagation()}
-								className="badge badge-purple hover:brightness-110"
-							>
-								<Rocket size={10} />
-								View Devin
-							</a>
 						)}
 					</div>
 					{/* Mobile: show tester name inline */}

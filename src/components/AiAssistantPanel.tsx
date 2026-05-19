@@ -101,8 +101,9 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                 Configure your AI provider to start using the AI Assistant.
               </p>
               <button
+                type="button"
                 onClick={onOpenSettings}
-                className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-on-warning hover:bg-amber-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-amber-50 dark:focus-visible:ring-offset-gray-900"
               >
                 <Settings size={12} />
                 Open Settings

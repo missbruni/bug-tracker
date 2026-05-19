@@ -4,6 +4,8 @@ import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock, Building2 }
 import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
 import type { TeamRecord } from "../lib/teamScope";
+import { getFlySwatCursor } from "../lib/flySwatCursor";
+import { playToggleSound } from "../lib/audio";
 
 const NAV_ITEMS = [
 	{ to: "/", label: "Bugs", icon: Bug },
@@ -50,6 +52,13 @@ export default function NavBar({
 	const tabRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
 	const [indicatorStyle, setIndicatorStyle] = React.useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
+	const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'));
+	React.useEffect(() => {
+		const handler = (e: Event) => setIsDark((e as CustomEvent).detail.dark);
+		window.addEventListener('themechange', handler);
+		return () => window.removeEventListener('themechange', handler);
+	}, []);
+
 	const activeIndex = navItems.findIndex(({ to }) =>
 		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
 	);
@@ -64,7 +73,10 @@ export default function NavBar({
 	return (
 		<>
 			{/* ─── Top Nav Bar ─── */}
-			<nav className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 overflow-hidden">
+			<nav
+			className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 overflow-hidden"
+			style={showBugs ? { cursor: getFlySwatCursor(isDark) } : undefined}
+		>
 				{showBugs && <CrawlingBugs count={bugCount} />}
 				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-3 sm:gap-4 relative z-10">
 					{/* Branding */}
@@ -163,7 +175,7 @@ export default function NavBar({
 							{children}
 							{onOpenSettings && (
 								<button
-									onClick={onOpenSettings}
+									onClick={() => { playToggleSound(false); onOpenSettings?.() }}
 									className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
 									title="Settings"
 								>

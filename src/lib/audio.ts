@@ -1,3 +1,15 @@
+let audioMuted = typeof window !== 'undefined' && localStorage.getItem('audioMuted') === 'true'
+
+export function isAudioMuted(): boolean { return audioMuted }
+export function setAudioMuted(muted: boolean): void {
+  audioMuted = muted
+  localStorage.setItem('audioMuted', String(muted))
+}
+export function toggleAudioMuted(): boolean {
+  setAudioMuted(!audioMuted)
+  return audioMuted
+}
+
 let sharedAudioContext: AudioContext | null = null
 
 function getAudioContext(): AudioContext | null {
@@ -18,6 +30,7 @@ function getAudioContext(): AudioContext | null {
 /** Short tactile click sound for theme toggle — like a physical switch */
 export function playToggleSound(_isDark: boolean): void {
   try {
+    if (audioMuted) return
     const ctx = getAudioContext()
     if (!ctx) return
     const t = ctx.currentTime
@@ -53,6 +66,7 @@ export function playToggleSound(_isDark: boolean): void {
 /** Short sparkly chime for AI assistant toggle */
 export function playAiSound(opening: boolean): void {
   try {
+    if (audioMuted) return
     const ctx = getAudioContext()
     if (!ctx) return
     const t = ctx.currentTime
@@ -80,6 +94,7 @@ export function playAiSound(opening: boolean): void {
 
 export function playTickSound(): void {
   try {
+    if (audioMuted) return
     const ctx = getAudioContext()
     if (!ctx) return
     const osc = ctx.createOscillator()
@@ -95,37 +110,80 @@ export function playTickSound(): void {
   } catch { /* ignore audio errors */ }
 }
 
-export function playBugSound(): void {
+let squashBuffer: AudioBuffer | null = null
+let squashRawData: ArrayBuffer | null = null
+// Pre-fetch MP3 bytes immediately (no user gesture needed)
+if (typeof window !== 'undefined') {
+  fetch('/sfx/squish.mp3')
+    .then(r => r.arrayBuffer())
+    .then(data => { squashRawData = data })
+    .catch(() => {})
+}
+
+function decodeSquashBuffer(ctx: AudioContext): void {
+  if (squashBuffer || !squashRawData) return
+  const data = squashRawData
+  squashRawData = null // prevent double decode
+  ctx.decodeAudioData(data)
+    .then(buf => { squashBuffer = buf })
+    .catch(() => { squashRawData = data }) // restore on failure
+}
+
+export function playSquashSound(): void {
   try {
+    if (audioMuted) return
     const ctx = getAudioContext()
     if (!ctx) return
-    const t = ctx.currentTime
+    if (!squashBuffer) { decodeSquashBuffer(ctx); return }
+    void ctx.resume().then(() => {
+      const src = ctx.createBufferSource()
+      src.buffer = squashBuffer!
+      src.connect(ctx.destination)
+      src.start(0)
+    }).catch(() => {})
+  } catch { /* ignore audio errors */ }
+}
 
-    const masterGain = ctx.createGain()
-    masterGain.gain.setValueAtTime(0.09, t)
-    masterGain.connect(ctx.destination)
+function scheduleBugChirps(ctx: AudioContext): void {
+  const t = ctx.currentTime
 
-    const chirps: Array<[number, number, number]> = [
-      [820, 980, 0],
-      [980, 1240, 0.06],
-    ]
+  const masterGain = ctx.createGain()
+  masterGain.gain.setValueAtTime(0.35, t)
+  masterGain.connect(ctx.destination)
 
-    chirps.forEach(([startFreq, endFreq, offset]) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
+  const chirps: Array<[number, number, number]> = [
+    [820, 980, 0],
+    [980, 1240, 0.06],
+  ]
 
-      osc.type = 'triangle'
-      osc.frequency.setValueAtTime(startFreq, t + offset)
-      osc.frequency.exponentialRampToValueAtTime(endFreq, t + offset + 0.08)
+  chirps.forEach(([startFreq, endFreq, offset]) => {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
 
-      gain.gain.setValueAtTime(0.0001, t + offset)
-      gain.gain.exponentialRampToValueAtTime(0.08, t + offset + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.12)
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(startFreq, t + offset)
+    osc.frequency.exponentialRampToValueAtTime(endFreq, t + offset + 0.08)
 
-      osc.connect(gain)
-      gain.connect(masterGain)
-      osc.start(t + offset)
-      osc.stop(t + offset + 0.12)
-    })
+    gain.gain.setValueAtTime(0.001, t + offset)
+    gain.gain.linearRampToValueAtTime(0.3, t + offset + 0.01)
+    gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.12)
+
+    osc.connect(gain)
+    gain.connect(masterGain)
+    osc.start(t + offset)
+    osc.stop(t + offset + 0.15)
+  })
+}
+
+export function playBugSound(): void {
+  try {
+    if (audioMuted) return
+    const ctx = getAudioContext()
+    if (!ctx) return
+    if (ctx.state === 'running') {
+      scheduleBugChirps(ctx)
+    } else {
+      void ctx.resume().then(() => scheduleBugChirps(ctx)).catch(() => {})
+    }
   } catch { /* ignore audio errors */ }
 }

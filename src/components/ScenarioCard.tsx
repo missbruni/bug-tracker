@@ -74,7 +74,7 @@ export default function ScenarioCard({
 					<p className="text-sm font-semibold text-slate-900 dark:text-gray-100 truncate">{scenario.title}</p>
 					<div className="flex items-center gap-2 mt-0.5">
 						{scenario.device_requirement && (
-							<span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+							<span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-gray-400 font-medium">
 								{isDeviceLocked && <Lock size={10} />}
 								{scenario.device_requirement}
 							</span>
