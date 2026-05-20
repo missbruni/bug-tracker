@@ -23,3 +23,14 @@
 - `SUPABASE_ACCESS_TOKEN`
 - `SUPABASE_STAGING_DB_PASSWORD`
 - `SUPABASE_STAGING_PROJECT_ID`
+
+## Production migration apply gate
+
+- CI includes `db_apply_prod` after staging migration apply.
+- `db_apply_prod` uses GitHub Actions `production` environment protection (manual approval should be configured in repository settings).
+
+## Required Secrets for production migration apply
+
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
+- `SUPABASE_PROJECT_ID`
