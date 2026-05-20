@@ -41,6 +41,29 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
    bun run dev
    ```
 
+## Database Migrations (baseline setup)
+
+Schema changes are moving to Supabase CLI migrations in `supabase/migrations` as the source of truth.
+
+1. Install Supabase CLI and Docker.
+2. Link to production (one-time for baseline capture):
+
+   ```bash
+   supabase login
+   supabase link --project-ref <PROD_PROJECT_REF>
+   ```
+
+3. Pull baseline migrations from the current production schema:
+
+   ```bash
+   bun run db:baseline:pull
+   bun run db:baseline:pull:auth-storage
+   ```
+
+4. Commit generated migration files in `supabase/migrations`.
+
+During this baseline phase, CI does not apply migrations yet. Avoid direct production SQL edits; if an emergency edit is made, backfill it into a migration file immediately after.
+
 ## Deploying to Vercel
 
 This app is hosted on Vercel and uses a Vercel Function for AI proxying.

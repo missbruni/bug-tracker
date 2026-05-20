@@ -11,7 +11,10 @@
     "lint": "eslint src/ --max-warnings 0",
     "lint:fix": "eslint src/ --fix --max-warnings 0",
     "prepare": "husky",
-    "test": "bun test"
+    "test": "bun test",
+    "db:baseline:pull": "supabase db pull baseline_public",
+    "db:baseline:pull:auth-storage": "supabase db pull baseline_auth_storage --schema auth,storage",
+    "db:migration:list": "supabase migration list"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
