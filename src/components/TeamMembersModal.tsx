@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, UserPlus, ChevronDown, Shield, User, Search } from 'lucide-react'
+import { X, UserPlus, Check, ChevronDown, Shield, User, Search } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import type { TeamRole } from '../types'
 
@@ -29,7 +29,8 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
   const [orgUsers, setOrgUsers] = React.useState<OrgUser[]>([])
   const [showAdd, setShowAdd] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
-  const [adding, setAdding] = React.useState<string | null>(null)
+  const [selectedUserIds, setSelectedUserIds] = React.useState<Set<string>>(new Set())
+  const [adding, setAdding] = React.useState(false)
   const [updatingRole, setUpdatingRole] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -106,25 +107,37 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     setUpdatingRole(null)
   }
 
-  const handleAddMember = async (userId: string) => {
-    if (!supabase) return
-    setAdding(userId)
+  const toggleUser = (userId: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  const handleAddSelected = async () => {
+    if (!supabase || selectedUserIds.size === 0) return
+    setAdding(true)
     setError(null)
+
+    const rows = Array.from(selectedUserIds).map((userId) => ({
+      team_id: teamId, user_id: userId, role: 'member' as const, status: 'active' as const,
+    }))
 
     const { error: insertError } = await supabase
       .from('team_members')
-      .insert({ team_id: teamId, user_id: userId, role: 'member', status: 'active' })
+      .insert(rows)
 
     if (insertError) {
-      if (insertError.code === '23505') {
-        setError('User is already a member of this team.')
-      } else {
-        setError('Failed to add member.')
-      }
+      setError('Failed to add members.')
     } else {
+      setSelectedUserIds(new Set())
+      setSearchQuery('')
+      setShowAdd(false)
       await fetchMembers()
     }
-    setAdding(null)
+    setAdding(false)
   }
 
   const memberUserIds = new Set(members.map((m) => m.user_id))
@@ -213,41 +226,56 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-mushi-primary/40"
                 />
               </div>
-              <div className="max-h-40 overflow-y-auto space-y-0.5">
+              <div className="max-h-48 overflow-y-auto space-y-0.5">
                 {availableUsers.length === 0 ? (
                   <p className="py-3 text-center text-xs text-slate-400 dark:text-gray-600 italic">
                     {searchQuery ? 'No matching users found.' : 'All org users are already members.'}
                   </p>
                 ) : (
-                  availableUsers.slice(0, 10).map((user) => (
-                    <button
-                      key={user.id}
-                      onClick={() => handleAddMember(user.id)}
-                      disabled={adding === user.id}
-                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-teal-50 dark:hover:bg-mushi-primary/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
-                    >
-                      <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 dark:bg-mushi-primary/15 flex items-center justify-center">
-                        <span className="text-xs font-bold text-teal-600 dark:text-mushi-primary uppercase">
-                          {user.display_name.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{user.display_name}</p>
-                        <p className="text-xs text-slate-400 dark:text-gray-500 truncate">{user.email}</p>
-                      </div>
-                      {adding === user.id && (
-                        <span className="text-xs text-teal-600 dark:text-mushi-primary">Adding...</span>
-                      )}
-                    </button>
-                  ))
+                  availableUsers.map((user) => {
+                    const selected = selectedUserIds.has(user.id)
+                    return (
+                      <button
+                        key={user.id}
+                        onClick={() => toggleUser(user.id)}
+                        className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors cursor-pointer
+                          ${selected
+                            ? 'bg-teal-50 dark:bg-mushi-primary/10 border border-teal-300 dark:border-mushi-primary/30'
+                            : 'hover:bg-slate-50 dark:hover:bg-gray-800/50 border border-transparent'
+                          }`}
+                      >
+                        <div className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+                          ${selected
+                            ? 'bg-teal-500 dark:bg-mushi-primary border-teal-500 dark:border-mushi-primary'
+                            : 'border-slate-300 dark:border-gray-600'
+                          }`}
+                        >
+                          {selected && <Check size={12} className="text-white dark:text-mushi-bg" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{user.display_name}</p>
+                          <p className="text-xs text-slate-400 dark:text-gray-500 truncate">{user.email}</p>
+                        </div>
+                      </button>
+                    )
+                  })
                 )}
               </div>
-              <button
-                onClick={() => { setShowAdd(false); setSearchQuery('') }}
-                className="w-full text-center text-xs text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 py-1 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => { setShowAdd(false); setSearchQuery(''); setSelectedUserIds(new Set()) }}
+                  className="flex-1 text-center rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddSelected}
+                  disabled={selectedUserIds.size === 0 || adding}
+                  className="flex-1 rounded-lg bg-teal-500 dark:bg-mushi-primary px-3 py-2 text-xs font-bold text-white dark:text-mushi-bg hover:bg-teal-600 dark:hover:bg-mushi-primary/80 disabled:opacity-40 disabled:cursor-default cursor-pointer transition-colors"
+                >
+                  {adding ? 'Adding...' : `Add ${selectedUserIds.size > 0 ? selectedUserIds.size : ''} member${selectedUserIds.size !== 1 ? 's' : ''}`}
+                </button>
+              </div>
             </div>
           ) : (
             <button
