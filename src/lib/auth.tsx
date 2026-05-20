@@ -11,8 +11,9 @@ const configuredAllowedEmailDomain = (
   ?.trim()
   .toLowerCase();
 
-const allowedEmailDomain =
-  configuredAllowedEmailDomain || DEFAULT_ALLOWED_EMAIL_DOMAIN;
+const allowedEmailDomainsRaw = configuredAllowedEmailDomain || DEFAULT_ALLOWED_EMAIL_DOMAIN;
+const allowedEmailDomains = allowedEmailDomainsRaw.split(",").map((d) => d.trim()).filter(Boolean);
+const allowedEmailDomain = allowedEmailDomains[0] || DEFAULT_ALLOWED_EMAIL_DOMAIN;
 const OAUTH_SEARCH_PARAMS = ["code", "state", "error", "error_description"];
 
 function getOAuthRedirectTo(): string | undefined {
@@ -37,12 +38,10 @@ function clearOAuthParamsFromUrl() {
 }
 
 function isAllowedEmail(email?: string | null): boolean {
-  if (!allowedEmailDomain) return true;
+  if (!allowedEmailDomains.length) return true;
 
-  return (email || "")
-    .trim()
-    .toLowerCase()
-    .endsWith(`@${allowedEmailDomain}`);
+  const normalized = (email || "").trim().toLowerCase();
+  return allowedEmailDomains.some((domain) => normalized.endsWith(`@${domain}`));
 }
 
 function getForbiddenDomainMessage(email?: string | null): string {
@@ -179,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     authError,
     allowedEmailDomain,
+    allowedEmailDomains,
     signInWithMicrosoft,
     signOut,
     clearAuthError: () => setAuthError(null),

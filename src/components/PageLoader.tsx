@@ -211,7 +211,7 @@ export default function PageLoader() {
 				<canvas ref={canvasRef} className="absolute inset-0" />
 				<span
 					className="relative text-sm text-slate-700 dark:text-gray-300 pointer-events-none select-none block px-8 pt-24 pb-10"
-					style={{ fontFamily: "'Press Start 2P', cursive" }}
+					style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace" }}
 				>
 					Squashing bugs<LoadingDots />
 				</span>

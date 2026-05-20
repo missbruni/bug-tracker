@@ -16,7 +16,7 @@ export default function LoginScreen({
       <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center shadow-lg">
         <h1
           className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-1"
-          style={{ fontFamily: "'Press Start 2P', cursive", fontSize: 14 }}
+          style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace", fontSize: 14 }}
         >
           Mushi
         </h1>

@@ -77,6 +77,16 @@ export interface TeamMember {
   created_at?: string
 }
 
+export interface TeamInvitation {
+  id: string
+  team_id: string
+  email: string
+  role: TeamRole
+  invited_by: string
+  status: 'pending' | 'accepted' | 'expired'
+  created_at?: string
+}
+
 export interface LightboxState {
   src: string
   alt: string
