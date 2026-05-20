@@ -229,6 +229,9 @@ export default function TeamCard({
                 </span>
                 <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-sky-600 dark:group-hover:text-sky-400">Members</span>
               </div>
+              {onManageMembers && (
+                <Pencil size={12} className="ml-auto text-slate-400 dark:text-gray-600 group-hover:text-sky-500 dark:group-hover:text-sky-400 transition-colors" />
+              )}
             </button>
             <Link
               to="/sessions"
