@@ -212,8 +212,13 @@ function inviteDevPlugin() {
         }
 
         // Validate domain
-        const allowedDomains = (env.ALLOWED_EMAIL_DOMAIN || env.VITE_ALLOWED_EMAIL_DOMAIN || 'theaccessgroup.com')
+        const allowedDomains = (env.ALLOWED_EMAIL_DOMAIN || env.VITE_ALLOWED_EMAIL_DOMAIN || '')
           .split(',').map((d) => d.trim().toLowerCase()).filter(Boolean)
+        if (allowedDomains.length === 0) {
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'ALLOWED_EMAIL_DOMAIN is not configured in .env' }))
+          return
+        }
         const emailDomain = email.split('@')[1]
         if (!allowedDomains.some((d) => d === emailDomain)) {
           res.writeHead(400, { 'Content-Type': 'application/json' })

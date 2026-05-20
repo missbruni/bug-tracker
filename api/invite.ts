@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { isSameOriginBrowserRequest, toSingleHeader } from './_request.js'
 import { buildInviteEmailHtml } from './_inviteEmail.js'
 
-const ALLOWED_EMAIL_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAIN ?? 'theaccessgroup.com')
+const ALLOWED_EMAIL_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAIN ?? '')
   .split(',').map((d) => d.trim().toLowerCase()).filter(Boolean)
 
 function parseBody(body: unknown): Record<string, unknown> {
@@ -93,6 +93,10 @@ export default async function handler(req: any, res: any): Promise<void> {
 
   if (!teamId) {
     res.status(400).json({ error: 'teamId is required.' })
+    return
+  }
+  if (ALLOWED_EMAIL_DOMAINS.length === 0) {
+    res.status(500).json({ error: 'ALLOWED_EMAIL_DOMAIN is not configured.' })
     return
   }
   if (!isValidOrgEmail(email)) {
