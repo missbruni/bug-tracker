@@ -122,8 +122,6 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
         setError('Failed to add member.')
       }
     } else {
-      setSearchQuery('')
-      setShowAdd(false)
       await fetchMembers()
     }
     setAdding(null)
