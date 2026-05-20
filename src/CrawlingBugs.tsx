@@ -162,6 +162,10 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
     splatsRef.current = []
 
     const handleClick = (e: MouseEvent) => {
+      // Let interactive elements (buttons, links, inputs, etc.) take precedence over bug kills
+      const target = e.target as HTMLElement | null
+      if (target?.closest?.('a, button, input, select, textarea, [role="button"]')) return
+
       const r = canvas.getBoundingClientRect()
       const cx = e.clientX - r.left
       const cy = e.clientY - r.top

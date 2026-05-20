@@ -138,10 +138,7 @@ create policy "Team member select own team" on team_members
   for select to authenticated
   using (
     is_app_owner()
-    or team_id in (
-      select tm.team_id from team_members tm
-      where tm.user_id = auth.uid() and tm.status = 'active'
-    )
+    or is_team_member(team_id)
   );
 
 create policy "Admin or owner manage members" on team_members
