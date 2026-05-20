@@ -1,6 +1,7 @@
 import React from 'react'
-import { X, UserPlus, Check, ChevronDown, Shield, User, Search } from 'lucide-react'
+import { X, UserPlus, Check, ChevronDown, Shield, User, Search, Mail, Clock, Trash2 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../lib/useAuth'
 import type { TeamRole } from '../types'
 
 interface MemberRow {
@@ -9,6 +10,13 @@ interface MemberRow {
   email: string
   display_name: string
   role: TeamRole
+}
+
+interface InvitedRow {
+  id: string
+  email: string
+  role: TeamRole
+  created_at: string
 }
 
 interface OrgUser {
@@ -23,41 +31,58 @@ interface TeamMembersModalProps {
   onClose: () => void
 }
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMembersModalProps) {
+  const { session, allowedEmailDomain } = useAuth()
   const [members, setMembers] = React.useState<MemberRow[]>([])
+  const [invitations, setInvitations] = React.useState<InvitedRow[]>([])
   const [loading, setLoading] = React.useState(true)
   const [orgUsers, setOrgUsers] = React.useState<OrgUser[]>([])
   const [showAdd, setShowAdd] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedUserIds, setSelectedUserIds] = React.useState<Set<string>>(new Set())
   const [adding, setAdding] = React.useState(false)
+  const [inviting, setInviting] = React.useState(false)
+  const [cancellingInvite, setCancellingInvite] = React.useState<string | null>(null)
   const [updatingRole, setUpdatingRole] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const [inviteSuccess, setInviteSuccess] = React.useState<string | null>(null)
 
   const fetchMembers = React.useCallback(async () => {
     if (!supabase) return
     setLoading(true)
-    const { data, error: fetchError } = await supabase
-      .from('team_members')
-      .select('id, user_id, role')
-      .eq('team_id', teamId)
-      .eq('status', 'active')
-      .order('role')
+    const [membersRes, orgRes, invitesRes] = await Promise.all([
+      supabase
+        .from('team_members')
+        .select('id, user_id, role')
+        .eq('team_id', teamId)
+        .eq('status', 'active')
+        .order('role'),
+      supabase.rpc('get_org_users'),
+      supabase
+        .from('team_invitations')
+        .select('id, email, role, created_at')
+        .eq('team_id', teamId)
+        .eq('status', 'pending')
+        .order('created_at'),
+    ])
 
-    if (fetchError) {
+    if (membersRes.error) {
       setError('Failed to load members.')
       setLoading(false)
       return
     }
 
     // Enrich with user info from get_org_users
-    const { data: orgData } = await supabase.rpc('get_org_users')
     const userMap = new Map<string, OrgUser>()
-    for (const user of (orgData || []) as OrgUser[]) {
+    for (const user of (orgRes.data || []) as OrgUser[]) {
       userMap.set(user.id, user)
     }
 
-    const enriched: MemberRow[] = ((data || []) as { id: string; user_id: string; role: TeamRole }[]).map((row) => {
+    const enriched: MemberRow[] = ((membersRes.data || []) as { id: string; user_id: string; role: TeamRole }[]).map((row) => {
       const info = userMap.get(row.user_id)
       return {
         id: row.id,
@@ -69,7 +94,8 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     })
 
     setMembers(enriched)
-    setOrgUsers((orgData || []) as OrgUser[])
+    setOrgUsers((orgRes.data || []) as OrgUser[])
+    setInvitations((invitesRes.data || []) as InvitedRow[])
     setLoading(false)
   }, [teamId])
 
@@ -140,7 +166,56 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     setAdding(false)
   }
 
+  const handleInviteByEmail = async () => {
+    const email = searchQuery.trim().toLowerCase()
+    if (!email || !session?.access_token) return
+    setInviting(true)
+    setError(null)
+    setInviteSuccess(null)
+
+    try {
+      const res = await fetch('/api/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ teamId, email }),
+      })
+
+      const data = await res.json() as { error?: string }
+      if (!res.ok) {
+        setError(data.error || 'Failed to send invitation.')
+      } else {
+        setInviteSuccess(`Invitation sent to ${email}`)
+        setSearchQuery('')
+        await fetchMembers()
+        setTimeout(() => setInviteSuccess(null), 3000)
+      }
+    } catch {
+      setError('Failed to send invitation.')
+    }
+    setInviting(false)
+  }
+
+  const handleCancelInvite = async (inviteId: string) => {
+    if (!supabase) return
+    setCancellingInvite(inviteId)
+    const { error: delError } = await supabase
+      .from('team_invitations')
+      .delete()
+      .eq('id', inviteId)
+
+    if (delError) {
+      setError('Failed to cancel invitation.')
+    } else {
+      setInvitations((prev) => prev.filter((inv) => inv.id !== inviteId))
+    }
+    setCancellingInvite(null)
+  }
+
   const memberUserIds = new Set(members.map((member) => member.user_id))
+  const invitedEmails = new Set(invitations.map((inv) => inv.email.toLowerCase()))
   const availableUsers = orgUsers
     .filter((user) => !memberUserIds.has(user.id))
     .filter((user) => {
@@ -148,6 +223,13 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
       const query = searchQuery.toLowerCase()
       return user.email.toLowerCase().includes(query) || user.display_name.toLowerCase().includes(query)
     })
+
+  // Determine if the search query is an invitable email
+  const trimmedQuery = searchQuery.trim().toLowerCase()
+  const isOrgEmail = isValidEmail(trimmedQuery) && trimmedQuery.endsWith(`@${allowedEmailDomain}`)
+  const alreadyMember = orgUsers.some((u) => u.email.toLowerCase() === trimmedQuery && memberUserIds.has(u.id))
+  const alreadyInvited = invitedEmails.has(trimmedQuery)
+  const canInvite = isOrgEmail && !alreadyMember && !alreadyInvited && availableUsers.length === 0
 
   return (
     <div
@@ -179,35 +261,68 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
           </div>
         )}
 
+        {/* Success banner */}
+        {inviteSuccess && (
+          <div className="mx-5 mt-3 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-xs text-green-700 dark:text-green-300">
+            {inviteSuccess}
+          </div>
+        )}
+
         {/* Members list */}
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5">
           {loading ? (
             <div className="py-8 text-center text-xs text-slate-400 dark:text-gray-600">Loading members...</div>
-          ) : members.length === 0 ? (
+          ) : members.length === 0 && invitations.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400 dark:text-gray-600 italic">No members found.</div>
           ) : (
-            members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
-              >
-                <div className="shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center">
-                  <span className="text-xs font-bold text-slate-600 dark:text-gray-300 uppercase">
-                    {member.display_name.charAt(0)}
-                  </span>
+            <>
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
+                >
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center">
+                    <span className="text-xs font-bold text-slate-600 dark:text-gray-300 uppercase">
+                      {member.display_name.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{member.display_name}</p>
+                    <p className="text-xs text-slate-400 dark:text-gray-500 truncate">{member.email}</p>
+                  </div>
+                  <RoleDropdown
+                    role={member.role}
+                    disabled={updatingRole === member.id || (member.role === 'team_admin' && adminCount <= 1)}
+                    loading={updatingRole === member.id}
+                    onChange={(newRole) => handleRoleChange(member.id, member.user_id, newRole)}
+                  />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{member.display_name}</p>
-                  <p className="text-xs text-slate-400 dark:text-gray-500 truncate">{member.email}</p>
+              ))}
+              {invitations.map((inv) => (
+                <div
+                  key={`inv-${inv.id}`}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 opacity-70"
+                >
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Mail size={14} className="text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate">{inv.email}</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <Clock size={10} /> Invited
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCancelInvite(inv.id)}
+                    disabled={cancellingInvite === inv.id}
+                    className="p-1.5 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors cursor-pointer disabled:opacity-40"
+                    title="Cancel invitation"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
-                <RoleDropdown
-                  role={member.role}
-                  disabled={updatingRole === member.id || (member.role === 'team_admin' && adminCount <= 1)}
-                  loading={updatingRole === member.id}
-                  onChange={(newRole) => handleRoleChange(member.id, member.user_id, newRole)}
-                />
-              </div>
-            ))
+              ))}
+            </>
           )}
         </div>
 
@@ -228,9 +343,31 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
               </div>
               <div className="max-h-48 overflow-y-auto space-y-0.5">
                 {availableUsers.length === 0 ? (
-                  <p className="py-3 text-center text-xs text-slate-400 dark:text-gray-600 italic">
-                    {searchQuery ? 'No matching users found.' : 'All org users are already members.'}
-                  </p>
+                  canInvite ? (
+                    <div className="py-3 text-center space-y-2">
+                      <p className="text-xs text-slate-500 dark:text-gray-400">
+                        <span className="font-medium text-slate-700 dark:text-gray-300">{trimmedQuery}</span> hasn&apos;t joined yet.
+                      </p>
+                      <button
+                        onClick={handleInviteByEmail}
+                        disabled={inviting}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 dark:bg-amber-600 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600 dark:hover:bg-amber-500 disabled:opacity-40 disabled:cursor-default cursor-pointer transition-colors"
+                      >
+                        <Mail size={13} />
+                        {inviting ? 'Sending...' : 'Send invite'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="py-3 text-center text-xs text-slate-400 dark:text-gray-600 italic">
+                      {searchQuery
+                        ? alreadyInvited
+                          ? 'This user has already been invited.'
+                          : alreadyMember
+                            ? 'This user is already a member.'
+                            : `No matching users found.${trimmedQuery.includes('@') ? '' : ` Type a full @${allowedEmailDomain} email to invite.`}`
+                        : 'All org users are already members.'}
+                    </p>
+                  )
                 ) : (
                   availableUsers.map((user) => {
                     const selected = selectedUserIds.has(user.id)
