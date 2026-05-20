@@ -1,7 +1,6 @@
-import React, { type ReactNode } from "react"
+import { type ReactNode } from "react"
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../lib/useAuth";
-import { cachePinRole, fetchPinSession, logoutPinSession } from "../lib/pinAuth";
 import LoginScreen from "./LoginScreen";
 
 interface AuthGateProps {
@@ -9,47 +8,6 @@ interface AuthGateProps {
 }
 
 export default function AuthGate({ children }: AuthGateProps) {
-  const [pinUnlocked, setPinUnlocked] = React.useState(false);
-  const [pinChecking, setPinChecking] = React.useState(true);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const refreshPinSession = async () => {
-      setPinChecking(true);
-      try {
-        const session = await fetchPinSession();
-        if (cancelled) return;
-        setPinUnlocked(session.authenticated);
-        cachePinRole(session.authenticated ? session.role : null);
-      } catch {
-        if (cancelled) return;
-        setPinUnlocked(false);
-        cachePinRole(null);
-      } finally {
-        if (!cancelled) setPinChecking(false);
-      }
-    };
-
-    void refreshPinSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  React.useEffect(() => {
-    const handlePinLock = () => {
-      void logoutPinSession();
-      cachePinRole(null);
-      setPinUnlocked(false);
-      setPinChecking(false);
-    };
-
-    window.addEventListener("pin-lock", handlePinLock);
-    return () => window.removeEventListener("pin-lock", handlePinLock);
-  }, []);
-
   const {
     loading,
     session,
@@ -75,11 +33,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
     );
   }
 
-  if (pinUnlocked || session) {
+  if (session) {
     return <>{children}</>;
   }
 
-  if (loading || pinChecking) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-gray-950">
         <div className="text-sm text-slate-500 dark:text-gray-500">
