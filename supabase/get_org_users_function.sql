@@ -20,9 +20,10 @@ as $$
     au.id,
     au.email::text,
     coalesce(
-      au.raw_user_meta_data->>'name',
-      au.raw_user_meta_data->>'full_name',
-      split_part(au.email::text, '@', 1)
+      nullif(au.raw_user_meta_data->>'name', ''),
+      nullif(au.raw_user_meta_data->>'full_name', ''),
+      nullif(au.raw_user_meta_data->>'preferred_username', ''),
+      initcap(replace(split_part(au.email::text, '@', 1), '.', ' '))
     ) as display_name
   from auth.users au
   where au.email ilike '%@theaccessgroup.com'
