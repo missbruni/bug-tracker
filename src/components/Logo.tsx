@@ -13,7 +13,7 @@ export default function Logo({ showBugs, onToggleBugs }: LogoProps) {
 	return (
 		<h1
 			className="text-lg md:text-[1.5em] font-bold flex items-center gap-1"
-			style={{ fontFamily: "'Press Start 2P', cursive" }}
+			style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace" }}
 		>
 			<span
 				className="text-[#00C9A7] dark:text-[#00FFCC]"
