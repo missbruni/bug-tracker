@@ -36,7 +36,7 @@ function isValidEmail(value: string): boolean {
 }
 
 export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMembersModalProps) {
-  const { session, allowedEmailDomain } = useAuth()
+  const { session, allowedEmailDomain, allowedEmailDomains } = useAuth()
   const [members, setMembers] = React.useState<MemberRow[]>([])
   const [invitations, setInvitations] = React.useState<InvitedRow[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -226,7 +226,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
 
   // Determine if the search query is an invitable email
   const trimmedQuery = searchQuery.trim().toLowerCase()
-  const isOrgEmail = isValidEmail(trimmedQuery) && trimmedQuery.endsWith(`@${allowedEmailDomain}`)
+  const isOrgEmail = isValidEmail(trimmedQuery) && allowedEmailDomains.some((d) => trimmedQuery.endsWith(`@${d}`))
   const alreadyMember = orgUsers.some((u) => u.email.toLowerCase() === trimmedQuery && memberUserIds.has(u.id))
   const alreadyInvited = invitedEmails.has(trimmedQuery)
   const canInvite = isOrgEmail && !alreadyMember && !alreadyInvited && availableUsers.length === 0

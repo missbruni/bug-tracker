@@ -11,6 +11,7 @@ const authState: {
   session: Session | null
   authError: string | null
   allowedEmailDomain: string
+  allowedEmailDomains: string[]
   signInWithMicrosoft: () => Promise<void>
   clearAuthError: () => void
 } = {
@@ -18,6 +19,7 @@ const authState: {
   session: null,
   authError: null,
   allowedEmailDomain: 'theaccessgroup.com',
+  allowedEmailDomains: ['theaccessgroup.com'],
   signInWithMicrosoft,
   clearAuthError,
 }

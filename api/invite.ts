@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { isSameOriginBrowserRequest, toSingleHeader } from './_request.js'
 
-const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN ?? 'theaccessgroup.com').trim().toLowerCase()
+const ALLOWED_EMAIL_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAIN ?? 'theaccessgroup.com')
+  .split(',').map((d) => d.trim().toLowerCase()).filter(Boolean)
 
 function parseBody(body: unknown): Record<string, unknown> {
   if (!body) return {}
@@ -15,7 +16,7 @@ function parseBody(body: unknown): Record<string, unknown> {
 function isValidOrgEmail(email: string): boolean {
   if (!email || !email.includes('@')) return false
   const domain = email.split('@')[1]?.toLowerCase()
-  return domain === ALLOWED_EMAIL_DOMAIN
+  return ALLOWED_EMAIL_DOMAINS.some((d) => d === domain)
 }
 
 function getServiceSupabase() {
@@ -94,7 +95,7 @@ export default async function handler(req: any, res: any): Promise<void> {
     return
   }
   if (!isValidOrgEmail(email)) {
-    res.status(400).json({ error: `Only @${ALLOWED_EMAIL_DOMAIN} emails can be invited.` })
+    res.status(400).json({ error: `Only @${ALLOWED_EMAIL_DOMAINS.join(' / @')} emails can be invited.` })
     return
   }
 
