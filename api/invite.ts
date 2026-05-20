@@ -159,7 +159,7 @@ export default async function handler(req: any, res: any): Promise<void> {
   if (resendKey) {
     const resend = new Resend(resendKey)
     const appUrl = process.env.APP_URL ?? 'https://mushi.vercel.app'
-    const fromAddress = process.env.INVITE_FROM_EMAIL ?? 'Mushi <noreply@mushi.app>'
+    const fromAddress = process.env.INVITE_FROM_EMAIL ?? 'Mushi <onboarding@resend.dev>'
 
     try {
       await resend.emails.send({
