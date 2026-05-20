@@ -16,10 +16,12 @@ export function buildInviteEmailHtml({
 <head><meta charset="utf-8" /></head>
 <body style="margin: 0; padding: 0; background-color: #0a0e14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
   <div style="max-width: 480px; margin: 0 auto; padding: 40px 24px;">
-    <!-- Logo -->
+    <!-- Logo: inline text + bug to match app navbar -->
     <div style="text-align: center; margin-bottom: 32px;">
-      <div style="display: inline-block; margin-bottom: 12px;">${BUG_SVG}</div>
-      <div style="font-family: 'Courier New', monospace; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #00FFCC;">MUSHI</div>
+      <div style="display: inline-flex; align-items: center; gap: 6px;">
+        <span style="font-family: 'Courier New', monospace; font-size: 26px; font-weight: 900; letter-spacing: 4px; color: #00FFCC; text-transform: uppercase;">Mushi</span>
+        ${BUG_SVG}
+      </div>
     </div>
 
     <!-- Card -->
