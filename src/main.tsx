@@ -46,7 +46,7 @@ function normalizeUserDisplayName(value: string): string {
 
 function Layout() {
 	const { user, signOut } = useAuth();
-	const { activeTeam, activeTeamId, teams, isGodMode, isTeamAdmin, setActiveTeamId } = useTeamAccess();
+	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } = useTeamAccess();
 	const [showBugs, setShowBugs] = React.useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
@@ -139,7 +139,7 @@ function Layout() {
 				teamOptions={teams}
 				activeTeamId={activeTeamId}
 				onTeamChange={setActiveTeamId}
-				showTeamsNav={isTeamAdmin || !!activeTeamId}
+				showTeamsNav
 				onOpenSettings={() => setSettingsOpen(true)}
 				userDisplayName={userDisplayName}
 				userEmail={user?.email}
