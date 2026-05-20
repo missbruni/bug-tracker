@@ -286,7 +286,7 @@ function inviteDevPlugin() {
           try {
             const { Resend } = await import('resend')
             const resend = new Resend(resendKey)
-            const appUrl = env.APP_URL || 'http://localhost:5173'
+            const appUrl = env.APP_URL || 'https://mushi.vercel.app'
             const fromAddress = env.INVITE_FROM_EMAIL || 'Mushi <onboarding@resend.dev>'
             const inviterName = userData.user.user_metadata?.name || userData.user.user_metadata?.full_name || 'A team admin'
 

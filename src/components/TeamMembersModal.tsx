@@ -51,9 +51,9 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
   const [error, setError] = React.useState<string | null>(null)
   const [inviteSuccess, setInviteSuccess] = React.useState<string | null>(null)
 
-  const fetchMembers = React.useCallback(async () => {
+  const fetchMembers = React.useCallback(async (opts?: { silent?: boolean }) => {
     if (!supabase) return
-    setLoading(true)
+    if (!opts?.silent) setLoading(true)
     const [membersRes, orgRes, invitesRes] = await Promise.all([
       supabase
         .from('team_members')
@@ -158,10 +158,17 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     if (insertError) {
       setError('Failed to add members.')
     } else {
+      // Optimistic: move selected users into the members list immediately
+      const added: MemberRow[] = Array.from(selectedUserIds).map((userId) => {
+        const info = orgUsers.find((u) => u.id === userId)
+        return { id: `optimistic-${userId}`, user_id: userId, email: info?.email ?? 'Unknown', display_name: info?.display_name ?? 'Unknown', role: 'member' as const }
+      })
+      setMembers((prev) => [...prev, ...added])
       setSelectedUserIds(new Set())
       setSearchQuery('')
       setShowAdd(false)
-      await fetchMembers()
+      // Background sync to get real ids
+      void fetchMembers({ silent: true })
     }
     setAdding(false)
   }
@@ -189,8 +196,10 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
       } else {
         setInviteSuccess(`Invitation sent to ${email}`)
         setSearchQuery('')
-        await fetchMembers()
-        setTimeout(() => setInviteSuccess(null), 4000)
+        // Optimistic: show the invitation immediately
+        setInvitations((prev) => [...prev, { id: `optimistic-${Date.now()}`, email, role: 'member', created_at: new Date().toISOString() }])
+        // Background sync to get the real id
+        void fetchMembers({ silent: true })
       }
     } catch {
       setError('Failed to send invitation.')
