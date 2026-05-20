@@ -206,10 +206,6 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
         return { team: null, error: 'Database is not connected.' }
       }
 
-      if (!isTeamAdmin && !isGodMode) {
-        return { team: null, error: 'Only team admins can create teams.' }
-      }
-
       const normalizedName = name.trim()
       if (!normalizedName) {
         return { team: null, error: 'Team name is required.' }

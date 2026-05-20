@@ -193,7 +193,7 @@ export default function TeamManagementPage() {
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search teams..."
-        actionButton={isTeamAdmin ? (
+        actionButton={
           <button
             onClick={() => { setShowAdd(true); setError(null) }}
             className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
@@ -201,7 +201,7 @@ export default function TeamManagementPage() {
             <Plus size={14} />
             Create Team
           </button>
-        ) : undefined}
+        }
       />
 
       <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
