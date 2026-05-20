@@ -39,6 +39,7 @@ export default function TeamManagementPage() {
   const [teamStats, setTeamStats] = React.useState<Record<string, TeamStats>>({})
   const [products, setProducts] = React.useState<Product[]>([])
   const [memberModalTeamId, setMemberModalTeamId] = React.useState<string | null>(null)
+  const [statsVersion, setStatsVersion] = React.useState(0)
 
   React.useEffect(() => {
     const loadTeamStats = async () => {
@@ -71,7 +72,7 @@ export default function TeamManagementPage() {
     }
 
     void loadTeamStats()
-  }, [teams.length])
+  }, [teams.length, statsVersion])
 
   // Refresh when AI creates a team or product
   React.useEffect(() => {
@@ -290,7 +291,7 @@ export default function TeamManagementPage() {
           <TeamMembersModal
             teamId={memberModalTeamId}
             teamName={teams.find((t) => t.id === memberModalTeamId)?.name ?? ''}
-            onClose={() => setMemberModalTeamId(null)}
+            onClose={() => { setMemberModalTeamId(null); setStatsVersion((v) => v + 1) }}
           />
         )}
 
