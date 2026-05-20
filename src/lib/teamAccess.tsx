@@ -19,12 +19,16 @@ interface TeamMutationResult {
   error: string | null
 }
 
+type TeamRole = 'team_admin' | 'member' | null
+
 interface TeamAccessContextValue {
   teams: TeamRecord[]
   activeTeamId: string | null
   activeTeam: TeamRecord | null
   allowedTeamIds: string[]
+  teamRole: TeamRole
   isGodMode: boolean
+  isTeamAdmin: boolean
   loading: boolean
   setActiveTeamId: (teamId: string) => void
   refreshTeams: () => Promise<void>
@@ -39,7 +43,9 @@ const defaultContextValue: TeamAccessContextValue = {
   activeTeamId: null,
   activeTeam: null,
   allowedTeamIds: [],
+  teamRole: null,
   isGodMode: false,
+  isTeamAdmin: false,
   loading: false,
   setActiveTeamId: () => {},
   refreshTeams: async () => {},
@@ -73,6 +79,8 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const [teams, setTeams] = React.useState<TeamRecord[]>([])
   const [loading, setLoading] = React.useState(true)
   const [activeTeamIdState, setActiveTeamIdState] = React.useState<string | null>(() => getStoredActiveTeamId())
+  const [teamRole, setTeamRole] = React.useState<TeamRole>(null)
+  const [isAppOwner, setIsAppOwner] = React.useState(false)
 
   const refreshTeams = async () => {
     if (!supabase) {
@@ -103,13 +111,50 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     void refreshTeams()
   }, [])
 
-  const ownerEmails = (import.meta.env.VITE_APP_OWNER_EMAILS as string || '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-  const isAppOwner = Boolean(user?.email && ownerEmails.includes(user.email.toLowerCase()))
+  React.useEffect(() => {
+    let cancelled = false
+    const fetchOwnerStatus = async () => {
+      if (!supabase || !user?.id) {
+        if (!cancelled) setIsAppOwner(false)
+        return
+      }
+      const { data } = await supabase
+        .from('app_owners')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+      if (!cancelled) {
+        setIsAppOwner(Boolean(data))
+      }
+    }
+    void fetchOwnerStatus()
+    return () => { cancelled = true }
+  }, [user?.id])
+
+  React.useEffect(() => {
+    let cancelled = false
+    const fetchRole = async () => {
+      if (!supabase || !user?.id || !activeTeamIdState) {
+        if (!cancelled) setTeamRole(null)
+        return
+      }
+      const { data } = await supabase
+        .from('team_members')
+        .select('role')
+        .eq('team_id', activeTeamIdState)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
+      if (!cancelled) {
+        setTeamRole((data?.role as TeamRole) ?? null)
+      }
+    }
+    void fetchRole()
+    return () => { cancelled = true }
+  }, [user?.id, activeTeamIdState])
 
   const isGodMode = isAppOwner
+  const isTeamAdmin = isAppOwner || teamRole === 'team_admin'
   const fallbackTeam = teams.find((team) => team.slug === DEFAULT_TEAM_SLUG) || teams[0] || null
 
   const allowedTeamIds = (() => {
@@ -161,8 +206,8 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
         return { team: null, error: 'Database is not connected.' }
       }
 
-      if (!isGodMode) {
-        return { team: null, error: 'Only god mode can create teams.' }
+      if (!isTeamAdmin && !isGodMode) {
+        return { team: null, error: 'Only team admins can create teams.' }
       }
 
       const normalizedName = name.trim()
@@ -203,7 +248,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const updateTeam = async (teamId: string, name: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isGodMode) return { error: 'Only god mode can update teams.' }
+      if (!isTeamAdmin) return { error: 'Only team admins can update teams.' }
 
       const normalizedName = name.trim()
       if (!normalizedName) return { error: 'Team name is required.' }
@@ -224,7 +269,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const restoreTeam = async (team: TeamRecord, makeActive = false): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isGodMode) return { error: 'Only god mode can restore teams.' }
+      if (!isTeamAdmin) return { error: 'Only team admins can restore teams.' }
 
       const { data, error } = await supabase
         .from('teams')
@@ -254,7 +299,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const deleteTeam = async (teamId: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isGodMode) return { error: 'Only god mode can delete teams.' }
+      if (!isTeamAdmin) return { error: 'Only team admins can delete teams.' }
       if (teamId === DEFAULT_TEAM_ID) return { error: 'Cannot delete the default team.' }
 
       const { error } = await supabase.from('teams').delete().eq('id', teamId)
@@ -278,7 +323,9 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     activeTeamId: activeTeamIdState,
     activeTeam,
     allowedTeamIds,
+    teamRole,
     isGodMode,
+    isTeamAdmin,
     loading,
     setActiveTeamId,
     refreshTeams,
