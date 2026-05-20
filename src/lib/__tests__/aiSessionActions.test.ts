@@ -83,7 +83,7 @@ describe('executeSessionActionWithSession bug actions', () => {
         description: 'Clicking checkout does nothing',
         severity: 'critical',
       },
-      { sessionId: null, onSessionCreated: () => {}, activeTeamId: null, pinRole: 'team' },
+      { sessionId: null, onSessionCreated: () => {}, activeTeamId: null, isGodMode: false },
     )
 
     expect(result.success).toBe(true)
@@ -104,7 +104,7 @@ describe('executeSessionActionWithSession bug actions', () => {
 
     const result = await executeSessionActionWithSession(
       { action: 'edit_bug', bug: 'HI-03', severity: 'critical' },
-      { sessionId: null, onSessionCreated: () => {}, activeTeamId: null, pinRole: 'team' },
+      { sessionId: null, onSessionCreated: () => {}, activeTeamId: null, isGodMode: false },
     )
 
     expect(result.success).toBe(true)
@@ -120,7 +120,7 @@ describe('executeSessionActionWithSession bug actions', () => {
 
     const result = await executeSessionActionWithSession(
       { action: 'edit_bug', bug: 'HI-04', severity: 'critical' },
-      { sessionId: null, onSessionCreated: () => {}, activeTeamId: null, pinRole: 'team' },
+      { sessionId: null, onSessionCreated: () => {}, activeTeamId: null, isGodMode: false },
     )
 
     expect(result.success).toBe(true)

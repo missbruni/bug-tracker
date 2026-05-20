@@ -14,7 +14,6 @@ function renderNavBar(props: {
   userEmail?: string
   userAvatarUrl?: string
   onLogout?: () => void
-  onLock?: () => void
 } = {}) {
   return render(
     <MemoryRouter initialEntries={['/']}>
@@ -81,16 +80,6 @@ describe('NavBar', () => {
     fireEvent.click(logoutBtn)
 
     expect(onLogout).toHaveBeenCalledTimes(1)
-  })
-
-  test('renders and triggers lock button when provided', () => {
-    const onLock = mock(() => {})
-    renderNavBar({ onLock })
-
-    const lockBtn = screen.getByTitle('Lock')
-    fireEvent.click(lockBtn)
-
-    expect(onLock).toHaveBeenCalledTimes(1)
   })
 
   test('renders compact user chip with initials and hides full email text', () => {

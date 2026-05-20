@@ -6,10 +6,8 @@ import {
   DEFAULT_TEAM_SLUG,
   ORGANIZATION_ID,
   slugifyTeamName,
-  type PinAccessLevel,
   type TeamRecord,
 } from './teamScope'
-import { cachePinRole, fetchPinSession } from './pinAuth'
 import { useAuth } from './useAuth'
 
 interface TeamCreationResult {
@@ -26,7 +24,6 @@ interface TeamAccessContextValue {
   activeTeamId: string | null
   activeTeam: TeamRecord | null
   allowedTeamIds: string[]
-  pinRole: PinAccessLevel | null
   isGodMode: boolean
   loading: boolean
   setActiveTeamId: (teamId: string) => void
@@ -42,7 +39,6 @@ const defaultContextValue: TeamAccessContextValue = {
   activeTeamId: null,
   activeTeam: null,
   allowedTeamIds: [],
-  pinRole: null,
   isGodMode: false,
   loading: false,
   setActiveTeamId: () => {},
@@ -76,7 +72,6 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [teams, setTeams] = React.useState<TeamRecord[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [pinRole, setPinRole] = React.useState<PinAccessLevel | null>(null)
   const [activeTeamIdState, setActiveTeamIdState] = React.useState<string | null>(() => getStoredActiveTeamId())
 
   const refreshTeams = async () => {
@@ -108,44 +103,13 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     void refreshTeams()
   }, [])
 
-  React.useEffect(() => {
-    let cancelled = false
-
-    const updatePinRole = async () => {
-      try {
-        const session = await fetchPinSession()
-        if (cancelled) return
-        const role = session.authenticated ? session.role : null
-        setPinRole(role)
-        cachePinRole(role)
-      } catch {
-        if (cancelled) return
-        setPinRole(null)
-        cachePinRole(null)
-      }
-    }
-
-    void updatePinRole()
-    const triggerUpdate = () => {
-      void updatePinRole()
-    }
-    window.addEventListener('pin-unlocked', triggerUpdate)
-    window.addEventListener('pin-lock', triggerUpdate)
-
-    return () => {
-      cancelled = true
-      window.removeEventListener('pin-unlocked', triggerUpdate)
-      window.removeEventListener('pin-lock', triggerUpdate)
-    }
-  }, [])
-
   const ownerEmails = (import.meta.env.VITE_APP_OWNER_EMAILS as string || '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
   const isAppOwner = Boolean(user?.email && ownerEmails.includes(user.email.toLowerCase()))
 
-  const isGodMode = pinRole === 'god' || isAppOwner
+  const isGodMode = isAppOwner
   const fallbackTeam = teams.find((team) => team.slug === DEFAULT_TEAM_SLUG) || teams[0] || null
 
   const allowedTeamIds = (() => {
@@ -314,7 +278,6 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     activeTeamId: activeTeamIdState,
     activeTeam,
     allowedTeamIds,
-    pinRole,
     isGodMode,
     loading,
     setActiveTeamId,

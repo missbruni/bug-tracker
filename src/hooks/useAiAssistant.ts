@@ -47,7 +47,7 @@ export default function useAiAssistant(open: boolean) {
 
   const location = useLocation()
   const { pathname } = location
-  const { activeTeamId, pinRole } = useTeamAccess()
+  const { activeTeamId, isGodMode } = useTeamAccess()
 
   // Session context
   const [sessionContext, setSessionContext] = React.useState('')
@@ -276,7 +276,7 @@ export default function useAiAssistant(open: boolean) {
       sessionId: currentSessionId,
       onSessionCreated: (id: string) => setCurrentSessionId(id),
       activeTeamId,
-      pinRole,
+      isGodMode,
     }
 
     if (!currentSessionId) {
