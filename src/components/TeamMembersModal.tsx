@@ -212,7 +212,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
                   placeholder="Search by name or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-mushi-primary/40"
                 />
               </div>
               <div className="max-h-40 overflow-y-auto space-y-0.5">
@@ -226,10 +226,10 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
                       key={user.id}
                       onClick={() => handleAddMember(user.id)}
                       disabled={adding === user.id}
-                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-teal-50 dark:hover:bg-mushi-primary/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
                     >
-                      <div className="shrink-0 w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
+                      <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 dark:bg-mushi-primary/15 flex items-center justify-center">
+                        <span className="text-xs font-bold text-teal-600 dark:text-mushi-primary uppercase">
                           {user.display_name.charAt(0)}
                         </span>
                       </div>
@@ -238,7 +238,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
                         <p className="text-xs text-slate-400 dark:text-gray-500 truncate">{user.email}</p>
                       </div>
                       {adding === user.id && (
-                        <span className="text-xs text-blue-500">Adding...</span>
+                        <span className="text-xs text-teal-600 dark:text-mushi-primary">Adding...</span>
                       )}
                     </button>
                   ))
@@ -254,7 +254,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
           ) : (
             <button
               onClick={() => { setShowAdd(true); setError(null) }}
-              className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 dark:border-gray-700 py-2.5 text-xs font-medium text-slate-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 dark:border-gray-700 py-2.5 text-xs font-medium text-slate-500 dark:text-gray-400 hover:border-teal-400 hover:text-teal-600 dark:hover:border-mushi-primary/50 dark:hover:text-mushi-primary transition-colors cursor-pointer"
             >
               <UserPlus size={14} />
               Add member
@@ -298,11 +298,7 @@ function RoleDropdown({
       <button
         onClick={() => { if (!disabled && !loading) setOpen(!open) }}
         disabled={disabled || loading}
-        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer
-          ${isAdmin
-            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-            : 'bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700'
-          }
+        className={`badge ${isAdmin ? 'badge-green' : 'badge-slate'} cursor-pointer
           ${disabled ? 'opacity-50 cursor-default' : 'hover:bg-slate-100 dark:hover:bg-gray-700'}
         `}
       >
@@ -315,7 +311,7 @@ function RoleDropdown({
           <button
             onClick={() => { onChange('team_admin'); setOpen(false) }}
             className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left cursor-pointer transition-colors
-              ${isAdmin ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800'}
+              ${isAdmin ? 'bg-teal-50 dark:bg-mushi-primary/10 text-teal-600 dark:text-mushi-primary font-semibold' : 'text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800'}
             `}
           >
             <Shield size={12} /> Admin

@@ -218,19 +218,19 @@ export default function TeamCard({
             <button
               onClick={onManageMembers}
               disabled={!onManageMembers}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-sky-400 dark:hover:border-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-colors cursor-pointer disabled:cursor-default"
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-teal-400 dark:hover:border-mushi-primary/50 hover:bg-teal-50 dark:hover:bg-mushi-primary/10 transition-colors cursor-pointer disabled:cursor-default"
             >
-              <div className="rounded-lg bg-sky-100 dark:bg-sky-900/30 p-2">
-                <UserCog size={16} className="text-sky-600 dark:text-sky-400" />
+              <div className="rounded-lg bg-teal-100 dark:bg-mushi-primary/15 p-2">
+                <UserCog size={16} className="text-teal-600 dark:text-mushi-primary" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
                   {stats?.members ?? 0}
                 </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-sky-600 dark:group-hover:text-sky-400">Members</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-mushi-primary">Members</span>
               </div>
               {onManageMembers && (
-                <Pencil size={12} className="ml-auto text-slate-400 dark:text-gray-600 group-hover:text-sky-500 dark:group-hover:text-sky-400 transition-colors" />
+                <Pencil size={12} className="ml-auto text-slate-400 dark:text-gray-600 group-hover:text-teal-500 dark:group-hover:text-mushi-primary transition-colors" />
               )}
             </button>
             <Link
