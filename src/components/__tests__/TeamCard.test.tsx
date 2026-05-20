@@ -78,10 +78,10 @@ describe('TeamCard', () => {
     expect(screen.queryByText('Active')).not.toBeInTheDocument()
   })
 
-  test('renders tester count from stats', () => {
+  test('renders member count from stats', () => {
     renderCard()
-    expect(screen.getByText('5')).toBeInTheDocument()
-    expect(screen.getByText('Testers')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('Members')).toBeInTheDocument()
   })
 
   test('renders session count from stats', () => {

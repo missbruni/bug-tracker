@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Check, X, Users, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, Check, X, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
 import InlineDeleteConfirm from './InlineDeleteConfirm'
 
@@ -214,7 +214,7 @@ export default function TeamCard({
           </div>
 
           {/* Quick links */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
             <button
               onClick={onManageMembers}
               disabled={!onManageMembers}
@@ -230,21 +230,6 @@ export default function TeamCard({
                 <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-sky-600 dark:group-hover:text-sky-400">Members</span>
               </div>
             </button>
-            <Link
-              to="/testers"
-              onClick={() => onSelect()}
-              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
-            >
-              <div className="rounded-lg bg-emerald-100 dark:bg-emerald-900/30 p-2">
-                <Users size={16} className="text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
-                  {stats?.testers ?? 0}
-                </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Testers</span>
-              </div>
-            </Link>
             <Link
               to="/sessions"
               onClick={() => onSelect()}
