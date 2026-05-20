@@ -21,6 +21,7 @@ const stats: TeamStats = {
   activeTesters: 3,
   sessions: 12,
   activeBugs: 4,
+  members: 3,
 }
 
 const products: Product[] = [

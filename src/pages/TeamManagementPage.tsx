@@ -2,6 +2,7 @@ import React from 'react'
 import { Plus, CheckCircle, XCircle } from 'lucide-react'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
+import TeamMembersModal from '../components/TeamMembersModal'
 import { useTeamAccess } from '../lib/teamAccess'
 import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
 import { supabase } from '../supabaseClient'
@@ -37,18 +38,20 @@ export default function TeamManagementPage() {
   } | null>(null)
   const [teamStats, setTeamStats] = React.useState<Record<string, TeamStats>>({})
   const [products, setProducts] = React.useState<Product[]>([])
+  const [memberModalTeamId, setMemberModalTeamId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const loadTeamStats = async () => {
       if (!supabase || !teams.length) return
-      const [testersRes, sessionsRes, bugsRes, productsRes] = await Promise.all([
+      const [testersRes, sessionsRes, bugsRes, productsRes, membersRes] = await Promise.all([
         supabase.from('testers').select('team_id, active'),
         supabase.from('sessions').select('team_id'),
         supabase.from('bugs').select('team_id, reviewed'),
         supabase.from('products').select('id, team_id, name, slug, description, link, links'),
+        supabase.from('team_members').select('team_id').eq('status', 'active'),
       ])
       const stats: Record<string, TeamStats> = {}
-      const ensure = (id: string) => { if (!stats[id]) stats[id] = { testers: 0, activeTesters: 0, sessions: 0, activeBugs: 0 } }
+      const ensure = (id: string) => { if (!stats[id]) stats[id] = { testers: 0, activeTesters: 0, sessions: 0, activeBugs: 0, members: 0 } }
       for (const row of (testersRes.data || []) as Array<{ team_id: string; active: boolean }>) {
         ensure(row.team_id); stats[row.team_id].testers++
         if (row.active) stats[row.team_id].activeTesters++
@@ -59,6 +62,9 @@ export default function TeamManagementPage() {
       for (const row of (bugsRes.data || []) as Array<{ team_id: string; reviewed: boolean }>) {
         ensure(row.team_id)
         if (!row.reviewed) stats[row.team_id].activeBugs++
+      }
+      for (const row of (membersRes.data || []) as Array<{ team_id: string }>) {
+        ensure(row.team_id); stats[row.team_id].members++
       }
       setTeamStats(stats)
       setProducts((productsRes.data || []) as Product[])
@@ -259,6 +265,7 @@ export default function TeamManagementPage() {
                 stats={teamStats[team.id]}
                 products={products.filter((p) => p.team_id === team.id)}
                 canEdit={isTeamAdmin}
+                onManageMembers={isTeamAdmin ? () => setMemberModalTeamId(team.id) : undefined}
                 onSelect={() => setActiveTeamId(team.id)}
                 onStartEdit={() => startEdit(team)}
                 onDelete={() => { if (!deletingId) setPendingDeleteId(team.id) }}
@@ -277,6 +284,14 @@ export default function TeamManagementPage() {
               />
             ))}
           </div>
+        )}
+
+        {memberModalTeamId && (
+          <TeamMembersModal
+            teamId={memberModalTeamId}
+            teamName={teams.find((t) => t.id === memberModalTeamId)?.name ?? ''}
+            onClose={() => setMemberModalTeamId(null)}
+          />
         )}
 
         {toast && (

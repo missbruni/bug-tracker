@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Check, X, Users, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, Check, X, Users, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
 import InlineDeleteConfirm from './InlineDeleteConfirm'
 
@@ -9,6 +9,7 @@ export interface TeamStats {
   activeTesters: number
   sessions: number
   activeBugs: number
+  members: number
 }
 
 export interface ProductLink {
@@ -33,6 +34,7 @@ interface TeamCardProps {
   stats: TeamStats | undefined
   products: Product[]
   canEdit?: boolean
+  onManageMembers?: () => void
   onSelect: () => void
   onStartEdit: () => void
   onDelete: () => void
@@ -74,6 +76,7 @@ export default function TeamCard({
   stats,
   products,
   canEdit = true,
+  onManageMembers,
   onSelect,
   onStartEdit,
   onDelete,
@@ -211,7 +214,22 @@ export default function TeamCard({
           </div>
 
           {/* Quick links */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mt-4">
+            <button
+              onClick={onManageMembers}
+              disabled={!onManageMembers}
+              className="group flex items-center gap-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 px-3.5 py-2.5 hover:border-sky-400 dark:hover:border-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-colors cursor-pointer disabled:cursor-default"
+            >
+              <div className="rounded-lg bg-sky-100 dark:bg-sky-900/30 p-2">
+                <UserCog size={16} className="text-sky-600 dark:text-sky-400" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-extrabold text-slate-900 dark:text-gray-100">
+                  {stats?.members ?? 0}
+                </span>
+                <span className="text-xs font-medium text-slate-500 dark:text-gray-500 group-hover:text-sky-600 dark:group-hover:text-sky-400">Members</span>
+              </div>
+            </button>
             <Link
               to="/testers"
               onClick={() => onSelect()}
