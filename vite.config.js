@@ -294,23 +294,7 @@ function inviteDevPlugin() {
               from: fromAddress,
               to: [email],
               subject: `You're invited to join ${teamName} on Mushi`,
-              html: `
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-                  <h2 style="margin: 0 0 16px; font-size: 20px; color: #1a1a1a;">You're invited! 🐛</h2>
-                  <p style="margin: 0 0 12px; font-size: 15px; color: #444; line-height: 1.5;">
-                    <strong>${inviterName}</strong> has invited you to join <strong>${teamName}</strong> on Mushi.
-                  </p>
-                  <p style="margin: 0 0 24px; font-size: 15px; color: #444; line-height: 1.5;">
-                    Sign in with your Microsoft account to get started.
-                  </p>
-                  <a href="${appUrl}" style="display: inline-block; background: #14b8a6; color: #fff; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
-                    Open Mushi →
-                  </a>
-                  <p style="margin: 24px 0 0; font-size: 12px; color: #999;">
-                    If you weren't expecting this invitation, you can safely ignore this email.
-                  </p>
-                </div>
-              `,
+              html: (await import('./api/_inviteEmail.ts')).buildInviteEmailHtml({ inviterName, teamName, appUrl }),
             })
           } catch (emailErr) {
             console.warn('[invite-dev] email send failed:', emailErr)
