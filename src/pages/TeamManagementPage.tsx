@@ -110,7 +110,7 @@ export default function TeamManagementPage() {
     if (err) {
       setToast({ message: err.message, tone: 'error' })
     } else {
-      setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links } : p))
+      setProducts((prev) => prev.map((prod) => prod.id === productId ? { ...prod, name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links } : prod))
     }
   }
 
@@ -120,7 +120,7 @@ export default function TeamManagementPage() {
     if (err) {
       setToast({ message: err.message, tone: 'error' })
     } else {
-      setProducts((prev) => prev.filter((p) => p.id !== productId))
+      setProducts((prev) => prev.filter((prod) => prod.id !== productId))
     }
   }
 
@@ -264,7 +264,7 @@ export default function TeamManagementPage() {
                 isActive={activeTeamId === team.id}
                 isDefault={team.id === DEFAULT_TEAM_ID}
                 stats={teamStats[team.id]}
-                products={products.filter((p) => p.team_id === team.id)}
+                products={products.filter((prod) => prod.team_id === team.id)}
                 canEdit={isTeamAdmin}
                 onManageMembers={isTeamAdmin ? () => setMemberModalTeamId(team.id) : undefined}
                 onSelect={() => setActiveTeamId(team.id)}
@@ -290,8 +290,8 @@ export default function TeamManagementPage() {
         {memberModalTeamId && (
           <TeamMembersModal
             teamId={memberModalTeamId}
-            teamName={teams.find((t) => t.id === memberModalTeamId)?.name ?? ''}
-            onClose={() => { setMemberModalTeamId(null); setStatsVersion((v) => v + 1) }}
+            teamName={teams.find((team) => team.id === memberModalTeamId)?.name ?? ''}
+            onClose={() => { setMemberModalTeamId(null); setStatsVersion((prev) => prev + 1) }}
           />
         )}
 

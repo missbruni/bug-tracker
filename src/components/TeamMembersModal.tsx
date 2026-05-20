@@ -53,18 +53,18 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     // Enrich with user info from get_org_users
     const { data: orgData } = await supabase.rpc('get_org_users')
     const userMap = new Map<string, OrgUser>()
-    for (const u of (orgData || []) as OrgUser[]) {
-      userMap.set(u.id, u)
+    for (const user of (orgData || []) as OrgUser[]) {
+      userMap.set(user.id, user)
     }
 
-    const enriched: MemberRow[] = ((data || []) as { id: string; user_id: string; role: TeamRole }[]).map((m) => {
-      const u = userMap.get(m.user_id)
+    const enriched: MemberRow[] = ((data || []) as { id: string; user_id: string; role: TeamRole }[]).map((row) => {
+      const info = userMap.get(row.user_id)
       return {
-        id: m.id,
-        user_id: m.user_id,
-        email: u?.email ?? 'Unknown',
-        display_name: u?.display_name ?? 'Unknown',
-        role: m.role,
+        id: row.id,
+        user_id: row.user_id,
+        email: info?.email ?? 'Unknown',
+        display_name: info?.display_name ?? 'Unknown',
+        role: row.role,
       }
     })
 
@@ -77,11 +77,11 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     void fetchMembers()
   }, [fetchMembers])
 
-  const adminCount = members.filter((m) => m.role === 'team_admin').length
+  const adminCount = members.filter((member) => member.role === 'team_admin').length
 
   const handleRoleChange = async (memberId: string, userId: string, newRole: TeamRole) => {
     if (!supabase) return
-    const member = members.find((m) => m.id === memberId)
+    const member = members.find((mem) => mem.id === memberId)
     if (!member) return
 
     if (member.role === 'team_admin' && newRole === 'member' && adminCount <= 1) {
@@ -101,7 +101,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
       setError('Failed to update role.')
     } else {
       setMembers((prev) =>
-        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
+        prev.map((mem) => (mem.id === memberId ? { ...mem, role: newRole } : mem))
       )
     }
     setUpdatingRole(null)
@@ -140,13 +140,13 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     setAdding(false)
   }
 
-  const memberUserIds = new Set(members.map((m) => m.user_id))
+  const memberUserIds = new Set(members.map((member) => member.user_id))
   const availableUsers = orgUsers
-    .filter((u) => !memberUserIds.has(u.id))
-    .filter((u) => {
+    .filter((user) => !memberUserIds.has(user.id))
+    .filter((user) => {
       if (!searchQuery.trim()) return true
-      const q = searchQuery.toLowerCase()
-      return u.email.toLowerCase().includes(q) || u.display_name.toLowerCase().includes(q)
+      const query = searchQuery.toLowerCase()
+      return user.email.toLowerCase().includes(query) || user.display_name.toLowerCase().includes(query)
     })
 
   return (
@@ -156,7 +156,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
     >
       <div
         className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 pb-3 border-b border-slate-100 dark:border-gray-800">
@@ -222,7 +222,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
                   type="text"
                   placeholder="Search by name or email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-mushi-primary/40"
                 />
               </div>
