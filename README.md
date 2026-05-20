@@ -62,7 +62,9 @@ Schema changes are moving to Supabase CLI migrations in `supabase/migrations` as
 
 4. Commit generated migration files in `supabase/migrations`.
 
-During this baseline phase, CI does not apply migrations yet. Avoid direct production SQL edits; if an emergency edit is made, backfill it into a migration file immediately after.
+Use `supabase/legacy/` only as historical reference for old manual SQL-editor scripts. Do not add new schema changes there.
+
+Avoid direct production SQL edits; if an emergency edit is made, backfill it into a migration file immediately after.
 
 ## Deploying to Vercel
 
@@ -118,7 +120,7 @@ The repository now includes a Chrome extension in `extension/` for quick bug cap
 ### Configure once
 
 - Open Mushi production (`https://mushi-navy.vercel.app/`) in at least one tab so the extension can reuse the active session
-- Ensure your Supabase project includes `products.link` and `products.description` columns (run `supabase/products_link_description_migration.sql` if needed)
+- Ensure your Supabase project includes `products.link` and `products.description` columns (legacy manual script: `supabase/legacy/products_link_description_migration.sql`)
 
 ### Capture flow
 

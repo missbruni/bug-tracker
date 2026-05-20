@@ -11,4 +11,4 @@ major_version = 17
 
 [db.seed]
 enabled = false
-sql_paths = ["./seed.sql", "./sessions_seed.sql"]
+sql_paths = ["./legacy/seed.sql", "./legacy/sessions_seed.sql"]
