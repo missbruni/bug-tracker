@@ -392,6 +392,30 @@ button[aria-disabled="true"] {
   background-color: color-mix(in srgb, var(--color-slate-500) 8%, transparent);
 }
 
+/* ─── Inline alert banners ─── */
+@utility alert {
+  border-radius: 0.5rem;
+  border-width: 1px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+@utility alert-error {
+  border-color: var(--color-red-500);
+  color: var(--color-red-500);
+  background-color: color-mix(in srgb, var(--color-red-500) 12%, transparent);
+}
+@utility alert-success {
+  border-color: var(--color-green-500);
+  color: var(--color-green-500);
+  background-color: color-mix(in srgb, var(--color-green-500) 12%, transparent);
+}
+@utility alert-warning {
+  border-color: var(--color-amber-500);
+  color: var(--color-amber-500);
+  background-color: color-mix(in srgb, var(--color-amber-500) 12%, transparent);
+}
+
 /* ─── Collapse / expand animation ─── */
 .collapse-grid {
   display: grid;
