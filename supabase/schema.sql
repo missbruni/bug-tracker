@@ -85,7 +85,7 @@ create table if not exists open_questions (
   tester text not null
 );
 
--- Enable RLS and restrict table access to authenticated users
+-- Enable RLS
 alter table organizations enable row level security;
 alter table teams enable row level security;
 alter table team_members enable row level security;
@@ -94,25 +94,8 @@ alter table comments enable row level security;
 alter table attachments enable row level security;
 alter table open_questions enable row level security;
 
-drop policy if exists "Authenticated read/write organizations" on organizations;
-drop policy if exists "Authenticated read/write teams" on teams;
-drop policy if exists "Authenticated read/write team_members" on team_members;
-drop policy if exists "Public read/write bugs" on bugs;
-drop policy if exists "Public read/write comments" on comments;
-drop policy if exists "Public read/write attachments" on attachments;
-drop policy if exists "Public read/write open_questions" on open_questions;
-drop policy if exists "Authenticated read/write bugs" on bugs;
-drop policy if exists "Authenticated read/write comments" on comments;
-drop policy if exists "Authenticated read/write attachments" on attachments;
-drop policy if exists "Authenticated read/write open_questions" on open_questions;
-
-create policy "Authenticated read/write organizations" on organizations for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write teams" on teams for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write team_members" on team_members for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write bugs" on bugs for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write comments" on comments for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write attachments" on attachments for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write open_questions" on open_questions for all to authenticated using (true) with check (true);
+-- Team-scoped RLS policies are defined in team_scoped_policies.sql
+-- Run that migration after this schema to apply the full permission model.
 
 create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_team_members_user on team_members(user_id);
@@ -122,22 +105,6 @@ create index if not exists idx_attachments_team_id on attachments(team_id);
 create index if not exists idx_open_questions_team_id on open_questions(team_id);
 
 -- Storage bucket for file uploads (public read, authenticated write/delete)
+-- Storage policies are managed in team_scoped_policies.sql
 insert into storage.buckets (id, name, public) values ('attachments', 'attachments', true)
 on conflict do nothing;
-
-drop policy if exists "Public upload attachments" on storage.objects;
-drop policy if exists "Public read attachments" on storage.objects;
-drop policy if exists "Authenticated upload attachments" on storage.objects;
-drop policy if exists "Authenticated delete attachments" on storage.objects;
-
-create policy "Authenticated upload attachments" on storage.objects
-  for insert to authenticated
-  with check (bucket_id = 'attachments');
-
-create policy "Authenticated delete attachments" on storage.objects
-  for delete to authenticated
-  using (bucket_id = 'attachments');
-
-create policy "Public read attachments" on storage.objects
-  for select
-  using (bucket_id = 'attachments');

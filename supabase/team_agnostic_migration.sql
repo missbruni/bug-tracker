@@ -119,23 +119,12 @@ create index if not exists idx_session_feedback_team_id on session_feedback(team
 create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_team_members_user on team_members(user_id);
 
--- Enable RLS on new tables and add permissive policies
+-- Enable RLS on new tables
 alter table organizations enable row level security;
 alter table teams enable row level security;
 alter table team_members enable row level security;
 
-drop policy if exists "Public read/write organizations" on organizations;
-drop policy if exists "Public read/write teams" on teams;
-drop policy if exists "Public read/write team_members" on team_members;
-
-create policy "Public read/write organizations" on organizations
-  for all using (true) with check (true);
-
-create policy "Public read/write teams" on teams
-  for all using (true) with check (true);
-
-create policy "Public read/write team_members" on team_members
-  for all using (true) with check (true);
+-- Team-scoped RLS policies are defined in team_scoped_policies.sql
 
 -- Products per team
 create table if not exists products (
@@ -153,8 +142,3 @@ create index if not exists idx_products_team_id on products(team_id);
 create index if not exists idx_sessions_product_id on sessions(product_id);
 
 alter table products enable row level security;
-
-drop policy if exists "Public read/write products" on products;
-
-create policy "Public read/write products" on products
-  for all using (true) with check (true);

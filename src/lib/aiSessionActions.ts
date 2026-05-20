@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient'
 import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
-import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID, type PinAccessLevel } from './teamScope'
+import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
 import { generateBugId } from './aiParsers'
 import type { Severity } from '../constants'
 
@@ -9,7 +9,7 @@ interface ActionContext {
   sessionId: string | null
   onSessionCreated: (id: string) => void
   activeTeamId: string | null
-  pinRole: PinAccessLevel | null
+  isGodMode: boolean
 }
 
 const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
@@ -85,7 +85,7 @@ export async function executeSessionActionWithSession(
 
   const { sessionId, activeTeamId } = ctx
 
-  if (TEAM_ACTIONS.has(action.action) && ctx.pinRole !== 'god') {
+  if (TEAM_ACTIONS.has(action.action) && !ctx.isGodMode) {
     return {
       action: action.action,
       success: false,

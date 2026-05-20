@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Lock, Building2 } from "lucide-react";
+import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2 } from "lucide-react";
 import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
 import type { TeamRecord } from "../lib/teamScope";
@@ -36,7 +36,6 @@ export default function NavBar({
 	userEmail,
 	userAvatarUrl,
 	onLogout,
-	onLock,
 }: {
 	children?: ReactNode;
 	showBugs?: boolean;
@@ -53,7 +52,6 @@ export default function NavBar({
 	userEmail?: string;
 	userAvatarUrl?: string;
 	onLogout?: () => void;
-	onLock?: () => void;
 }) {
 	const navItems = showTeamsNav
 		? [...NAV_ITEMS, { to: "/teams", label: "Teams", icon: Building2 }]
@@ -185,16 +183,6 @@ export default function NavBar({
 								>
 									<LogOut size={14} />
 									<span className="hidden md:inline text-xs font-semibold">Logout</span>
-								</button>
-							)}
-							{onLock && (
-								<button
-									onClick={onLock}
-									className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-gray-700 px-3 py-1 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-									title="Lock"
-								>
-									<Lock size={14} />
-									<span className="hidden md:inline text-xs font-semibold">Lock</span>
 								</button>
 							)}
 							{children}

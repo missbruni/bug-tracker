@@ -6,10 +6,8 @@ import {
   DEFAULT_TEAM_SLUG,
   ORGANIZATION_ID,
   slugifyTeamName,
-  type PinAccessLevel,
   type TeamRecord,
 } from './teamScope'
-import { cachePinRole, fetchPinSession } from './pinAuth'
 import { useAuth } from './useAuth'
 
 interface TeamCreationResult {
@@ -21,13 +19,16 @@ interface TeamMutationResult {
   error: string | null
 }
 
+type TeamRole = 'team_admin' | 'member' | null
+
 interface TeamAccessContextValue {
   teams: TeamRecord[]
   activeTeamId: string | null
   activeTeam: TeamRecord | null
   allowedTeamIds: string[]
-  pinRole: PinAccessLevel | null
+  teamRole: TeamRole
   isGodMode: boolean
+  isTeamAdmin: boolean
   loading: boolean
   setActiveTeamId: (teamId: string) => void
   refreshTeams: () => Promise<void>
@@ -42,8 +43,9 @@ const defaultContextValue: TeamAccessContextValue = {
   activeTeamId: null,
   activeTeam: null,
   allowedTeamIds: [],
-  pinRole: null,
+  teamRole: null,
   isGodMode: false,
+  isTeamAdmin: false,
   loading: false,
   setActiveTeamId: () => {},
   refreshTeams: async () => {},
@@ -76,8 +78,9 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [teams, setTeams] = React.useState<TeamRecord[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [pinRole, setPinRole] = React.useState<PinAccessLevel | null>(null)
   const [activeTeamIdState, setActiveTeamIdState] = React.useState<string | null>(() => getStoredActiveTeamId())
+  const [teamRole, setTeamRole] = React.useState<TeamRole>(null)
+  const [isAppOwner, setIsAppOwner] = React.useState(false)
 
   const refreshTeams = async () => {
     if (!supabase) {
@@ -110,42 +113,48 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   React.useEffect(() => {
     let cancelled = false
-
-    const updatePinRole = async () => {
-      try {
-        const session = await fetchPinSession()
-        if (cancelled) return
-        const role = session.authenticated ? session.role : null
-        setPinRole(role)
-        cachePinRole(role)
-      } catch {
-        if (cancelled) return
-        setPinRole(null)
-        cachePinRole(null)
+    const fetchOwnerStatus = async () => {
+      if (!supabase || !user?.id) {
+        if (!cancelled) setIsAppOwner(false)
+        return
+      }
+      const { data } = await supabase
+        .from('app_owners')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+      if (!cancelled) {
+        setIsAppOwner(Boolean(data))
       }
     }
+    void fetchOwnerStatus()
+    return () => { cancelled = true }
+  }, [user?.id])
 
-    void updatePinRole()
-    const triggerUpdate = () => {
-      void updatePinRole()
+  React.useEffect(() => {
+    let cancelled = false
+    const fetchRole = async () => {
+      if (!supabase || !user?.id || !activeTeamIdState) {
+        if (!cancelled) setTeamRole(null)
+        return
+      }
+      const { data } = await supabase
+        .from('team_members')
+        .select('role')
+        .eq('team_id', activeTeamIdState)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
+      if (!cancelled) {
+        setTeamRole((data?.role as TeamRole) ?? null)
+      }
     }
-    window.addEventListener('pin-unlocked', triggerUpdate)
-    window.addEventListener('pin-lock', triggerUpdate)
+    void fetchRole()
+    return () => { cancelled = true }
+  }, [user?.id, activeTeamIdState])
 
-    return () => {
-      cancelled = true
-      window.removeEventListener('pin-unlocked', triggerUpdate)
-      window.removeEventListener('pin-lock', triggerUpdate)
-    }
-  }, [])
-
-  const ownerEmails = (import.meta.env.VITE_APP_OWNER_EMAILS as string || '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-  const isAppOwner = Boolean(user?.email && ownerEmails.includes(user.email.toLowerCase()))
-
-  const isGodMode = pinRole === 'god' || isAppOwner
+  const isGodMode = isAppOwner
+  const isTeamAdmin = isAppOwner || teamRole === 'team_admin'
   const fallbackTeam = teams.find((team) => team.slug === DEFAULT_TEAM_SLUG) || teams[0] || null
 
   const allowedTeamIds = (() => {
@@ -197,10 +206,6 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
         return { team: null, error: 'Database is not connected.' }
       }
 
-      if (!isGodMode) {
-        return { team: null, error: 'Only god mode can create teams.' }
-      }
-
       const normalizedName = name.trim()
       if (!normalizedName) {
         return { team: null, error: 'Team name is required.' }
@@ -239,7 +244,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const updateTeam = async (teamId: string, name: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isGodMode) return { error: 'Only god mode can update teams.' }
+      if (!isTeamAdmin) return { error: 'Only team admins can update teams.' }
 
       const normalizedName = name.trim()
       if (!normalizedName) return { error: 'Team name is required.' }
@@ -260,7 +265,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const restoreTeam = async (team: TeamRecord, makeActive = false): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isGodMode) return { error: 'Only god mode can restore teams.' }
+      if (!isTeamAdmin) return { error: 'Only team admins can restore teams.' }
 
       const { data, error } = await supabase
         .from('teams')
@@ -290,7 +295,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const deleteTeam = async (teamId: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isGodMode) return { error: 'Only god mode can delete teams.' }
+      if (!isTeamAdmin) return { error: 'Only team admins can delete teams.' }
       if (teamId === DEFAULT_TEAM_ID) return { error: 'Cannot delete the default team.' }
 
       const { error } = await supabase.from('teams').delete().eq('id', teamId)
@@ -314,8 +319,9 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     activeTeamId: activeTeamIdState,
     activeTeam,
     allowedTeamIds,
-    pinRole,
+    teamRole,
     isGodMode,
+    isTeamAdmin,
     loading,
     setActiveTeamId,
     refreshTeams,

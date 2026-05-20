@@ -1,9 +1,7 @@
 import React from 'react'
 import { SEVERITIES, type Severity } from '../constants'
 import { generateBugId } from '../lib/aiParsers'
-import { fetchPinSession } from '../lib/pinAuth'
 import { queryClient } from '../lib/queryClient'
-import type { PinAccessLevel } from '../lib/teamScope'
 import { buildAttachmentPath, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
 import { useAuth } from '../lib/useAuth'
@@ -158,57 +156,10 @@ function getUserDisplayName(user: ReturnType<typeof useAuth>['user']): string {
   return 'Unknown'
 }
 
-function getPinTesterName(role: PinAccessLevel | null): string {
-  if (role === 'god') return 'Bruna Lima'
-  if (role === 'team') return 'PIN Team User'
-  return 'PIN User'
-}
-
 export default function ExtensionBridge() {
   const { user } = useAuth()
   const { activeTeamId } = useTeamAccess()
   const [allowedDomains, setAllowedDomains] = React.useState<string[]>([])
-  const [pinAuthenticated, setPinAuthenticated] = React.useState(false)
-  const [pinRole, setPinRole] = React.useState<PinAccessLevel | null>(null)
-
-  React.useEffect(() => {
-    let cancelled = false
-
-    const loadPinSession = async () => {
-      try {
-        const pinSession = await fetchPinSession()
-        if (cancelled) return
-        setPinAuthenticated(pinSession.authenticated)
-        setPinRole(pinSession.role)
-      } catch {
-        if (cancelled) return
-        setPinAuthenticated(false)
-        setPinRole(null)
-      }
-    }
-
-    const handlePinUnlocked = (event: Event) => {
-      const detail = (event as CustomEvent<{ role?: PinAccessLevel }>).detail
-      const role = detail?.role ?? null
-      setPinAuthenticated(true)
-      setPinRole(role)
-    }
-
-    const handlePinLock = () => {
-      setPinAuthenticated(false)
-      setPinRole(null)
-    }
-
-    void loadPinSession()
-    window.addEventListener('pin-unlocked', handlePinUnlocked)
-    window.addEventListener('pin-lock', handlePinLock)
-
-    return () => {
-      cancelled = true
-      window.removeEventListener('pin-unlocked', handlePinUnlocked)
-      window.removeEventListener('pin-lock', handlePinLock)
-    }
-  }, [])
 
   React.useEffect(() => {
     let cancelled = false
@@ -262,9 +213,9 @@ export default function ExtensionBridge() {
 
   React.useEffect(() => {
     const email = user?.email?.trim() || null
-    const authenticated = Boolean(user) || pinAuthenticated
-    const authMode = user ? 'supabase' : pinAuthenticated ? 'pin' : 'none'
-    const displayName = user ? getUserDisplayName(user) : getPinTesterName(pinRole)
+    const authenticated = Boolean(user)
+    const authMode = user ? 'supabase' : 'none'
+    const displayName = getUserDisplayName(user)
     const contextPayload = {
       authenticated,
       authMode,
@@ -287,8 +238,7 @@ export default function ExtensionBridge() {
         throw new Error('No active team selected.')
       }
 
-      const hasAuthContext = Boolean(user) || pinAuthenticated
-      if (!hasAuthContext) {
+      if (!user) {
         throw new Error('Not authenticated.')
       }
 
@@ -305,7 +255,7 @@ export default function ExtensionBridge() {
         payload.pageTitle,
       )
 
-      const tester = user ? getUserDisplayName(user) : getPinTesterName(pinRole)
+      const tester = getUserDisplayName(user)
       const matchedTester = await findTesterByName(tester, activeTeamId)
       const bugInsert = withTeamPayload(
         {
@@ -456,7 +406,7 @@ export default function ExtensionBridge() {
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [activeTeamId, allowedDomains, pinAuthenticated, pinRole, user])
+  }, [activeTeamId, allowedDomains, user])
 
   return null
 }

@@ -123,14 +123,8 @@ function Layout() {
 	const metadataAvatar = typeof metadata?.avatar_url === "string" ? metadata.avatar_url.trim() : "";
 	const metadataPicture = typeof metadata?.picture === "string" ? metadata.picture.trim() : "";
 	const userAvatarUrl = metadataAvatar || metadataPicture || undefined;
-	const isMicrosoftAuthenticated = Boolean(user);
-
 	const handleLogout = () => {
 		void signOut();
-	};
-
-	const handlePinLock = () => {
-		window.dispatchEvent(new CustomEvent("pin-lock"));
 	};
 
 	return (
@@ -145,13 +139,12 @@ function Layout() {
 				teamOptions={teams}
 				activeTeamId={activeTeamId}
 				onTeamChange={setActiveTeamId}
-				showTeamsNav={isGodMode}
+				showTeamsNav
 				onOpenSettings={() => setSettingsOpen(true)}
-				userDisplayName={isMicrosoftAuthenticated ? userDisplayName : undefined}
-				userEmail={isMicrosoftAuthenticated ? user?.email : undefined}
-				userAvatarUrl={isMicrosoftAuthenticated ? userAvatarUrl : undefined}
-				onLogout={isMicrosoftAuthenticated ? handleLogout : undefined}
-				onLock={!isMicrosoftAuthenticated ? handlePinLock : undefined}
+				userDisplayName={userDisplayName}
+				userEmail={user?.email}
+				userAvatarUrl={userAvatarUrl}
+				onLogout={handleLogout}
 			>
 				<ThemeToggle />
 				<div className="hidden md:block">

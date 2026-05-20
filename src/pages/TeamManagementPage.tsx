@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, ShieldCheck, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, CheckCircle, XCircle } from 'lucide-react'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -11,7 +11,7 @@ export default function TeamManagementPage() {
   const {
     teams,
     activeTeamId,
-    isGodMode,
+    isTeamAdmin,
     loading,
     setActiveTeamId,
     refreshTeams,
@@ -185,18 +185,6 @@ export default function TeamManagementPage() {
     setPendingDeleteId(null)
   }
 
-  if (!isGodMode) {
-    return (
-      <div className="max-w-screen-md mx-auto px-4 sm:px-7 py-12">
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-6 text-center">
-          <ShieldCheck size={20} className="mx-auto mb-2 text-amber-600 dark:text-amber-400" />
-          <h2 className="text-sm font-bold text-amber-700 dark:text-amber-300 mb-1">Team management is limited to god mode</h2>
-          <p className="text-xs text-amber-600/80 dark:text-amber-300/80">You can still contribute bugs and sessions in the EVO IBE team.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <>
       <SecondaryAppBar
@@ -270,6 +258,7 @@ export default function TeamManagementPage() {
                 isDefault={team.id === DEFAULT_TEAM_ID}
                 stats={teamStats[team.id]}
                 products={products.filter((p) => p.team_id === team.id)}
+                canEdit={isTeamAdmin}
                 onSelect={() => setActiveTeamId(team.id)}
                 onStartEdit={() => startEdit(team)}
                 onDelete={() => { if (!deletingId) setPendingDeleteId(team.id) }}

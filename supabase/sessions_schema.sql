@@ -80,29 +80,14 @@ create table if not exists session_feedback (
   created_at timestamptz default now()
 );
 
--- Enable RLS with authenticated-only access
+-- Enable RLS
 alter table testers enable row level security;
 alter table sessions enable row level security;
 alter table scenarios enable row level security;
 alter table assignments enable row level security;
 alter table session_feedback enable row level security;
 
-drop policy if exists "Public read/write testers" on testers;
-drop policy if exists "Public read/write sessions" on sessions;
-drop policy if exists "Public read/write scenarios" on scenarios;
-drop policy if exists "Public read/write assignments" on assignments;
-drop policy if exists "Public read/write session_feedback" on session_feedback;
-drop policy if exists "Authenticated read/write testers" on testers;
-drop policy if exists "Authenticated read/write sessions" on sessions;
-drop policy if exists "Authenticated read/write scenarios" on scenarios;
-drop policy if exists "Authenticated read/write assignments" on assignments;
-drop policy if exists "Authenticated read/write session_feedback" on session_feedback;
-
-create policy "Authenticated read/write testers" on testers for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write sessions" on sessions for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write scenarios" on scenarios for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write assignments" on assignments for all to authenticated using (true) with check (true);
-create policy "Authenticated read/write session_feedback" on session_feedback for all to authenticated using (true) with check (true);
+-- Team-scoped RLS policies are defined in team_scoped_policies.sql
 
 create index if not exists idx_testers_team_id on testers(team_id);
 create index if not exists idx_sessions_team_id on sessions(team_id);

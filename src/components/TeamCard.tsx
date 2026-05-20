@@ -32,6 +32,7 @@ interface TeamCardProps {
   isDefault: boolean
   stats: TeamStats | undefined
   products: Product[]
+  canEdit?: boolean
   onSelect: () => void
   onStartEdit: () => void
   onDelete: () => void
@@ -72,6 +73,7 @@ export default function TeamCard({
   isDefault,
   stats,
   products,
+  canEdit = true,
   onSelect,
   onStartEdit,
   onDelete,
@@ -179,16 +181,18 @@ export default function TeamCard({
             >
               <h2 className="text-lg font-bold text-slate-900 dark:text-gray-100">{team.name}</h2>
             </button>
-            <button onClick={onStartEdit}
-              className="text-slate-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer p-0.5">
-              <Pencil size={13} />
-            </button>
+            {canEdit && (
+              <button onClick={onStartEdit}
+                className="text-slate-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer p-0.5">
+                <Pencil size={13} />
+              </button>
+            )}
             {isActive && (
               <span className="badge badge-blue">
                 Active
               </span>
             )}
-            {!isDefault && (
+            {canEdit && !isDefault && (
               <button
                 onClick={onDelete}
                 disabled={deleting}
@@ -279,13 +283,15 @@ export default function TeamCard({
             <div className="flex items-center gap-2 mb-3">
               <Package size={14} className="text-slate-400 dark:text-gray-500" />
               <span className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wide">Products</span>
-              <button
-                onClick={() => { setAddingProduct(true); setNewProductName(''); setNewProductDesc(''); setNewProductLinks([{ label: '', url: '' }]) }}
-                className="ml-auto flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
-                title="Add product"
-              >
-                <Plus size={12} /> Add
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => { setAddingProduct(true); setNewProductName(''); setNewProductDesc(''); setNewProductLinks([{ label: '', url: '' }]) }}
+                  className="ml-auto flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                  title="Add product"
+                >
+                  <Plus size={12} /> Add
+                </button>
+              )}
             </div>
 
             {products.length === 0 && !addingProduct && (
@@ -385,41 +391,43 @@ export default function TeamCard({
                           })}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <button
-                          onClick={() => startEditProduct(product)}
-                          className="p-1 text-slate-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
-                          title="Edit product"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        {deletingProductId === product.id ? (
-                          <span className="flex items-center gap-0.5">
-                            <button
-                              onClick={() => { onDeleteProduct(product.id); setDeletingProductId(null) }}
-                              className="p-1 text-green-500 hover:text-green-600 cursor-pointer"
-                              title="Confirm delete"
-                            >
-                              <Check size={12} />
-                            </button>
-                            <button
-                              onClick={() => setDeletingProductId(null)}
-                              className="p-1 text-red-500 hover:text-red-600 cursor-pointer"
-                              title="Cancel"
-                            >
-                              <X size={12} />
-                            </button>
-                          </span>
-                        ) : (
+                      {canEdit && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                           <button
-                            onClick={() => confirmDeleteProduct(product.id)}
-                            className="p-1 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors cursor-pointer"
-                            title="Delete product"
+                            onClick={() => startEditProduct(product)}
+                            className="p-1 text-slate-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                            title="Edit product"
                           >
-                            <Trash2 size={12} />
+                            <Pencil size={12} />
                           </button>
-                        )}
-                      </div>
+                          {deletingProductId === product.id ? (
+                            <span className="flex items-center gap-0.5">
+                              <button
+                                onClick={() => { onDeleteProduct(product.id); setDeletingProductId(null) }}
+                                className="p-1 text-green-500 hover:text-green-600 cursor-pointer"
+                                title="Confirm delete"
+                              >
+                                <Check size={12} />
+                              </button>
+                              <button
+                                onClick={() => setDeletingProductId(null)}
+                                className="p-1 text-red-500 hover:text-red-600 cursor-pointer"
+                                title="Cancel"
+                              >
+                                <X size={12} />
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => confirmDeleteProduct(product.id)}
+                              className="p-1 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors cursor-pointer"
+                              title="Delete product"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
