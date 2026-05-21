@@ -190,6 +190,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       }}
                       onPersistError={showPersistError}
                       onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
+                      onLinkCopied={(bugId) => {
+                        if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+                        setSnackbar({ message: `Link to ${bugId} copied to clipboard`, tone: 'success' })
+                        snackbarTimer.current = setTimeout(() => setSnackbar(null), 3000)
+                      }}
                       onReviewed={(b, undo, message) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
                         setSnackbar({ message: message || `${b.id} marked as completed`, tone: 'success', undo })

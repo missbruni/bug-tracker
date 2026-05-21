@@ -9,6 +9,7 @@ import {
 	ExternalLink,
 	Rocket,
 	Pencil,
+	Link,
 } from "lucide-react";
 import { SEVERITY_STYLES } from "../constants";
 import { TesterBadge } from "./TesterBadge";
@@ -17,6 +18,7 @@ import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../hooks/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
+import { buildBugPermalink, copyToClipboard } from "../lib/bugPermalink";
 import type { Bug } from "../types";
 
 interface BugCardProps {
@@ -27,6 +29,7 @@ interface BugCardProps {
 	onDeleteWithUndo?: (bug: Bug, hardDelete: () => Promise<boolean>) => void;
 	onPersistError?: (message: string) => void;
 	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
+	onLinkCopied?: (bugId: string) => void;
 }
 
 export default function BugCard({
@@ -37,6 +40,7 @@ export default function BugCard({
 	onDeleteWithUndo,
 	onPersistError,
 	onReviewed,
+	onLinkCopied,
 }: BugCardProps) {
 	const [expanded, setExpanded] = React.useState(false);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
@@ -118,6 +122,14 @@ export default function BugCard({
 		}
 	};
 
+	const handleCopyLink = async (event: React.MouseEvent) => {
+		event.stopPropagation();
+		event.preventDefault();
+		const url = buildBugPermalink(bug.id);
+		const ok = await copyToClipboard(url);
+		if (ok) onLinkCopied?.(bug.id);
+	};
+
 	return (
 		<div
 			className={`card group mb-2 rounded-lg transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
@@ -180,6 +192,18 @@ export default function BugCard({
 							</span>
 						)}
 						<TesterBadge>{bug.tester}</TesterBadge>
+						<span
+							role="button"
+							tabIndex={0}
+							onClick={handleCopyLink}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") void handleCopyLink(event as unknown as React.MouseEvent);
+							}}
+							className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-all cursor-pointer"
+							title="Copy link to bug"
+						>
+							<Link size={14} />
+						</span>
 						{backlogUrl && (
 							<a
 								href={backlogUrl}
@@ -386,6 +410,13 @@ export default function BugCard({
 							</button>
 						)}
 						<div className="hidden md:block flex-1" />
+						<button
+							onClick={handleCopyLink}
+							className="flex items-center justify-center gap-1.5 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+						>
+							<Link size={12} />
+							Copy Link
+						</button>
 						{backlogUrl && (
 							<a
 								href={backlogUrl}
