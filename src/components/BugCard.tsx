@@ -31,6 +31,8 @@ interface BugCardProps {
 	onPersistError?: (message: string) => void;
 	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
 	onLinkCopied?: (bugId: string) => void;
+	initialEditing?: boolean;
+	onEditingChange?: (editing: boolean) => void;
 }
 
 export default function BugCard({
@@ -42,8 +44,10 @@ export default function BugCard({
 	onPersistError,
 	onReviewed,
 	onLinkCopied,
+	initialEditing = false,
+	onEditingChange,
 }: BugCardProps) {
-	const [expanded, setExpanded] = React.useState(false);
+	const [expanded, setExpanded] = React.useState(initialEditing);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
 	const [isDeleting] = React.useState(false);
 	const [commentText, setCommentText] = React.useState("");
@@ -51,7 +55,11 @@ export default function BugCard({
 	const [publishingMode, setPublishingMode] = React.useState<
 		"backlog" | "devin" | null
 	>(null);
-	const [editing, setEditing] = React.useState(false);
+	const [editing, setEditingRaw] = React.useState(initialEditing);
+	const setEditing = (value: boolean) => {
+		setEditingRaw(value);
+		onEditingChange?.(value);
+	};
 	const [linkCopied, setLinkCopied] = React.useState(false);
 	const publishing = publishingMode !== null;
 	const fileRef = React.useRef<HTMLInputElement>(null);
@@ -303,8 +311,9 @@ export default function BugCard({
 								category: bug.category || "",
 							}}
 							onSave={async (fields) => {
+								const severityChanged = fields.severity !== bug.severity;
 								const ok = await actions.saveBugEdit(fields);
-								if (ok) setEditing(false);
+								if (ok && !severityChanged) setEditing(false);
 								return ok;
 							}}
 							onCancel={() => setEditing(false)}

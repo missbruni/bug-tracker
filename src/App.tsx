@@ -40,6 +40,7 @@ export default function App() {
   const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
 
   const [lightbox, setLightbox] = React.useState<LightboxState | null>(null)
+  const [editingBugId, setEditingBugId] = React.useState<string | null>(null)
   const snackbarTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const deleteTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'))
@@ -190,6 +191,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       }}
                       onPersistError={showPersistError}
                       onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
+                      initialEditing={editingBugId === bug.id}
+                      onEditingChange={(editing) => setEditingBugId(editing ? bug.id : null)}
                       onLinkCopied={(bugId) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
                         setSnackbar({ message: `Link to ${bugId} copied to clipboard`, tone: 'success' })
