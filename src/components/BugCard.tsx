@@ -63,6 +63,7 @@ export default function BugCard({
 	const [linkCopied, setLinkCopied] = React.useState(false);
 	const publishing = publishingMode !== null;
 	const fileRef = React.useRef<HTMLInputElement>(null);
+	const cardRef = React.useRef<HTMLDivElement>(null);
 	const style = SEVERITY_STYLES.dark[bug.severity];
 	const backlogUrl = bug.backlog_url || null;
 	const devinUrl = bug.devin_url || null;
@@ -144,9 +145,19 @@ export default function BugCard({
 		}
 	};
 
+	// When the card remounts in a new severity group mid-edit, scroll to it
+	React.useEffect(() => {
+		if (initialEditing) {
+			requestAnimationFrame(() => {
+				cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+			});
+		}
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
+
 	return (
 		<div
-			className={`card group mb-2 rounded-lg transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
+			ref={cardRef}
+			className={`card group mb-2 rounded-lg scroll-mt-28 transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
 			style={{
 				borderLeft: `4px solid ${bug.reviewed ? "#94a3b8" : style.badge}`,
 			}}
