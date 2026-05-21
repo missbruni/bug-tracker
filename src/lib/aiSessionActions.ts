@@ -2,7 +2,7 @@ import { supabase } from '../supabaseClient'
 import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
-import { generateBugId } from './aiParsers'
+import { generateBugId, insertBugWithRetry } from './aiParsers'
 import type { Severity } from '../constants'
 
 interface ActionContext {
@@ -424,7 +424,7 @@ export async function executeSessionActionWithSession(
         }
       }
 
-      const { error } = await supabase.from('bugs').insert(withTeamPayload({
+      const bugData = withTeamPayload({
         id,
         title,
         description: action.description?.trim() || '',
@@ -435,10 +435,14 @@ export async function executeSessionActionWithSession(
         page: action.page?.trim() || '—',
         category: action.category?.trim() || null,
         reviewed: false,
-      }, activeTeamId))
+      }, activeTeamId) as Record<string, unknown>
 
-      if (error) return { action: 'create_bug', success: false, message: error.message }
-      return { action: 'create_bug', success: true, message: `Created bug ${id} "${title}"` }
+      try {
+        const finalId = await insertBugWithRetry(supabase, bugData, id)
+        return { action: 'create_bug', success: true, message: `Created bug ${finalId} "${title}"` }
+      } catch (err) {
+        return { action: 'create_bug', success: false, message: err instanceof Error ? err.message : String(err) }
+      }
     }
 
     case 'edit_bug': {

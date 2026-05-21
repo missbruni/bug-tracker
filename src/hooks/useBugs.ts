@@ -2,6 +2,7 @@ import React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
+import { insertBugWithRetry } from '../lib/aiParsers'
 import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
 import type { Bug, Question, Attachment, SessionOption, Tester } from '../types'
@@ -305,32 +306,11 @@ export function useBugs(): UseBugsReturn {
 
     if (supabase) {
       const sb = supabase
-      const prefix = newBug.id.replace(/\d+$/, '')
-      let num = parseInt(newBug.id.replace(/\D+/g, '')) || 1
-      let finalId = newBug.id
-      let retries = 0
-      let inserted = false
-
-      // Retry with incremented ID on duplicate key conflict (concurrent users)
-      while (retries < 20) {
-        bugData.id = finalId
-        const { error } = await sb.from('bugs').insert(bugData)
-        if (!error) {
-          inserted = true
-          break
-        }
-        if (error.code === '23505') {
-          retries++
-          num++
-          finalId = `${prefix}${String(num).padStart(2, '0')}`
-        } else {
-          console.error('Failed to add bug:', error)
-          return
-        }
-      }
-
-      if (!inserted) {
-        console.error('Failed to add bug after multiple ID retries')
+      let finalId: string
+      try {
+        finalId = await insertBugWithRetry(sb, bugData, newBug.id)
+      } catch (err) {
+        console.error('Failed to add bug:', err)
         setSnackbar({ message: 'Failed to create bug after multiple retries.' })
         return
       }

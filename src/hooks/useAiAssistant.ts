@@ -4,7 +4,7 @@ import { chatCompletion, hasAiConfig, type ChatMessage } from '../lib/aiProvider
 import { supabase } from '../supabaseClient'
 import { filesToAttachments } from '../lib/attachments'
 import { buildSystemPrompt } from '../lib/aiPrompt'
-import { parseBugsFromResponse, parseSessionActions, generateBugId } from '../lib/aiParsers'
+import { parseBugsFromResponse, parseSessionActions, generateBugId, insertBugWithRetry } from '../lib/aiParsers'
 import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
 import { ensureTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
@@ -434,31 +434,7 @@ export default function useAiAssistant(open: boolean) {
         category: bug.category || null,
       }, activeTeamId) as Record<string, unknown>
 
-      let finalId = id
-      let retries = 0
-      let inserted = false
-      const prefix = id.replace(/\d+$/, '')
-      let num = parseInt(id.replace(/\D+/g, '')) || 1
-
-      while (retries < 20) {
-        bugData.id = finalId
-        const { error } = await sb.from('bugs').insert(bugData)
-        if (!error) {
-          inserted = true
-          break
-        }
-        if (error.code === '23505') {
-          retries++
-          num++
-          finalId = `${prefix}${String(num).padStart(2, '0')}`
-        } else {
-          throw new Error(error.message)
-        }
-      }
-
-      if (!inserted) {
-        throw new Error('Failed to create bug after multiple ID retries')
-      }
+      const finalId = await insertBugWithRetry(sb, bugData, id)
 
       if (bug._attachments?.length) {
         await Promise.all(

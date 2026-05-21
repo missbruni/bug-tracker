@@ -1,6 +1,6 @@
 import React from 'react'
 import { SEVERITIES, type Severity } from '../constants'
-import { generateBugId } from '../lib/aiParsers'
+import { generateBugId, insertBugWithRetry } from '../lib/aiParsers'
 import { queryClient } from '../lib/queryClient'
 import { buildAttachmentPath, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
@@ -117,14 +117,7 @@ function buildDescriptionWithPageContext(
   return `${baseDescription}\n\n${contextLines.join('\n')}`
 }
 
-function incrementBugId(currentId: string): string {
-  const match = currentId.match(/^([A-Z]+-)(\d+)$/)
-  if (!match) return `${currentId}-1`
 
-  const [, prefix, digits] = match
-  const next = Number(digits) + 1
-  return `${prefix}${String(next).padStart(digits.length, '0')}`
-}
 
 function dataUrlToFile(dataUrl: string, fallbackName: string, fallbackType: string): File {
   const [header, encoded] = dataUrl.split(',', 2)
@@ -270,32 +263,9 @@ export default function ExtensionBridge() {
           category: payload.category?.trim() || null,
         },
         activeTeamId,
-      )
+      ) as Record<string, unknown>
 
-      let inserted = false
-      let retries = 0
-
-      while (!inserted && retries < 20) {
-        bugInsert.id = finalId
-        const { error } = await supabase.from('bugs').insert(bugInsert)
-
-        if (!error) {
-          inserted = true
-          break
-        }
-
-        if (error.code === '23505') {
-          finalId = incrementBugId(finalId)
-          retries += 1
-          continue
-        }
-
-        throw new Error(error.message)
-      }
-
-      if (!inserted) {
-        throw new Error('Failed to create bug after retrying bug IDs.')
-      }
+      finalId = await insertBugWithRetry(supabase, bugInsert, finalId)
 
       let uploadedCount = 0
       const attachmentInputs = payload.attachments || []
