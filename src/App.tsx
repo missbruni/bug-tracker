@@ -40,6 +40,7 @@ export default function App() {
   const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
 
   const [lightbox, setLightbox] = React.useState<LightboxState | null>(null)
+  const [editingBugId, setEditingBugId] = React.useState<string | null>(null)
   const snackbarTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const deleteTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'))
@@ -190,6 +191,13 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       }}
                       onPersistError={showPersistError}
                       onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
+                      initialEditing={editingBugId === bug.id}
+                      onEditingChange={(editing) => setEditingBugId(editing ? bug.id : null)}
+                      onLinkCopied={(bugId) => {
+                        if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+                        setSnackbar({ message: `Link to ${bugId} copied to clipboard`, tone: 'success' })
+                        snackbarTimer.current = setTimeout(() => setSnackbar(null), 3000)
+                      }}
                       onReviewed={(b, undo, message) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
                         setSnackbar({ message: message || `${b.id} marked as completed`, tone: 'success', undo })
@@ -208,7 +216,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         )}
       </div>
       {snackbar && (
-        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${snackbar.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : snackbar.tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${snackbar.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : snackbar.tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
           {snackbar.tone === 'success' ? <CheckCircle size={16} className="shrink-0" /> : snackbar.tone === 'warning' ? <AlertTriangle size={16} className="shrink-0" /> : <XCircle size={16} className="shrink-0" />}
           {snackbar.message}
           {snackbar.undo && (

@@ -9,6 +9,8 @@ import {
 	ExternalLink,
 	Rocket,
 	Pencil,
+	Link,
+	Check,
 } from "lucide-react";
 import { SEVERITY_STYLES } from "../constants";
 import { TesterBadge } from "./TesterBadge";
@@ -17,6 +19,7 @@ import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../hooks/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
+import { buildBugPermalink, copyToClipboard } from "../lib/bugPermalink";
 import type { Bug } from "../types";
 
 interface BugCardProps {
@@ -27,6 +30,9 @@ interface BugCardProps {
 	onDeleteWithUndo?: (bug: Bug, hardDelete: () => Promise<boolean>) => void;
 	onPersistError?: (message: string) => void;
 	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
+	onLinkCopied?: (bugId: string) => void;
+	initialEditing?: boolean;
+	onEditingChange?: (editing: boolean) => void;
 }
 
 export default function BugCard({
@@ -37,8 +43,11 @@ export default function BugCard({
 	onDeleteWithUndo,
 	onPersistError,
 	onReviewed,
+	onLinkCopied,
+	initialEditing = false,
+	onEditingChange,
 }: BugCardProps) {
-	const [expanded, setExpanded] = React.useState(false);
+	const [expanded, setExpanded] = React.useState(initialEditing);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
 	const [isDeleting] = React.useState(false);
 	const [commentText, setCommentText] = React.useState("");
@@ -46,9 +55,15 @@ export default function BugCard({
 	const [publishingMode, setPublishingMode] = React.useState<
 		"backlog" | "devin" | null
 	>(null);
-	const [editing, setEditing] = React.useState(false);
+	const [editing, setEditingRaw] = React.useState(initialEditing);
+	const setEditing = (value: boolean) => {
+		setEditingRaw(value);
+		onEditingChange?.(value);
+	};
+	const [linkCopied, setLinkCopied] = React.useState(false);
 	const publishing = publishingMode !== null;
 	const fileRef = React.useRef<HTMLInputElement>(null);
+	const cardRef = React.useRef<HTMLDivElement>(null);
 	const style = SEVERITY_STYLES.dark[bug.severity];
 	const backlogUrl = bug.backlog_url || null;
 	const devinUrl = bug.devin_url || null;
@@ -118,9 +133,31 @@ export default function BugCard({
 		}
 	};
 
+	const handleCopyLink = async (event: React.MouseEvent) => {
+		event.stopPropagation();
+		event.preventDefault();
+		const url = buildBugPermalink(bug.id);
+		const ok = await copyToClipboard(url);
+		if (ok) {
+			setLinkCopied(true);
+			setTimeout(() => setLinkCopied(false), 1500);
+			onLinkCopied?.(bug.id);
+		}
+	};
+
+	// When the card remounts in a new severity group mid-edit, scroll to it
+	React.useEffect(() => {
+		if (initialEditing) {
+			requestAnimationFrame(() => {
+				cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+			});
+		}
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
+
 	return (
 		<div
-			className={`card group mb-2 rounded-lg transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
+			ref={cardRef}
+			className={`card group mb-2 rounded-lg scroll-mt-28 transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
 			style={{
 				borderLeft: `4px solid ${bug.reviewed ? "#94a3b8" : style.badge}`,
 			}}
@@ -180,6 +217,18 @@ export default function BugCard({
 							</span>
 						)}
 						<TesterBadge>{bug.tester}</TesterBadge>
+						<span
+							role="button"
+							tabIndex={0}
+							onClick={handleCopyLink}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") void handleCopyLink(event as unknown as React.MouseEvent);
+							}}
+							className={`transition-all cursor-pointer ${linkCopied ? "opacity-100 text-green-500 dark:text-green-400" : "opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"}`}
+							title="Copy link to bug"
+						>
+							{linkCopied ? <Check size={14} /> : <Link size={14} />}
+						</span>
 						{backlogUrl && (
 							<a
 								href={backlogUrl}
@@ -273,8 +322,9 @@ export default function BugCard({
 								category: bug.category || "",
 							}}
 							onSave={async (fields) => {
+								const severityChanged = fields.severity !== bug.severity;
 								const ok = await actions.saveBugEdit(fields);
-								if (ok) setEditing(false);
+								if (ok && !severityChanged) setEditing(false);
 								return ok;
 							}}
 							onCancel={() => setEditing(false)}
@@ -386,6 +436,13 @@ export default function BugCard({
 							</button>
 						)}
 						<div className="hidden md:block flex-1" />
+						<button
+							onClick={handleCopyLink}
+							className={`flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors cursor-pointer ${linkCopied ? "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/40 text-green-600 dark:text-green-400" : "border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"}`}
+						>
+							{linkCopied ? <Check size={12} /> : <Link size={12} />}
+							{linkCopied ? "Copied!" : "Copy Link"}
+						</button>
 						{backlogUrl && (
 							<a
 								href={backlogUrl}

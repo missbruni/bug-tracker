@@ -45,6 +45,17 @@ describe('BugCard', () => {
     expect(screen.getByText('Login button broken')).toBeInTheDocument()
   })
 
+  test('shows a copy-link button in the collapsed row', () => {
+    renderBugCard()
+    expect(screen.getByTitle('Copy link to bug')).toBeInTheDocument()
+  })
+
+  test('shows a Copy Link button when expanded', () => {
+    renderBugCard({ description: 'Steps to reproduce' })
+    fireEvent.click(screen.getByText('Login button broken').closest('button')!)
+    expect(screen.getByText('Copy Link')).toBeInTheDocument()
+  })
+
   test('renders tester name in badge', () => {
     renderBugCard()
     const elements = screen.getAllByText('Alice')
