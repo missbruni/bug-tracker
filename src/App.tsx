@@ -213,7 +213,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         )}
       </div>
       {snackbar && (
-        <div className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${snackbar.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : snackbar.tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${snackbar.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : snackbar.tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
           {snackbar.tone === 'success' ? <CheckCircle size={16} className="shrink-0" /> : snackbar.tone === 'warning' ? <AlertTriangle size={16} className="shrink-0" /> : <XCircle size={16} className="shrink-0" />}
           {snackbar.message}
           {snackbar.undo && (

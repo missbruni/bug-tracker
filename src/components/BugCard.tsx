@@ -10,6 +10,7 @@ import {
 	Rocket,
 	Pencil,
 	Link,
+	Check,
 } from "lucide-react";
 import { SEVERITY_STYLES } from "../constants";
 import { TesterBadge } from "./TesterBadge";
@@ -51,6 +52,7 @@ export default function BugCard({
 		"backlog" | "devin" | null
 	>(null);
 	const [editing, setEditing] = React.useState(false);
+	const [linkCopied, setLinkCopied] = React.useState(false);
 	const publishing = publishingMode !== null;
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const style = SEVERITY_STYLES.dark[bug.severity];
@@ -127,7 +129,11 @@ export default function BugCard({
 		event.preventDefault();
 		const url = buildBugPermalink(bug.id);
 		const ok = await copyToClipboard(url);
-		if (ok) onLinkCopied?.(bug.id);
+		if (ok) {
+			setLinkCopied(true);
+			setTimeout(() => setLinkCopied(false), 1500);
+			onLinkCopied?.(bug.id);
+		}
 	};
 
 	return (
@@ -199,10 +205,10 @@ export default function BugCard({
 							onKeyDown={(event) => {
 								if (event.key === "Enter") void handleCopyLink(event as unknown as React.MouseEvent);
 							}}
-							className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-all cursor-pointer"
+							className={`transition-all cursor-pointer ${linkCopied ? "opacity-100 text-green-500 dark:text-green-400" : "opacity-0 group-hover:opacity-100 text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"}`}
 							title="Copy link to bug"
 						>
-							<Link size={14} />
+							{linkCopied ? <Check size={14} /> : <Link size={14} />}
 						</span>
 						{backlogUrl && (
 							<a
@@ -412,10 +418,10 @@ export default function BugCard({
 						<div className="hidden md:block flex-1" />
 						<button
 							onClick={handleCopyLink}
-							className="flex items-center justify-center gap-1.5 rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+							className={`flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors cursor-pointer ${linkCopied ? "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/40 text-green-600 dark:text-green-400" : "border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"}`}
 						>
-							<Link size={12} />
-							Copy Link
+							{linkCopied ? <Check size={12} /> : <Link size={12} />}
+							{linkCopied ? "Copied!" : "Copy Link"}
 						</button>
 						{backlogUrl && (
 							<a
