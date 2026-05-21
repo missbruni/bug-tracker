@@ -8,6 +8,7 @@ import { parseBugsFromResponse, parseSessionActions, generateBugId, insertBugWit
 import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
 import { ensureTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
+import { useAuth, getUserDisplayName } from '../lib/useAuth'
 import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Severity } from '../constants'
 import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult, BugFiltersActionPayload } from '../lib/aiTypes'
@@ -48,6 +49,8 @@ export default function useAiAssistant(open: boolean) {
   const location = useLocation()
   const { pathname } = location
   const { activeTeamId, isGodMode } = useTeamAccess()
+  const { user } = useAuth()
+  const currentUserName = getUserDisplayName(user ?? null)
 
   // Session context
   const [sessionContext, setSessionContext] = React.useState('')
@@ -177,21 +180,9 @@ export default function useAiAssistant(open: boolean) {
         parts.push('The user is currently on the Mushi main page.')
       }
 
-      // Current user identity from localStorage
-      const lastTesterId = localStorage.getItem('lastTesterId')
-      if (lastTesterId) {
-        const { data: currentTester } = await scopeToTeam(
-          supabase
-            .from('testers')
-            .select('name')
-            .eq('id', lastTesterId)
-            .limit(1)
-            .single(),
-          activeTeamId,
-        )
-        if (currentTester?.name) {
-          parts.push(`The current user is "${currentTester.name}" (tester ID: ${lastTesterId}). Address them by name when appropriate.`)
-        }
+      // Current user identity from auth
+      if (currentUserName && currentUserName !== 'Unknown') {
+        parts.push(`The logged-in user is "${currentUserName}" (email: ${user?.email || 'unknown'}). When creating bugs, default the tester to "${currentUserName}" unless another tester is explicitly specified. When the user says "my bugs", "my reports", or refers to themselves, filter or match by tester name "${currentUserName}".`)
       }
 
       // Recent active bugs for natural language matching
@@ -230,7 +221,7 @@ export default function useAiAssistant(open: boolean) {
 
       setSessionContext(parts.join('\n\n'))
     })()
-  }, [open, currentSessionId, pathname, activeTeamId])
+  }, [open, currentSessionId, pathname, activeTeamId, currentUserName, user?.email])
 
   // ─── Focus & keyboard ─────────────────────────────────────
   React.useEffect(() => {
@@ -277,6 +268,7 @@ export default function useAiAssistant(open: boolean) {
       onSessionCreated: (id: string) => setCurrentSessionId(id),
       activeTeamId,
       isGodMode,
+      currentUserName,
     }
 
     if (!currentSessionId) {
@@ -415,7 +407,8 @@ export default function useAiAssistant(open: boolean) {
 
     try {
       const id = await generateBugId(bug.severity, activeTeamId)
-      const matchedTester = await ensureTesterByName(bug.tester, [], activeTeamId)
+      const testerForLookup = (!bug.tester || bug.tester === 'Unknown' || bug.tester === '—') ? currentUserName : bug.tester
+      const matchedTester = await ensureTesterByName(testerForLookup, [], activeTeamId)
 
       if (!supabase) {
         throw new Error('Database not connected')
@@ -427,7 +420,7 @@ export default function useAiAssistant(open: boolean) {
         title: bug.title,
         description: bug.description,
         severity: bug.severity,
-        tester: matchedTester?.name || bug.tester,
+        tester: matchedTester?.name || testerForLookup,
         tester_id: matchedTester?.id || null,
         device: bug.device,
         page: bug.page,

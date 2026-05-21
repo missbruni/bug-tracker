@@ -10,6 +10,7 @@ interface ActionContext {
   onSessionCreated: (id: string) => void
   activeTeamId: string | null
   isGodMode: boolean
+  currentUserName?: string
 }
 
 const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
@@ -410,12 +411,13 @@ export async function executeSessionActionWithSession(
 
       const severity = parseSeverity(action.severity)
       const id = await generateBugId(severity, activeTeamId)
-      let testerName = action.tester?.trim() || 'Unknown'
+      const resolvedTester = action.tester?.trim() || ctx.currentUserName || 'Unknown'
+      let testerName = resolvedTester
       let testerId: string | null = null
 
-      if (action.tester?.trim()) {
+      if (resolvedTester !== 'Unknown') {
         const { data: testerMatch } = await scopeToTeam(
-          supabase.from('testers').select('id, name').ilike('name', action.tester.trim()).limit(1),
+          supabase.from('testers').select('id, name').ilike('name', resolvedTester).limit(1),
           activeTeamId,
         )
         if (testerMatch?.length) {

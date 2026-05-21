@@ -4,7 +4,7 @@ import { generateBugId, insertBugWithRetry } from '../lib/aiParsers'
 import { queryClient } from '../lib/queryClient'
 import { buildAttachmentPath, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
-import { useAuth } from '../lib/useAuth'
+import { useAuth, getUserDisplayName } from '../lib/useAuth'
 import { useTeamAccess } from '../lib/teamAccess'
 import { supabase } from '../supabaseClient'
 
@@ -136,17 +136,6 @@ function dataUrlToFile(dataUrl: string, fallbackName: string, fallbackType: stri
 
   const safeName = fallbackName.trim() || `attachment-${Date.now()}`
   return new File([bytes], safeName, { type: mimeType })
-}
-
-function getUserDisplayName(user: ReturnType<typeof useAuth>['user']): string {
-  if (!user) return 'Unknown'
-
-  const metadata = user.user_metadata as Record<string, unknown> | undefined
-  const metadataName = typeof metadata?.name === 'string' ? metadata.name.trim() : ''
-  if (metadataName) return metadataName
-
-  if (user.email?.trim()) return user.email.trim()
-  return 'Unknown'
 }
 
 export default function ExtensionBridge() {
