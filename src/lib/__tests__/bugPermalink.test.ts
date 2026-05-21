@@ -23,18 +23,23 @@ describe('buildBugPermalink', () => {
 })
 
 describe('copyToClipboard', () => {
-  test('returns true when clipboard write succeeds', async () => {
-    Object.assign(navigator, {
-      clipboard: { writeText: mock(() => Promise.resolve()) },
+  function mockClipboard(writeText: typeof navigator.clipboard.writeText) {
+    const proto = Object.getPrototypeOf(navigator)
+    Object.defineProperty(proto, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
     })
+  }
+
+  test('returns true when clipboard write succeeds', async () => {
+    mockClipboard(mock(() => Promise.resolve()))
     const result = await copyToClipboard('hello')
     expect(result).toBe(true)
   })
 
   test('returns false when clipboard write fails', async () => {
-    Object.assign(navigator, {
-      clipboard: { writeText: mock(() => Promise.reject(new Error('denied'))) },
-    })
+    mockClipboard(mock(() => Promise.reject(new Error('denied'))))
     const result = await copyToClipboard('hello')
     expect(result).toBe(false)
   })
