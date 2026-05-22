@@ -1,5 +1,7 @@
 import React from 'react'
 import { Megaphone, X } from 'lucide-react'
+import { playAiSound } from '../lib/audio'
+import { useUIStore } from '../lib/store'
 
 const DISMISSED_KEY = 'ai-banner-dismissed'
 
@@ -14,7 +16,10 @@ export default function AiBanner() {
   }
 
   const openAi = () => {
-    window.dispatchEvent(new CustomEvent('openAiAssistant'))
+    if (!useUIStore.getState().aiPanelOpen) {
+      playAiSound(true)
+      useUIStore.getState().openAiPanel()
+    }
     dismiss()
   }
 

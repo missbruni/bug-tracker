@@ -1,6 +1,7 @@
 import React from 'react'
 import { Sun, Moon } from 'lucide-react'
 import { playToggleSound } from '../lib/audio'
+import { useUIStore } from '../lib/store'
 
 const storedTheme = localStorage.getItem('theme')
 const initialDark = storedTheme ? storedTheme === 'dark' : true
@@ -13,7 +14,7 @@ export default function ThemeToggle() {
   React.useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
-    window.dispatchEvent(new CustomEvent('themechange', { detail: { dark: darkMode } }))
+    useUIStore.getState().setIsDark(darkMode)
   }, [darkMode])
 
   return (

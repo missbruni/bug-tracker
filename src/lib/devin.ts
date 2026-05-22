@@ -1,3 +1,5 @@
+import { useUIStore } from './store'
+
 const DEVIN_KEY_STORAGE = 'devin_api_key'
 
 export function getDevinApiKey(): string {
@@ -20,7 +22,7 @@ export function isValidDevinKey(key: string): boolean {
   return key.trim().startsWith('apk_user')
 }
 
-/** Dispatch this event from anywhere to open the settings sidebar */
+/** Open the settings sidebar from anywhere */
 export function openSettings(): void {
-  window.dispatchEvent(new CustomEvent('openSettings'))
+  useUIStore.getState().openSettings()
 }

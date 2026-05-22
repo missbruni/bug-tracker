@@ -2,6 +2,7 @@
 import { test, expect, describe, afterEach, beforeEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import AiBanner from '../AiBanner'
+import { useUIStore } from '../../lib/store'
 
 const DISMISSED_KEY = 'ai-banner-dismissed'
 
@@ -34,13 +35,12 @@ describe('AiBanner', () => {
     expect(localStorage.getItem(DISMISSED_KEY)).toBe('true')
   })
 
-  test('dismisses and dispatches event when Try now is clicked', () => {
-    let eventFired = false
-    window.addEventListener('openAiAssistant', () => { eventFired = true }, { once: true })
+  test('dismisses and opens AI panel when Try now is clicked', () => {
+    useUIStore.setState({ aiPanelOpen: false })
     render(<AiBanner />)
     fireEvent.click(screen.getByText('Try now'))
     expect(screen.queryByText(/New: AI Assistant/)).not.toBeInTheDocument()
     expect(localStorage.getItem(DISMISSED_KEY)).toBe('true')
-    expect(eventFired).toBe(true)
+    expect(useUIStore.getState().aiPanelOpen).toBe(true)
   })
 })

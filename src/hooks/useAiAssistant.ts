@@ -10,6 +10,7 @@ import { ensureTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
 import { useAuth, getUserDisplayName } from '../lib/useAuth'
 import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
+import { useBugFiltersStore, useSessionEventsStore } from '../lib/store'
 import type { Severity } from '../constants'
 import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult, BugFiltersActionPayload } from '../lib/aiTypes'
 
@@ -252,7 +253,7 @@ export default function useAiAssistant(open: boolean) {
         clear: action.clear,
       }
 
-      window.dispatchEvent(new CustomEvent<BugFiltersActionPayload>('setBugFiltersFromAi', { detail: payload }))
+      useBugFiltersStore.getState().setFiltersFromAi(payload)
       return {
         action: 'set_bug_filters',
         success: true,
@@ -331,13 +332,10 @@ export default function useAiAssistant(open: boolean) {
           sessionIdsToRefresh.add(result.sessionId)
         }
       }
-      // Dispatch outside React batch
       if (sessionIdsToRefresh.size > 0) {
-        setTimeout(() => {
-          for (const sid of sessionIdsToRefresh) {
-            window.dispatchEvent(new CustomEvent('sessionDataChanged', { detail: { sessionId: sid } }))
-          }
-        }, 0)
+        for (const sid of sessionIdsToRefresh) {
+          useSessionEventsStore.getState().notifySessionDataChanged(sid)
+        }
       }
 
       const assistantMessage: Message = {

@@ -9,6 +9,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import SoundToggle from "./components/SoundToggle";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { playAiSound } from "./lib/audio";
+import { useUIStore } from "./lib/store";
 import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth, getUserDisplayName } from "./lib/useAuth";
@@ -38,35 +39,18 @@ function Layout() {
 		() => localStorage.getItem("showBugs") !== "false",
 	);
 	const activeBugCount = useActiveBugCount();
-	const [settingsOpen, setSettingsOpen] = React.useState(false);
-	const [aiPanelOpen, setAiPanelOpen] = React.useState(
-		() => sessionStorage.getItem("aiPanelOpen") === "true",
-	);
-	const [aiPanelMounted, setAiPanelMounted] = React.useState(
-		() => sessionStorage.getItem("aiPanelOpen") === "true",
-	);
+	const settingsOpen = useUIStore((s) => s.settingsOpen);
+	const closeSettings = useUIStore((s) => s.closeSettings);
+	const aiPanelOpen = useUIStore((s) => s.aiPanelOpen);
+	const toggleAiPanel = useUIStore((s) => s.toggleAiPanel);
+	const closeAiPanel = useUIStore((s) => s.closeAiPanel);
+	const openSettings = useUIStore((s) => s.openSettings);
+	const [aiPanelMounted, setAiPanelMounted] = React.useState(aiPanelOpen);
 
 	React.useEffect(() => {
 		sessionStorage.setItem("aiPanelOpen", String(aiPanelOpen));
+		if (aiPanelOpen) setAiPanelMounted(true);
 	}, [aiPanelOpen]);
-
-	React.useEffect(() => {
-		if (aiPanelOpen) {
-			setAiPanelMounted(true);
-		}
-	}, [aiPanelOpen]);
-
-	React.useEffect(() => {
-		const handler = () => setSettingsOpen(true);
-		window.addEventListener("openSettings", handler);
-		return () => window.removeEventListener("openSettings", handler);
-	}, []);
-
-	React.useEffect(() => {
-		const handler = () => setAiPanelOpen((prev) => { playAiSound(prev === false); return !prev });
-		window.addEventListener("openAiAssistant", handler);
-		return () => window.removeEventListener("openAiAssistant", handler);
-	}, []);
 
 	React.useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -80,12 +64,14 @@ function Layout() {
 			}
 			if ((event.metaKey || event.ctrlKey) && event.key === "i") {
 				event.preventDefault();
-				setAiPanelOpen((prev) => { playAiSound(!prev); return !prev });
+				const wasOpen = useUIStore.getState().aiPanelOpen;
+				playAiSound(!wasOpen);
+				toggleAiPanel();
 			}
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
-	}, []);
+	}, [toggleAiPanel]);
 
 	const toggleBugs = () =>
 		setShowBugs((prev) => {
@@ -116,7 +102,7 @@ function Layout() {
 				activeTeamId={activeTeamId}
 				onTeamChange={setActiveTeamId}
 				showTeamsNav
-				onOpenSettings={() => setSettingsOpen(true)}
+				onOpenSettings={openSettings}
 				userDisplayName={userDisplayName}
 				userEmail={user?.email}
 				userAvatarUrl={userAvatarUrl}
@@ -139,7 +125,7 @@ function Layout() {
 				<Suspense fallback={null}>
 					<SettingsSidebar
 						open={settingsOpen}
-						onClose={() => setSettingsOpen(false)}
+						onClose={closeSettings}
 					/>
 				</Suspense>
 			)}
@@ -147,10 +133,10 @@ function Layout() {
 				<Suspense fallback={null}>
 					<AiAssistantPanel
 						open={aiPanelOpen}
-						onClose={() => setAiPanelOpen(false)}
+						onClose={closeAiPanel}
 						onOpenSettings={() => {
-							setAiPanelOpen(false);
-							setSettingsOpen(true);
+							closeAiPanel();
+							openSettings();
 						}}
 					/>
 				</Suspense>

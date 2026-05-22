@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient'
 import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
+import { useSessionEventsStore, useTeamEventsStore } from './store'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
 import { generateBugId, insertBugWithRetry } from './aiParsers'
 import type { Severity } from '../constants'
@@ -399,7 +400,7 @@ export async function executeSessionActionWithSession(
       if (sessionId === sid) {
         ctx.onSessionCreated(null as unknown as string) // clears current session
       }
-      window.dispatchEvent(new CustomEvent('sessionDeleted', { detail: { sessionId: sid } }))
+      useSessionEventsStore.getState().notifySessionDeleted(sid)
       return { action: 'delete_session', success: true, message: `Deleted session "${sessions[0].name}" and all its data` }
     }
 
@@ -798,7 +799,7 @@ export async function executeSessionAction(
     if (TEAM_ACTIONS.has(action.action)) {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
-      setTimeout(() => window.dispatchEvent(new CustomEvent('teamDataChanged')), 0)
+      useTeamEventsStore.getState().notifyTeamDataChanged()
     }
   }
   return result

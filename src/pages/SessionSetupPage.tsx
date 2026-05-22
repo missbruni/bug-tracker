@@ -13,6 +13,7 @@ import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { useSessionTimer } from '../lib/sessionTimer'
+import { useSessionEventsStore } from '../lib/store'
 import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../types'
 
 export default function SessionSetupPage() {
@@ -127,26 +128,22 @@ export default function SessionSetupPage() {
   }, [sessionId, activeTeamId, reloadCounter])
 
   // Reload when AI assistant modifies session data
+  const dataChangedVersion = useSessionEventsStore((s) => s.dataChangedVersion)
+  const dataChangedSessionId = useSessionEventsStore((s) => s.dataChangedSessionId)
   React.useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      if (!detail?.sessionId || detail.sessionId === sessionId) {
-        setReloadCounter((prev) => prev + 1)
-      }
+    if (dataChangedVersion === 0) return
+    if (!dataChangedSessionId || dataChangedSessionId === sessionId) {
+      setReloadCounter((prev) => prev + 1)
     }
-    window.addEventListener('sessionDataChanged', handler)
-    return () => window.removeEventListener('sessionDataChanged', handler)
-  }, [sessionId])
+  }, [dataChangedVersion, dataChangedSessionId, sessionId])
 
   // Navigate away if this session is deleted via AI
+  const deletedVersion = useSessionEventsStore((s) => s.deletedVersion)
+  const deletedSessionId = useSessionEventsStore((s) => s.deletedSessionId)
   React.useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      if (detail?.sessionId === sessionId) navigate('/sessions')
-    }
-    window.addEventListener('sessionDeleted', handler)
-    return () => window.removeEventListener('sessionDeleted', handler)
-  }, [sessionId, navigate])
+    if (deletedVersion === 0) return
+    if (deletedSessionId === sessionId) navigate('/sessions')
+  }, [deletedVersion, deletedSessionId, sessionId, navigate])
 
   const assignTester = async (scenarioId: string, testerId: string) => {
     if (!supabase || !sessionId) return

@@ -1,9 +1,10 @@
 import React from 'react'
 import { SEVERITIES } from '../constants'
 import { matchesDateFilter } from '../lib/dateFilter'
+import { useBugFiltersStore } from '../lib/store'
 import type { Bug, Question, SessionOption } from '../types'
 import type { Severity } from '../constants'
-import type { BugFiltersActionPayload } from '../lib/aiTypes'
+
 
 const VALID_SEVERITY_FILTERS = new Set(['all', 'critical', 'high', 'low', 'completed'])
 const ACTIVE_SEVERITY_FILTERS = ['critical', 'high', 'low'] as const
@@ -107,77 +108,74 @@ export function useBugFilters(bugs: Bug[], questions: Question[], sessions: Sess
 
   const testers = [...new Set(bugs.flatMap((b) => b.tester.split(', ')))].sort()
 
+  const bugFiltersVersion = useBugFiltersStore((s) => s.version)
+  const bugFiltersPayload = useBugFiltersStore((s) => s.payload)
+
   React.useEffect(() => {
-    const onSetBugFiltersFromAi = (event: Event) => {
-      const payload = (event as CustomEvent<BugFiltersActionPayload>).detail
-      if (!payload) return
+    if (!bugFiltersPayload) return
 
-      if (payload.clear) {
-        setSeverityFilter('all')
+    if (bugFiltersPayload.clear) {
+      setSeverityFilter('all')
+      setTesterFilter('all')
+      setDateFilter('all')
+      setSessionFilter('all')
+      setSortOrder('default')
+      setSearch('')
+    }
+
+    if (bugFiltersPayload.search !== undefined) {
+      setSearch(bugFiltersPayload.search.trim())
+    }
+
+    const severityValue = normalizeSeverityFilterValue([
+      ...parseSeverityTokens(bugFiltersPayload.severity),
+      ...parseSeverityTokens(bugFiltersPayload.severities),
+    ])
+    if (severityValue) {
+      setSeverityFilter(severityValue)
+    }
+
+    if (bugFiltersPayload.tester) {
+      const testerValue = bugFiltersPayload.tester.trim()
+      if (testerValue.toLowerCase() === 'all') {
         setTesterFilter('all')
-        setDateFilter('all')
-        setSessionFilter('all')
-        setSortOrder('default')
-        setSearch('')
-      }
-
-      if (payload.search !== undefined) {
-        setSearch(payload.search.trim())
-      }
-
-      const severityValue = normalizeSeverityFilterValue([
-        ...parseSeverityTokens(payload.severity),
-        ...parseSeverityTokens(payload.severities),
-      ])
-      if (severityValue) {
-        setSeverityFilter(severityValue)
-      }
-
-      if (payload.tester) {
-        const testerValue = payload.tester.trim()
-        if (testerValue.toLowerCase() === 'all') {
-          setTesterFilter('all')
-        } else {
-          const matchedTester = testers.find((testerName) => testerName.toLowerCase() === testerValue.toLowerCase())
-          if (matchedTester) {
-            setTesterFilter(matchedTester)
-          }
-        }
-      }
-
-      if (payload.date) {
-        const date = payload.date.trim().toLowerCase()
-        if (VALID_DATE_FILTERS.has(date)) {
-          setDateFilter(date)
-        }
-      }
-
-      if (payload.sort) {
-        const sort = payload.sort.trim().toLowerCase()
-        if (VALID_SORT_FILTERS.has(sort)) {
-          setSortOrder(sort)
-        }
-      }
-
-      if (payload.session) {
-        const sessionValue = payload.session.trim()
-        const normalized = sessionValue.toLowerCase()
-        if (normalized === 'all' || normalized === 'none') {
-          setSessionFilter(normalized)
-        } else {
-          const matchedSession =
-            sessions.find((s) => s.id === sessionValue) ||
-            sessions.find((s) => s.name.toLowerCase() === normalized)
-          if (matchedSession) {
-            setSessionFilter(matchedSession.id)
-          }
+      } else {
+        const matchedTester = testers.find((testerName) => testerName.toLowerCase() === testerValue.toLowerCase())
+        if (matchedTester) {
+          setTesterFilter(matchedTester)
         }
       }
     }
 
-    window.addEventListener('setBugFiltersFromAi', onSetBugFiltersFromAi)
-    return () => window.removeEventListener('setBugFiltersFromAi', onSetBugFiltersFromAi)
-  }, [sessions, testers])
+    if (bugFiltersPayload.date) {
+      const date = bugFiltersPayload.date.trim().toLowerCase()
+      if (VALID_DATE_FILTERS.has(date)) {
+        setDateFilter(date)
+      }
+    }
+
+    if (bugFiltersPayload.sort) {
+      const sort = bugFiltersPayload.sort.trim().toLowerCase()
+      if (VALID_SORT_FILTERS.has(sort)) {
+        setSortOrder(sort)
+      }
+    }
+
+    if (bugFiltersPayload.session) {
+      const sessionValue = bugFiltersPayload.session.trim()
+      const normalized = sessionValue.toLowerCase()
+      if (normalized === 'all' || normalized === 'none') {
+        setSessionFilter(normalized)
+      } else {
+        const matchedSession =
+          sessions.find((s) => s.id === sessionValue) ||
+          sessions.find((s) => s.name.toLowerCase() === normalized)
+        if (matchedSession) {
+          setSessionFilter(matchedSession.id)
+        }
+      }
+    }
+  }, [bugFiltersVersion, bugFiltersPayload, sessions, testers])
 
   const filtered = (() => {
     const selectedActiveSeverities = getSelectedActiveSeverities(severityFilter)

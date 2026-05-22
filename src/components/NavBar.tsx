@@ -5,7 +5,8 @@ import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
 import type { TeamRecord } from "../lib/teamScope";
 import { getFlySwatCursor } from "../lib/flySwatCursor";
-import { playToggleSound } from "../lib/audio";
+import { playToggleSound, playAiSound } from "../lib/audio";
+import { useUIStore } from "../lib/store";
 
 const NAV_ITEMS = [
 	{ to: "/", label: "Bugs", icon: Bug },
@@ -61,12 +62,7 @@ export default function NavBar({
 	const tabRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
 	const [indicatorStyle, setIndicatorStyle] = React.useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
-	const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'));
-	React.useEffect(() => {
-		const handler = (e: Event) => setIsDark((e as CustomEvent).detail.dark);
-		window.addEventListener('themechange', handler);
-		return () => window.removeEventListener('themechange', handler);
-	}, []);
+	const isDark = useUIStore((s) => s.isDark);
 
 	const activeIndex = navItems.findIndex(({ to }) =>
 		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
@@ -146,7 +142,7 @@ export default function NavBar({
 								</select>
 							)}
 							<button
-								onClick={() => window.dispatchEvent(new CustomEvent('openAiAssistant'))}
+								onClick={() => { const wasOpen = useUIStore.getState().aiPanelOpen; playAiSound(!wasOpen); useUIStore.getState().toggleAiPanel() }}
 								className="flex items-center gap-1.5 rounded-full border border-blue-500 dark:border-mushi-primary bg-blue-50 dark:bg-mushi-primary/10 px-2 sm:px-3 py-1 text-blue-600 dark:text-mushi-primary hover:bg-blue-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
 								title="AI Assistant (⌘I)"
 							>

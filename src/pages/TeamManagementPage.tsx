@@ -5,6 +5,7 @@ import TeamCard, { type Product, type ProductLink, type TeamStats } from '../com
 import TeamMembersModal from '../components/TeamMembersModal'
 import { useTeamAccess } from '../lib/teamAccess'
 import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
+import { useTeamEventsStore } from '../lib/store'
 import { supabase } from '../supabaseClient'
 import { TeamListSkeleton } from '../components/Skeleton'
 
@@ -75,13 +76,11 @@ export default function TeamManagementPage() {
   }, [teams.length, statsVersion])
 
   // Refresh when AI creates a team or product
+  const teamDataVersion = useTeamEventsStore((s) => s.version)
   React.useEffect(() => {
-    const handler = () => {
-      void refreshTeams()
-    }
-    window.addEventListener('teamDataChanged', handler)
-    return () => window.removeEventListener('teamDataChanged', handler)
-  }, [refreshTeams])
+    if (teamDataVersion === 0) return
+    void refreshTeams()
+  }, [teamDataVersion, refreshTeams])
 
   const handleAddProduct = async (teamId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {
     if (!supabase) return
