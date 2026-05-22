@@ -38,6 +38,7 @@ export default function SessionSetupPage() {
   const navigate = useNavigate()
   const { timer, elapsed, startTimer, pauseTimer, resumeTimer, stopTimer } = useSessionTimer()
   const isTimerForThis = timer?.sessionId === sessionId
+  const [timerError, setTimerError] = React.useState<string | null>(null)
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = React.useState(false)
@@ -573,7 +574,11 @@ export default function SessionSetupPage() {
                   </button>
                 )}
                 <button
-                  onClick={async () => { await stopTimer(); setReloadCounter((prev) => prev + 1) }}
+                  onClick={async () => {
+                    const r = await stopTimer()
+                    if (r.error) { setTimerError(r.error) }
+                    else { setTimerError(null); setReloadCounter((prev) => prev + 1) }
+                  }}
                   className="flex items-center gap-1.5 rounded-lg border border-red-300 dark:border-red-800 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                 >
                   <Square size={12} fill="currentColor" /> Stop
@@ -604,6 +609,13 @@ export default function SessionSetupPage() {
           </button>
         </div>
       </div>
+
+      {timerError && (
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-2 mb-4">
+          <span className="text-xs font-medium text-red-700 dark:text-red-400">{timerError}</span>
+          <button onClick={() => setTimerError(null)} className="text-xs font-bold text-red-500 hover:text-red-700 dark:hover:text-red-300 cursor-pointer">Dismiss</button>
+        </div>
+      )}
 
       {(session.status === 'active' || isCompleted) && (
         <SessionSummaryBanner

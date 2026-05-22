@@ -27,8 +27,8 @@ interface SessionTimerContextValue {
   pauseTimer: () => void
   /** Resume a paused timer */
   resumeTimer: () => void
-  /** Stop the timer and save duration to DB */
-  stopTimer: () => Promise<void>
+  /** Stop the timer and save duration to DB. Returns error string on failure. */
+  stopTimer: () => Promise<{ error?: string }>
   /** Discard the timer without saving */
   discardTimer: () => void
 }
@@ -40,7 +40,8 @@ function loadState(): TimerState | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     return JSON.parse(raw) as TimerState
-  } catch {
+  } catch (err) {
+    console.warn('[sessionTimer] corrupt localStorage, resetting:', err)
     return null
   }
 }
@@ -134,9 +135,9 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const stopTimer = async () => {
+  const stopTimer = async (): Promise<{ error?: string }> => {
     const current = timer
-    if (!current) return
+    if (!current) return {}
 
     // Calculate final duration
     let totalMs = current.accumulated
@@ -147,14 +148,24 @@ export function SessionTimerProvider({ children }: { children: ReactNode }) {
 
     // Save to DB
     if (supabase) {
-      await scopeToTeam(
-        supabase.from('sessions').update({ duration_seconds: durationSeconds }).eq('id', current.sessionId),
-        activeTeamId,
-      )
+      try {
+        const { error } = await scopeToTeam(
+          supabase.from('sessions').update({ duration_seconds: durationSeconds }).eq('id', current.sessionId),
+          activeTeamId,
+        )
+        if (error) {
+          console.error('[stopTimer] Failed to save duration:', error.message)
+          return { error: `Failed to save duration: ${error.message}` }
+        }
+      } catch (err) {
+        console.error('[stopTimer] Network error:', err)
+        return { error: 'Network error — duration not saved. Please try again.' }
+      }
     }
 
-    // Clear timer
+    // Only clear timer after successful save
     setTimer(null)
+    return {}
   }
 
   const discardTimer = () => {

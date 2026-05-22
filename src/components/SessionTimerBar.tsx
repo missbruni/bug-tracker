@@ -33,6 +33,7 @@ function formatTimer(ms: number): string {
 export default function SessionTimerBar() {
   const { timer, elapsed, pauseTimer, resumeTimer, stopTimer, discardTimer } = useSessionTimer()
   const [showStopConfirm, setShowStopConfirm] = React.useState(false)
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
   const [bump, setBump] = React.useState(false)
   const prevMinutes = React.useRef(-1)
 
@@ -54,6 +55,17 @@ export default function SessionTimerBar() {
   return (
     <>
       <div className="sticky top-[var(--navbar-h)] z-40 border-b border-blue-200 dark:border-mushi-outline bg-blue-50 dark:bg-mushi-neutral">
+        {errorMsg && (
+          <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-4 sm:px-7 py-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-red-700 dark:text-red-400">{errorMsg}</span>
+            <button
+              onClick={() => setErrorMsg(null)}
+              className="text-xs font-bold text-red-500 hover:text-red-700 dark:hover:text-red-300 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-7 py-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <TickingClock animate={isRunning} />
@@ -121,8 +133,14 @@ export default function SessionTimerBar() {
           title="Stop session timer?"
           confirmLabel="Stop & save duration"
           onConfirm={async () => {
-            await stopTimer()
-            setShowStopConfirm(false)
+            const result = await stopTimer()
+            if (result.error) {
+              setErrorMsg(result.error)
+              setShowStopConfirm(false)
+            } else {
+              setErrorMsg(null)
+              setShowStopConfirm(false)
+            }
           }}
           onCancel={() => setShowStopConfirm(false)}
         >
