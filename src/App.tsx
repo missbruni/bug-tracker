@@ -184,10 +184,15 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                             restoreBug(deletedBug)
                           },
                         })
-                        deleteTimer.current = setTimeout(() => {
-                          void hardDelete()
+                        deleteTimer.current = setTimeout(async () => {
+                          const success = await hardDelete()
+                          if (!success) {
+                            restoreBug(deletedBug)
+                            setSnackbar({ message: `Failed to delete "${deletedBug.title}". It has been restored.`, tone: 'error' })
+                            snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
+                          }
                         }, 5000)
-                        snackbarTimer.current = setTimeout(() => setSnackbar(null), 5000)
+                        snackbarTimer.current = setTimeout(() => setSnackbar(null), 5500)
                       }}
                       onPersistError={showPersistError}
                       onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
