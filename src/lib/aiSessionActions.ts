@@ -336,32 +336,24 @@ export async function executeSessionActionWithSession(
     case 'delete_scenarios': {
       const letters = action.scenarios?.map(l => l.trim().toUpperCase()).filter(Boolean)
       if (!letters?.length || !sessionId) return { action: 'delete_scenarios', success: false, message: !sessionId ? 'No session in context' : 'Scenario letters required' }
-      const deleted: string[] = []
-      const notFound: string[] = []
-      for (const letter of letters) {
-        const { data: scenarios } = await scopeToTeam(
-          supabase
-            .from('scenarios')
-            .select('id, letter')
-            .eq('session_id', sessionId)
-            .ilike('letter', letter)
-            .limit(1),
-          activeTeamId,
-        )
-        if (scenarios?.length) {
-          await scopeToTeam(
-            supabase.from('assignments').delete().eq('scenario_id', scenarios[0].id),
-            activeTeamId,
-          )
-          await scopeToTeam(
-            supabase.from('scenarios').delete().eq('id', scenarios[0].id),
-            activeTeamId,
-          )
-          deleted.push(scenarios[0].letter)
-        } else {
-          notFound.push(letter)
-        }
+
+      // Bulk-fetch all matching scenarios in one query
+      const { data: matchedScenarios } = await scopeToTeam(
+        supabase.from('scenarios').select('id, letter').eq('session_id', sessionId),
+        activeTeamId,
+      )
+      const found = (matchedScenarios || []).filter(s => letters.includes(s.letter.toUpperCase()))
+      const foundLetters = new Set(found.map(s => s.letter.toUpperCase()))
+      const notFound = letters.filter(l => !foundLetters.has(l))
+
+      if (found.length) {
+        const scenarioIds = found.map(s => s.id)
+        // Bulk delete assignments and scenarios
+        await scopeToTeam(supabase.from('assignments').delete().in('scenario_id', scenarioIds), activeTeamId)
+        await scopeToTeam(supabase.from('scenarios').delete().in('id', scenarioIds), activeTeamId)
       }
+
+      const deleted = found.map(s => s.letter)
       const parts: string[] = []
       if (deleted.length) parts.push(`Deleted scenario${deleted.length > 1 ? 's' : ''} ${deleted.join(', ')}`)
       if (notFound.length) parts.push(`${notFound.join(', ')} not found`)

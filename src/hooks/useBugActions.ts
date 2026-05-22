@@ -242,22 +242,31 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
   }
 
   const uploadFiles = async (files: File[]) => {
-    const newAttachments: Attachment[] = []
-    for (const file of files) {
-      if (supabase) {
-        const storagePath = buildAttachmentPath(activeTeamId, bug.id, file.name)
-        const { error } = await supabase.storage.from('attachments').upload(storagePath, file)
-        if (!error) {
-          const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(storagePath)
-          const { data: row } = await supabase
-            .from('attachments')
-            .insert(withTeamPayload({ bug_id: bug.id, name: file.name, url: urlData.publicUrl, type: file.type }, activeTeamId))
-            .select()
-          if (row?.[0]) newAttachments.push(row[0])
-        }
+    let newAttachments: Attachment[]
+    if (supabase) {
+      // Upload all files in parallel, then bulk-insert attachment rows
+      const sb = supabase
+      const uploadResults = await Promise.all(
+        files.map(async (file) => {
+          const storagePath = buildAttachmentPath(activeTeamId, bug.id, file.name)
+          const { error } = await sb.storage.from('attachments').upload(storagePath, file)
+          if (error) return null
+          const { data: urlData } = sb.storage.from('attachments').getPublicUrl(storagePath)
+          return { bug_id: bug.id, name: file.name, url: urlData.publicUrl, type: file.type }
+        }),
+      )
+      const validUploads = uploadResults.filter(Boolean) as { bug_id: string; name: string; url: string; type: string }[]
+      if (validUploads.length) {
+        const { data: rows } = await sb
+          .from('attachments')
+          .insert(validUploads.map(u => withTeamPayload(u, activeTeamId)))
+          .select()
+        newAttachments = (rows || []) as Attachment[]
       } else {
-        newAttachments.push({ name: file.name, url: URL.createObjectURL(file), type: file.type })
+        newAttachments = []
       }
+    } else {
+      newAttachments = files.map(file => ({ name: file.name, url: URL.createObjectURL(file), type: file.type }))
     }
     if (newAttachments.length) {
       onUpdate({ ...bug, attachments: [...bug.attachments, ...newAttachments] })

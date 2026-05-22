@@ -38,52 +38,55 @@ async function fetchSessions(activeTeamId: string | null): Promise<Session[]> {
 		activeTeamId,
 	);
 
-	if (!sessionsData) return [];
+	if (!sessionsData?.length) return [];
 
-	const enriched: Session[] = [];
-	for (const sessionRow of sessionsData) {
-		const { count: scCount } = await scopeToTeam(
-			supabase
-				.from("scenarios")
-				.select("*", { count: "exact", head: true })
-				.eq("session_id", sessionRow.id),
+	const sessionIds = sessionsData.map((s) => s.id);
+	const completedIds = sessionsData.filter((s) => s.status === "completed").map((s) => s.id);
+
+	// Bulk-fetch counts and feedback in 3 parallel queries instead of per-session
+	const [scenarioRes, assignmentRes, feedbackRes] = await Promise.all([
+		scopeToTeam(
+			supabase.from("scenarios").select("session_id").in("session_id", sessionIds),
 			activeTeamId,
-		);
-		const { count: asCount } = await scopeToTeam(
-			supabase
-				.from("assignments")
-				.select("*", { count: "exact", head: true })
-				.eq("session_id", sessionRow.id),
+		),
+		scopeToTeam(
+			supabase.from("assignments").select("session_id").in("session_id", sessionIds),
 			activeTeamId,
-		);
-		let feedbackAvg = 0;
-		let feedbackCount = 0;
-		if (sessionRow.status === "completed") {
-			const { data: fbData } = await scopeToTeam(
-				supabase
-					.from("session_feedback")
-					.select("rating")
-					.eq("session_id", sessionRow.id),
-				activeTeamId,
-			);
-			if (fbData && fbData.length) {
-				feedbackCount = fbData.length;
-				feedbackAvg =
-					fbData.reduce(
-						(sum: number, feedbackRow: { rating: number }) => sum + feedbackRow.rating,
-						0,
-					) / fbData.length;
-			}
-		}
-		enriched.push({
-			...sessionRow,
-			scenario_count: scCount ?? 0,
-			assignment_count: asCount ?? 0,
-			feedback_avg: feedbackAvg,
-			feedback_count: feedbackCount,
-		} as Session);
+		),
+		completedIds.length
+			? scopeToTeam(
+					supabase.from("session_feedback").select("session_id, rating").in("session_id", completedIds),
+					activeTeamId,
+				)
+			: { data: [] },
+	]);
+
+	// Build count maps
+	const scenarioCounts = new Map<string, number>();
+	for (const row of scenarioRes.data || []) {
+		scenarioCounts.set(row.session_id, (scenarioCounts.get(row.session_id) || 0) + 1);
 	}
-	return enriched;
+	const assignmentCounts = new Map<string, number>();
+	for (const row of assignmentRes.data || []) {
+		assignmentCounts.set(row.session_id, (assignmentCounts.get(row.session_id) || 0) + 1);
+	}
+	const feedbackBySession = new Map<string, number[]>();
+	for (const row of (feedbackRes.data || []) as { session_id: string; rating: number }[]) {
+		const arr = feedbackBySession.get(row.session_id) || [];
+		arr.push(row.rating);
+		feedbackBySession.set(row.session_id, arr);
+	}
+
+	return sessionsData.map((sessionRow) => {
+		const ratings = feedbackBySession.get(sessionRow.id) || [];
+		return {
+			...sessionRow,
+			scenario_count: scenarioCounts.get(sessionRow.id) || 0,
+			assignment_count: assignmentCounts.get(sessionRow.id) || 0,
+			feedback_avg: ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
+			feedback_count: ratings.length,
+		} as Session;
+	});
 }
 
 export default function SessionsListPage() {
