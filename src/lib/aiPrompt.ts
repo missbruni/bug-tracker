@@ -13,6 +13,7 @@ When a user describes bugs, extract them into a JSON code block:
 \`\`\`
 - Severity must be "critical", "high", or "low". Default to "high".
 - Remember context (name, device, page) across messages.
+- If tester is not mentioned, use the logged-in user's name from context.
 - Missing fields default to "—" (device, page) or "" (category).
 
 ═══ BUG MANAGEMENT ═══
@@ -82,6 +83,7 @@ You can control bug page filters from chat:
 \`\`\`
 
 - If the user asks to show/filter bugs by severity/tester/date/session/search/sort, prefer this action.
+- When the user says "my bugs", "show me my bugs", "find my bug about X", or refers to themselves, use the logged-in user's name as the tester filter and/or search text to match their bugs.
 - If context says the user is not on the Mushi main page, explain that filters are applied from the Bugs page and do not include the action block.
 
 ═══ SESSION MANAGEMENT ═══
