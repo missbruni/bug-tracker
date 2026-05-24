@@ -200,20 +200,20 @@ export default function SessionSetupPage() {
     }
 
     try {
-      // Delete existing non-locked assignments
-      const toDelete = assignments.filter(a => !lockedScenarioIds.has(a.scenario_id))
-      for (const a of toDelete) {
-        await scopeToTeam(supabase.from('assignments').delete().eq('id', a.id), activeTeamId)
+      // Bulk delete existing non-locked assignments
+      const toDeleteIds = assignments.filter(a => !lockedScenarioIds.has(a.scenario_id)).map(a => a.id)
+      if (toDeleteIds.length) {
+        await scopeToTeam(supabase.from('assignments').delete().in('id', toDeleteIds), activeTeamId)
       }
 
-      // Create new assignments
+      // Bulk insert new assignments
       const newAssignments: Assignment[] = [...lockedAssignments]
-      for (let i = 0; i < unlockedScenarios.length && i < shuffled.length; i++) {
-        const { data } = await supabase
-          .from('assignments')
-          .insert(withTeamPayload({ session_id: sessionId, scenario_id: unlockedScenarios[i].id, tester_id: shuffled[i].id }, activeTeamId))
-          .select()
-        if (data?.[0]) newAssignments.push(data[0] as Assignment)
+      const insertPayloads = unlockedScenarios.slice(0, shuffled.length).map((sc, i) =>
+        withTeamPayload({ session_id: sessionId, scenario_id: sc.id, tester_id: shuffled[i].id }, activeTeamId),
+      )
+      if (insertPayloads.length) {
+        const { data } = await supabase.from('assignments').insert(insertPayloads).select()
+        if (data) newAssignments.push(...(data as Assignment[]))
       }
       setAssignments(newAssignments)
     } finally {

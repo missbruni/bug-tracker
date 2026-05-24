@@ -115,17 +115,18 @@ export default function useAiAssistant(open: boolean) {
         activeTeamId,
       )
       if (sessions?.length) {
-        const sessionList: string[] = []
-        for (const s of sessions) {
-          const { count } = await scopeToTeam(
-            supabase
-              .from('scenarios')
-              .select('*', { count: 'exact', head: true })
-              .eq('session_id', s.id),
-            activeTeamId,
-          )
-          sessionList.push(`${s.name} [${s.status}] (${count ?? 0} scenarios)`)
+        const sessionIds = sessions.map(s => s.id)
+        const { data: scenarioRows } = await scopeToTeam(
+          supabase.from('scenarios').select('session_id').in('session_id', sessionIds),
+          activeTeamId,
+        )
+        const scenarioCounts = new Map<string, number>()
+        for (const row of scenarioRows || []) {
+          scenarioCounts.set(row.session_id, (scenarioCounts.get(row.session_id) || 0) + 1)
         }
+        const sessionList = sessions.map(s =>
+          `${s.name} [${s.status}] (${scenarioCounts.get(s.id) ?? 0} scenarios)`,
+        )
         parts.push(`Recent sessions:\n${sessionList.map((s, i) => `${i + 1}. ${s}`).join('\n')}`)
       }
 
