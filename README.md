@@ -95,8 +95,6 @@ supabase db pull baseline_public
 supabase db pull baseline_auth_storage --schema auth,storage
 ```
 
-Use `supabase/legacy/` only as historical reference for old manual SQL-editor scripts. Do not add new schema changes there.
-
 Avoid direct production SQL edits; if an emergency edit is made, backfill it into a migration file immediately after.
 
 ## Staging (Preview Deployments)
@@ -123,25 +121,14 @@ This app is hosted on Vercel and uses a Vercel Function for AI proxying.
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_ALLOWED_EMAIL_DOMAIN`
    - `VITE_MS_LOGIN_ENABLED` (`true` to enable Microsoft login button, default `false`)
-   - `TEAM_PIN`
-   - `GOD_PIN`
-   - `PIN_SESSION_SECRET`
    - `BACKLOG_WEBHOOK_URL` (optional, defaults to hosted n8n endpoint)
    - `BACKLOG_ALLOWED_HOSTS` (optional host allowlist for `BACKLOG_WEBHOOK_URL`, default `n8n.dev.ax.accessacloud.com`)
    - `BACKLOG_WEBHOOK_SECRET` (optional shared secret header value for n8n)
    - `BACKLOG_WEBHOOK_SECRET_HEADER` (optional header name, default `x-mushi-webhook-secret`)
    - `PUBLISH_RATE_LIMIT_MAX` / `PUBLISH_RATE_LIMIT_WINDOW_SECONDS` (optional publish endpoint throttling)
-   - `PIN_RATE_LIMIT_MAX` / `PIN_RATE_LIMIT_WINDOW_SECONDS` (optional global PIN attempt throttling)
-   - `PIN_FAILED_ATTEMPTS_MAX` / `PIN_FAILED_ATTEMPTS_WINDOW_SECONDS` / `PIN_FAILED_COOLDOWN_SECONDS` (optional PIN brute-force cooldown)
    - `AI_PROXY_ALLOWED_HOSTS` (comma-separated host allowlist, e.g. `api.openai.com,*.openai.azure.com`)
    - `VITE_PRESENTATION_PIN`
 4. In Supabase Auth settings, add your Vercel production URL to allowed redirect URLs.
-
-## PIN Auth
-
-- PIN access is verified server-side by Vercel Functions (`api/auth/pin.ts`, `api/auth/session.ts`, `api/auth/logout.ts`).
-- PIN values are read from server-only environment variables: `TEAM_PIN` and `GOD_PIN`.
-- Session cookies are signed with `PIN_SESSION_SECRET` and stored as `HttpOnly` cookies.
 
 ## AI Proxy
 
@@ -164,7 +151,6 @@ The repository now includes a Chrome extension in `extension/` for quick bug cap
 ### Configure once
 
 - Open Mushi production (`https://mushi-navy.vercel.app/`) in at least one tab so the extension can reuse the active session
-- Ensure your Supabase project includes `products.link` and `products.description` columns (legacy manual script: `supabase/legacy/products_link_description_migration.sql`)
 
 ### Capture flow
 
