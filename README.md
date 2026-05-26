@@ -19,54 +19,98 @@ Mushi (虫) is a real-time bug tracking tool built for QA testing sessions. Log 
 
 ## Local Development
 
+### Prerequisites
+
+- [Bun](https://bun.sh/)
+- [Docker](https://www.docker.com/) (for local Supabase)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
+
+### Quick start
+
 1. Install dependencies:
 
    ```bash
    bun install
    ```
 
-2. Create a local `.env` with:
-
-   ```
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key
-   VITE_ALLOWED_EMAIL_DOMAIN=theaccessgroup.com
-   VITE_MS_LOGIN_ENABLED=false
-   VITE_PRESENTATION_PIN=your-session-pin
-   ```
-
-3. Run the app:
+2. Run the app (connects to **staging** Supabase by default):
 
    ```bash
    bun run dev
    ```
 
-## Database Migrations (baseline setup)
-
-Schema changes are moving to Supabase CLI migrations in `supabase/migrations` as the source of truth.
-
-1. Install Supabase CLI and Docker.
-2. Link to production (one-time for baseline capture):
+   Or run against a **local** Supabase (auto-starts Docker containers if needed):
 
    ```bash
-   supabase login
-   supabase link --project-ref <PROD_PROJECT_REF>
+   bun run dev:local
    ```
 
-3. Pull baseline migrations from the current production schema:
+### Environment files
 
-   ```bash
-   bun run db:baseline:pull
-   bun run db:baseline:pull:auth-storage
-   ```
+| File | Committed | Loaded by | Purpose |
+|---|---|---|---|
+| `.env.staging` | Yes | `bun run dev` | Staging Supabase URL + anon key |
+| `.env.localdb` | Yes | `bun run dev:local` | Local Supabase defaults |
+| `.env.local` | No (gitignored) | Always | Personal overrides |
 
-4. Commit generated migration files in `supabase/migrations`.
+### Database scripts
+
+| Command | Description |
+|---|---|
+| `bun run db:reset` | Reset DB, re-apply migrations and seed data |
+| `bun run db:migration:new <name>` | Create a new migration file |
+| `supabase stop` | Stop local Supabase containers |
+
+### Seed data
+
+`supabase/seed.sql` creates a default team, org, and sample testers so you can start developing immediately with `dev:local`.
+
+## Database Migrations
+
+Schema changes live in `supabase/migrations/` as the source of truth.
+
+### Creating a new migration
+
+```bash
+bun run db:migration:new my_change_description
+# edit supabase/migrations/<timestamp>_my_change_description.sql
+bun run db:reset   # verify locally
+```
+
+### CI pipeline
+
+Migrations flow through CI automatically:
+
+1. **PR** — `db_dry_run` validates migrations against the linked project
+2. **Merge to main** — `db_apply_staging` applies to staging, then `db_apply_prod` applies to production (with manual approval gate)
+
+### Baseline setup (one-time, already done)
+
+The baseline was captured from production. If you ever need to re-pull:
+
+```bash
+supabase login
+supabase link --project-ref <PROD_PROJECT_REF>
+supabase db pull baseline_public
+supabase db pull baseline_auth_storage --schema auth,storage
+```
 
 Use `supabase/legacy/` only as historical reference for old manual SQL-editor scripts. Do not add new schema changes there.
 
 Avoid direct production SQL edits; if an emergency edit is made, backfill it into a migration file immediately after.
 
-## Deploying to Vercel
+## Staging (Preview Deployments)
+
+Every PR automatically gets a Vercel preview deployment connected to the **staging** Supabase database. The preview URL is posted as a comment on the PR.
+
+### Required GitHub Secrets for previews
+
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+- `VITE_SUPABASE_STAGING_URL` — staging Supabase project URL
+- `VITE_SUPABASE_STAGING_ANON_KEY` — staging Supabase anon key
+- `VITE_ALLOWED_EMAIL_DOMAIN`
+
+## Deploying to Vercel (Production)
 
 This app is hosted on Vercel and uses a Vercel Function for AI proxying.
 

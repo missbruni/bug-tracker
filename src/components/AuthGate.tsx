@@ -14,6 +14,7 @@ export default function AuthGate({ children }: AuthGateProps) {
     authError,
     allowedEmailDomain,
     signInWithMicrosoft,
+    signInWithEmail,
   } = useAuth();
 
   if (!supabase) {
@@ -50,6 +51,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
   return (
     <LoginScreen
       onMicrosoftSignIn={signInWithMicrosoft}
+      onEmailSignIn={signInWithEmail}
       error={authError}
       allowedEmailDomain={allowedEmailDomain}
     />

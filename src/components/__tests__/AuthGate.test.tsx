@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 
 const clearAuthError = mock(() => {})
 const signInWithMicrosoft = mock(async () => {})
+const signInWithEmail = mock(async (_email: string, _password: string) => {})
 
 const authState: {
   loading: boolean
@@ -13,6 +14,7 @@ const authState: {
   allowedEmailDomain: string
   allowedEmailDomains: string[]
   signInWithMicrosoft: () => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<void>
   clearAuthError: () => void
 } = {
   loading: false,
@@ -21,6 +23,7 @@ const authState: {
   allowedEmailDomain: 'theaccessgroup.com',
   allowedEmailDomains: ['theaccessgroup.com'],
   signInWithMicrosoft,
+  signInWithEmail,
   clearAuthError,
 }
 
@@ -37,12 +40,14 @@ const { default: AuthGate } = await import('../AuthGate')
 beforeEach(() => {
   clearAuthError.mockClear()
   signInWithMicrosoft.mockClear()
+  signInWithEmail.mockClear()
 
   authState.loading = false
   authState.session = null
   authState.authError = null
   authState.allowedEmailDomain = 'theaccessgroup.com'
   authState.signInWithMicrosoft = signInWithMicrosoft
+  authState.signInWithEmail = signInWithEmail
 })
 
 afterEach(() => cleanup())

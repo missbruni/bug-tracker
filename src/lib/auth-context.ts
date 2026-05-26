@@ -9,6 +9,7 @@ export interface AuthContextValue {
   allowedEmailDomain: string;
   allowedEmailDomains: string[];
   signInWithMicrosoft: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   clearAuthError: () => void;
 }
