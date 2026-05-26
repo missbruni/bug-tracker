@@ -41,6 +41,25 @@ export interface Bug {
   attachments: Attachment[]
 }
 
+export type BugActivityAction =
+  | 'created'
+  | 'edited'
+  | 'severity_changed'
+  | 'reviewed'
+  | 'reopened'
+  | 'comment_added'
+  | 'published'
+
+export interface BugActivity {
+  id: number
+  bug_id: string
+  team_id?: string
+  action: BugActivityAction
+  description: string
+  actor: string | null
+  created_at: string
+}
+
 export interface Question {
   id: string
   team_id?: string

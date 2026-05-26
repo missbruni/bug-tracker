@@ -19,6 +19,7 @@ import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../hooks/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
+import BugActivityTimeline from "./BugActivityTimeline";
 import { buildBugPermalink, copyToClipboard } from "../lib/bugPermalink";
 import type { Bug } from "../types";
 
@@ -33,6 +34,9 @@ interface BugCardProps {
 	onLinkCopied?: (bugId: string) => void;
 	initialEditing?: boolean;
 	onEditingChange?: (editing: boolean) => void;
+	selectionMode?: boolean;
+	selected?: boolean;
+	onToggleSelect?: (bugId: string) => void;
 }
 
 export default function BugCard({
@@ -46,6 +50,9 @@ export default function BugCard({
 	onLinkCopied,
 	initialEditing = false,
 	onEditingChange,
+	selectionMode = false,
+	selected = false,
+	onToggleSelect,
 }: BugCardProps) {
 	const [expanded, setExpanded] = React.useState(initialEditing);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
@@ -163,6 +170,23 @@ export default function BugCard({
 			}}
 		>
 			<div className="flex items-center">
+				{selectionMode && (
+					<button
+						onClick={() => onToggleSelect?.(bug.id)}
+						className="shrink-0 pl-4 pr-1 py-3 cursor-pointer transition-colors"
+						title={selected ? 'Deselect' : 'Select'}
+					>
+						<div className={`w-4 h-4 rounded border-2 transition-colors flex items-center justify-center ${
+							selected
+								? 'bg-blue-500 dark:bg-mushi-primary border-blue-500 dark:border-mushi-primary'
+								: 'border-slate-300 dark:border-gray-600'
+						}`}>
+							{selected && (
+								<Check size={10} className="text-white dark:text-mushi-bg" />
+							)}
+						</div>
+					</button>
+				)}
 				<button
 					onClick={actions.toggleReviewed}
 					className={`shrink-0 pl-4 pr-1 py-3 cursor-pointer transition-colors ${bug.reviewed ? "text-green-500" : "text-slate-300 dark:text-gray-600 hover:text-green-400"}`}
@@ -392,6 +416,8 @@ export default function BugCard({
 							))}
 						</div>
 					)}
+
+					<BugActivityTimeline bugId={bug.id} />
 
 					<div className="flex flex-col sm:flex-row sm:items-center gap-2">
 						<button
