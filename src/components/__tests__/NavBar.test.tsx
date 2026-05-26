@@ -72,11 +72,14 @@ describe('NavBar', () => {
     expect(screen.getByTestId('child-el')).toBeInTheDocument()
   })
 
-  test('renders and triggers logout button when provided', () => {
+  test('logout is accessible via profile dropdown', () => {
     const onLogout = mock(() => {})
-    renderNavBar({ onLogout })
+    renderNavBar({ onLogout, userDisplayName: 'Bruna Lima', userEmail: 'bruna@example.com' })
 
-    const logoutBtn = screen.getByTitle('Logout')
+    const profileBtn = screen.getAllByLabelText('Profile menu')[0]
+    fireEvent.click(profileBtn)
+
+    const logoutBtn = screen.getAllByText('Logout')[0]
     fireEvent.click(logoutBtn)
 
     expect(onLogout).toHaveBeenCalledTimes(1)
@@ -99,6 +102,7 @@ describe('NavBar', () => {
       userAvatarUrl: 'https://example.com/avatar.png',
     })
 
-    expect(screen.getByRole('img', { name: 'Bruna Lima avatar' })).toBeInTheDocument()
+    const avatars = screen.getAllByRole('img', { name: 'Bruna Lima avatar' })
+    expect(avatars.length).toBeGreaterThanOrEqual(1)
   })
 })
