@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode staging",
+    "dev:local": "supabase status > /dev/null 2>&1 || supabase start && vite --mode localdb",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -12,9 +13,8 @@
     "lint:fix": "eslint src/ --fix --max-warnings 0",
     "prepare": "husky",
     "test": "bun test",
-    "db:baseline:pull": "supabase db pull baseline_public",
-    "db:baseline:pull:auth-storage": "supabase db pull baseline_auth_storage --schema auth,storage",
-    "db:migration:list": "supabase migration list"
+    "db:reset": "supabase db reset",
+    "db:migration:new": "supabase migration new"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

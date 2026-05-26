@@ -34,3 +34,27 @@
 - `SUPABASE_ACCESS_TOKEN`
 - `SUPABASE_DB_PASSWORD`
 - `SUPABASE_PROJECT_ID`
+
+## Vercel Preview Deployments (staging)
+
+- PRs get automatic Vercel preview deployments via the `deploy_preview` CI job.
+- Preview builds use staging Supabase env vars.
+- The preview URL is posted as a PR comment (updated on subsequent pushes).
+
+### Required Secrets for preview deployments
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
+- `VITE_SUPABASE_STAGING_URL`
+- `VITE_SUPABASE_STAGING_ANON_KEY`
+- `VITE_ALLOWED_EMAIL_DOMAIN`
+
+## Local Development
+
+- `bun run dev` — runs against **staging** Supabase (env from `.env.staging`).
+- `bun run dev:local` — runs against **local** Supabase (env from `.env.localdb`); auto-starts Docker containers if not running.
+- Seed data is applied automatically on `db:start` / `db:reset` (see `supabase/seed.sql`).
+- Convenience scripts: `db:reset`, `db:migration:new`. Use `supabase stop` to stop containers.
+- Vite uses `--mode staging` / `--mode localdb` to load the correct env file. Personal overrides go in `.env.local` (gitignored).
+- Analytics container is disabled in `supabase/config.toml` for Colima/Docker compatibility.

@@ -158,6 +158,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    if (!supabase) {
+      setAuthError(
+        "Supabase credentials are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+      );
+      return;
+    }
+
+    setAuthError(null);
+
+    // Try sign in first; if user doesn't exist, sign up then sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        setAuthError(signUpError.message);
+        return;
+      }
+
+      const { error: retryError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (retryError) {
+        setAuthError(retryError.message);
+      }
+    }
+  };
+
   const signOut = async () => {
     if (!supabase) return;
 
@@ -180,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     allowedEmailDomain,
     allowedEmailDomains,
     signInWithMicrosoft,
+    signInWithEmail,
     signOut,
     clearAuthError: () => setAuthError(null),
   };
