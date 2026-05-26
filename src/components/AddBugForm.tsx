@@ -32,9 +32,10 @@ interface AddBugFormProps {
   testers: Array<Pick<Tester, 'id' | 'name'>>
   sessions?: SessionOption[]
   activeSessionId?: string | null
+  variant?: 'card' | 'sheet'
 }
 
-export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, testers, sessions = [], activeSessionId = null }: AddBugFormProps) {
+export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, testers, sessions = [], activeSessionId = null, variant = 'card' }: AddBugFormProps) {
   const [title, setTitle] = React.useState('')
   const [desc, setDesc] = React.useState('')
   const [severity, setSeverity] = React.useState<Severity>('high')
@@ -118,7 +119,7 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
   }
 
   return (
-    <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5" onPaste={handlePaste}>
+    <div className={variant === 'card' ? 'mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5' : ''} onPaste={handlePaste}>
       <h3 className="text-base font-bold text-slate-900 dark:text-gray-100 mb-3.5">Add New Bug</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Bug title *"

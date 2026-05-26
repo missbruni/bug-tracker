@@ -7,6 +7,7 @@ import BugCard from './components/BugCard'
 import AddBugForm from './components/AddBugForm'
 import FilterBar from './components/FilterBar'
 import QuestionsSection from './components/QuestionsSection'
+import BottomSheet from './components/BottomSheet'
 import SecondaryAppBar from './components/SecondaryAppBar'
 import PageLoader from './components/PageLoader'
 import { BugListSkeleton } from './components/Skeleton'
@@ -143,16 +144,37 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           <BugListSkeleton />
         ) : (
           <>
+            {/* Desktop: inline form */}
             {showAddForm && (
-              <AddBugForm
-                onAdd={addBug}
-                onAddTester={addTester}
-                onCancel={() => setShowAddForm(false)}
-                nextIds={nextIds}
-                testers={registeredTesters}
-                sessions={sessions}
-                activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
-              />
+              <div className="hidden md:block">
+                <AddBugForm
+                  onAdd={addBug}
+                  onAddTester={addTester}
+                  onCancel={() => setShowAddForm(false)}
+                  nextIds={nextIds}
+                  testers={registeredTesters}
+                  sessions={sessions}
+                  activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+                />
+              </div>
+            )}
+
+            {/* Mobile: bottom sheet */}
+            {showAddForm && (
+              <div className="md:hidden">
+                <BottomSheet onClose={() => setShowAddForm(false)}>
+                  <AddBugForm
+                    variant="sheet"
+                    onAdd={addBug}
+                    onAddTester={addTester}
+                    onCancel={() => setShowAddForm(false)}
+                    nextIds={nextIds}
+                    testers={registeredTesters}
+                    sessions={sessions}
+                    activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+                  />
+                </BottomSheet>
+              </div>
             )}
 
             {SEVERITIES.map((s) => {

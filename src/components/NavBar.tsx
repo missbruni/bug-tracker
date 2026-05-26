@@ -1,6 +1,7 @@
 import React, { type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom";
 import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2 } from "lucide-react";
+import BottomSheet from "./BottomSheet";
 import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
 import type { TeamRecord } from "../lib/teamScope";
@@ -68,6 +69,8 @@ export default function NavBar({
 		return () => window.removeEventListener('themechange', handler);
 	}, []);
 
+	const [profileOpen, setProfileOpen] = React.useState(false);
+
 	const activeIndex = navItems.findIndex(({ to }) =>
 		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
 	);
@@ -83,15 +86,15 @@ export default function NavBar({
 		<>
 			{/* ─── Top Nav Bar ─── */}
 			<nav
-			className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 overflow-hidden"
+			className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800"
 			style={showBugs ? { cursor: getFlySwatCursor(isDark) } : undefined}
 		>
-				{showBugs && <CrawlingBugs count={bugCount} />}
+				{showBugs && <div className="absolute inset-0 overflow-hidden pointer-events-auto"><CrawlingBugs count={bugCount} /></div>}
 				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-3 sm:gap-4 relative z-10">
 					{/* Branding */}
 					<div className="flex items-center gap-3 py-3 shrink-0">
 						<Logo showBugs={showBugs} onToggleBugs={onToggleBugs} />
-						<span className="hidden lg:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
+						<span className="hidden min-[1230px]:inline text-xs font-semibold text-slate-400 dark:text-gray-500">
 							Catch every bug before your users do.
 						</span>
 					</div>
@@ -154,36 +157,54 @@ export default function NavBar({
 								<span className="text-xs font-bold">AI</span>
 							</button>
 							{userDisplayName && (
-								<div
-									className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-1.5 sm:px-2 py-1"
-									title={userEmail || userDisplayName}
-								>
-									{userAvatarUrl ? (
-										<img
-											src={userAvatarUrl}
-											alt={`${userDisplayName} avatar`}
-											className="h-6 w-6 rounded-full object-cover"
-											referrerPolicy="no-referrer"
-										/>
-									) : (
-										<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 dark:bg-gray-700 text-[10px] font-bold text-slate-700 dark:text-gray-200">
-											{getInitials(userDisplayName)}
+								<div className="relative">
+									<button
+										onClick={() => setProfileOpen((prev) => !prev)}
+										className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-1.5 sm:px-2 py-1 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+										title={userEmail || userDisplayName}
+										aria-label="Profile menu"
+									>
+										{userAvatarUrl ? (
+											<img
+												src={userAvatarUrl}
+												alt={`${userDisplayName} avatar`}
+												className="h-6 w-6 rounded-full object-cover"
+												referrerPolicy="no-referrer"
+											/>
+										) : (
+											<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 dark:bg-gray-700 text-[10px] font-bold text-slate-700 dark:text-gray-200">
+												{getInitials(userDisplayName)}
+											</span>
+										)}
+										<span className="hidden xl:inline max-w-[140px] truncate text-xs font-semibold text-slate-600 dark:text-gray-300">
+											{userDisplayName}
 										</span>
+									</button>
+									{/* Desktop dropdown */}
+									{profileOpen && (
+										<div className="hidden md:block">
+											<div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+											<div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1">
+												<div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-gray-800">
+													<p className="text-sm font-semibold text-slate-900 dark:text-gray-100 truncate">{userDisplayName}</p>
+													{userEmail && (
+														<p className="text-xs text-slate-500 dark:text-gray-400 truncate mt-0.5">{userEmail}</p>
+													)}
+												</div>
+												{onLogout && (
+													<button
+														onClick={() => { setProfileOpen(false); onLogout() }}
+														className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+													>
+														<LogOut size={14} />
+														Logout
+													</button>
+												)}
+											</div>
+										</div>
 									)}
-									<span className="hidden xl:inline max-w-[140px] truncate text-xs font-semibold text-slate-600 dark:text-gray-300">
-										{userDisplayName}
-									</span>
+
 								</div>
-							)}
-							{onLogout && (
-								<button
-									onClick={onLogout}
-									className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-gray-700 px-3 py-1 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-									title="Logout"
-								>
-									<LogOut size={14} />
-									<span className="hidden md:inline text-xs font-semibold">Logout</span>
-								</button>
 							)}
 							{children}
 							{onOpenSettings && (
@@ -222,6 +243,41 @@ export default function NavBar({
 					})}
 				</div>
 			</div>
+
+			{/* Mobile profile bottom sheet — rendered outside nav & tab bar so it layers above both */}
+			{profileOpen && userDisplayName && (
+				<BottomSheet onClose={() => setProfileOpen(false)} className="md:hidden z-60">
+					<div className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-gray-800 -mt-1 mb-1">
+						{userAvatarUrl ? (
+							<img
+								src={userAvatarUrl}
+								alt={`${userDisplayName} avatar`}
+								className="h-10 w-10 rounded-full object-cover"
+								referrerPolicy="no-referrer"
+							/>
+						) : (
+							<span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-gray-700 text-sm font-bold text-slate-700 dark:text-gray-200">
+								{getInitials(userDisplayName)}
+							</span>
+						)}
+						<div className="min-w-0">
+							<p className="text-sm font-semibold text-slate-900 dark:text-gray-100 truncate">{userDisplayName}</p>
+							{userEmail && (
+								<p className="text-xs text-slate-500 dark:text-gray-400 truncate">{userEmail}</p>
+							)}
+						</div>
+					</div>
+					{onLogout && (
+						<button
+							onClick={() => { setProfileOpen(false); onLogout() }}
+							className="w-full flex items-center gap-3 py-3.5 text-sm font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer rounded-md"
+						>
+							<LogOut size={18} />
+							Logout
+						</button>
+					)}
+				</BottomSheet>
+			)}
 		</>
 	);
 }

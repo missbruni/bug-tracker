@@ -58,3 +58,9 @@
 - Convenience scripts: `db:reset`, `db:migration:new`. Use `supabase stop` to stop containers.
 - Vite uses `--mode staging` / `--mode localdb` to load the correct env file. Personal overrides go in `.env.local` (gitignored).
 - Analytics container is disabled in `supabase/config.toml` for Colima/Docker compatibility.
+
+## Pull Requests
+
+- Keep PR descriptions concise — a short summary of what changed and why.
+- Do not include a test plan section.
+- Do not include "Generated with Devin" or similar attribution lines.
