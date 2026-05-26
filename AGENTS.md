@@ -59,6 +59,12 @@
 - Vite uses `--mode staging` / `--mode localdb` to load the correct env file. Personal overrides go in `.env.local` (gitignored).
 - Analytics container is disabled in `supabase/config.toml` for Colima/Docker compatibility.
 
+## Code Style
+
+- Do not use single-character variable names. Use descriptive names that convey intent.
+- Use `import React from 'react'` and access hooks via `React.useState`, `React.useEffect`, etc. Do not destructure hooks from the React import.
+- Zustand stores live in `src/stores/`. Name the file after the domain (e.g. `panelStore.ts`, `notificationStore.ts`) and export a `use<Domain>Store` hook.
+
 ## Pull Requests
 
 - Keep PR descriptions concise — a short summary of what changed and why.

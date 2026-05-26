@@ -14,6 +14,7 @@ import { BugListSkeleton } from './components/Skeleton'
 import { useKonamiLoader } from './hooks/useKonamiLoader'
 import { useBugs } from './hooks/useBugs'
 import { useBugFilters } from './hooks/useBugFilters'
+import { usePanelStore } from './stores/panelStore'
 import type { LightboxState } from './types'
 
 export default function App() {
@@ -44,13 +45,7 @@ export default function App() {
   const [editingBugId, setEditingBugId] = React.useState<string | null>(null)
   const snackbarTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const deleteTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'))
-
-  React.useEffect(() => {
-    const handler = (event: Event) => setIsDark((event as CustomEvent).detail.dark)
-    window.addEventListener('themechange', handler)
-    return () => window.removeEventListener('themechange', handler)
-  }, [])
+  const isDark = usePanelStore((s) => s.isDark)
 
   const sevStyles = isDark ? SEVERITY_STYLES.dark : SEVERITY_STYLES.light
   const searchRef = React.useRef<HTMLInputElement>(null)

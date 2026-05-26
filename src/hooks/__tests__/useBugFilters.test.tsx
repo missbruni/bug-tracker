@@ -2,6 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, cleanup, act } from '@testing-library/react'
 import { useBugFilters } from '../useBugFilters'
+import { useNotificationStore } from '../../stores/notificationStore'
 import type { Bug, Question, SessionOption } from '../../types'
 
 afterEach(() => cleanup())
@@ -49,9 +50,7 @@ describe('useBugFilters — AI severity filtering', () => {
     render(<HookProbe bugs={bugs} questions={[]} />)
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('setBugFiltersFromAi', {
-        detail: { severity: 'show only low and high bugs' },
-      }))
+      useNotificationStore.getState().applyBugFilters({ severity: 'show only low and high bugs' })
     })
 
     expect(screen.getByTestId('severity-filter').textContent).toBe('high,low')
@@ -68,9 +67,7 @@ describe('useBugFilters — AI severity filtering', () => {
     render(<HookProbe bugs={bugs} questions={[]} />)
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('setBugFiltersFromAi', {
-        detail: { severities: ['critical', 'low'] },
-      }))
+      useNotificationStore.getState().applyBugFilters({ severities: ['critical', 'low'] })
     })
 
     expect(screen.getByTestId('severity-filter').textContent).toBe('critical,low')

@@ -11,6 +11,7 @@ import { useTeamAccess } from '../lib/teamAccess'
 import { useAuth, getUserDisplayName } from '../lib/useAuth'
 import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Severity } from '../constants'
+import { useNotificationStore } from '../stores/notificationStore'
 import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult, BugFiltersActionPayload } from '../lib/aiTypes'
 
 // ─── Persistence ────────────────────────────────────────────
@@ -253,7 +254,7 @@ export default function useAiAssistant(open: boolean) {
         clear: action.clear,
       }
 
-      window.dispatchEvent(new CustomEvent<BugFiltersActionPayload>('setBugFiltersFromAi', { detail: payload }))
+      useNotificationStore.getState().applyBugFilters(payload)
       return {
         action: 'set_bug_filters',
         success: true,
@@ -332,11 +333,11 @@ export default function useAiAssistant(open: boolean) {
           sessionIdsToRefresh.add(result.sessionId)
         }
       }
-      // Dispatch outside React batch
+      // Notify outside React batch
       if (sessionIdsToRefresh.size > 0) {
         setTimeout(() => {
           for (const sid of sessionIdsToRefresh) {
-            window.dispatchEvent(new CustomEvent('sessionDataChanged', { detail: { sessionId: sid } }))
+            useNotificationStore.getState().notifySessionDataChanged(sid)
           }
         }, 0)
       }
