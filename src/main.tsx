@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react"
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -8,7 +8,6 @@ import NavBar from "./components/NavBar";
 import ThemeToggle from "./components/ThemeToggle";
 import SoundToggle from "./components/SoundToggle";
 import { useActiveBugCount } from "./hooks/useActiveBugCount";
-import { playAiSound } from "./lib/audio";
 import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth, getUserDisplayName } from "./lib/useAuth";
@@ -16,6 +15,7 @@ import PageLoader from "./components/PageLoader";
 import ExtensionBridge from "./components/ExtensionBridge";
 import { SessionTimerProvider } from "./lib/sessionTimer";
 import SessionTimerBar from "./components/SessionTimerBar";
+import { usePanelStore } from "./stores/panelStore";
 import "./index.css";
 
 const AppPage = lazy(() => import("./App"));
@@ -33,40 +33,23 @@ function RouteFallback() {
 
 function Layout() {
 	const { user, signOut } = useAuth();
-	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } = useTeamAccess();
+	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } =
+		useTeamAccess();
 	const [showBugs, setShowBugs] = React.useState(
 		() => localStorage.getItem("showBugs") !== "false",
 	);
 	const activeBugCount = useActiveBugCount();
-	const [settingsOpen, setSettingsOpen] = React.useState(false);
-	const [aiPanelOpen, setAiPanelOpen] = React.useState(
-		() => sessionStorage.getItem("aiPanelOpen") === "true",
-	);
+	const settingsOpen = usePanelStore((s) => s.settingsOpen);
+	const aiPanelOpen = usePanelStore((s) => s.aiPanelOpen);
 	const [aiPanelMounted, setAiPanelMounted] = React.useState(
 		() => sessionStorage.getItem("aiPanelOpen") === "true",
 	);
-
-	React.useEffect(() => {
-		sessionStorage.setItem("aiPanelOpen", String(aiPanelOpen));
-	}, [aiPanelOpen]);
 
 	React.useEffect(() => {
 		if (aiPanelOpen) {
 			setAiPanelMounted(true);
 		}
 	}, [aiPanelOpen]);
-
-	React.useEffect(() => {
-		const handler = () => setSettingsOpen(true);
-		window.addEventListener("openSettings", handler);
-		return () => window.removeEventListener("openSettings", handler);
-	}, []);
-
-	React.useEffect(() => {
-		const handler = () => setAiPanelOpen((prev) => { playAiSound(prev === false); return !prev });
-		window.addEventListener("openAiAssistant", handler);
-		return () => window.removeEventListener("openAiAssistant", handler);
-	}, []);
 
 	React.useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
@@ -80,7 +63,7 @@ function Layout() {
 			}
 			if ((event.metaKey || event.ctrlKey) && event.key === "i") {
 				event.preventDefault();
-				setAiPanelOpen((prev) => { playAiSound(!prev); return !prev });
+				usePanelStore.getState().toggleAiPanel();
 			}
 		};
 		window.addEventListener("keydown", handler);
@@ -96,8 +79,10 @@ function Layout() {
 
 	const userDisplayName = getUserDisplayName(user ?? null);
 	const metadata = user?.user_metadata as Record<string, unknown> | undefined;
-	const metadataAvatar = typeof metadata?.avatar_url === "string" ? metadata.avatar_url.trim() : "";
-	const metadataPicture = typeof metadata?.picture === "string" ? metadata.picture.trim() : "";
+	const metadataAvatar =
+		typeof metadata?.avatar_url === "string" ? metadata.avatar_url.trim() : "";
+	const metadataPicture =
+		typeof metadata?.picture === "string" ? metadata.picture.trim() : "";
 	const userAvatarUrl = metadataAvatar || metadataPicture || undefined;
 	const handleLogout = () => {
 		void signOut();
@@ -116,7 +101,7 @@ function Layout() {
 				activeTeamId={activeTeamId}
 				onTeamChange={setActiveTeamId}
 				showTeamsNav
-				onOpenSettings={() => setSettingsOpen(true)}
+				onOpenSettings={() => usePanelStore.getState().openSettings()}
 				userDisplayName={userDisplayName}
 				userEmail={user?.email}
 				userAvatarUrl={userAvatarUrl}
@@ -139,7 +124,7 @@ function Layout() {
 				<Suspense fallback={null}>
 					<SettingsSidebar
 						open={settingsOpen}
-						onClose={() => setSettingsOpen(false)}
+						onClose={() => usePanelStore.getState().closeSettings()}
 					/>
 				</Suspense>
 			)}
@@ -147,10 +132,10 @@ function Layout() {
 				<Suspense fallback={null}>
 					<AiAssistantPanel
 						open={aiPanelOpen}
-						onClose={() => setAiPanelOpen(false)}
+						onClose={() => usePanelStore.getState().closeAiPanel()}
 						onOpenSettings={() => {
-							setAiPanelOpen(false);
-							setSettingsOpen(true);
+							usePanelStore.getState().closeAiPanel();
+							usePanelStore.getState().openSettings();
 						}}
 					/>
 				</Suspense>
@@ -166,18 +151,60 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 				<AuthGate>
 					<TeamAccessProvider>
 						<SessionTimerProvider>
-						<BrowserRouter>
-							<Routes>
-								<Route element={<Layout />}>
-									<Route path="/" element={<Suspense fallback={<RouteFallback />}><AppPage /></Suspense>} />
-									<Route path="/sessions" element={<Suspense fallback={<RouteFallback />}><SessionsListPage /></Suspense>} />
-									<Route path="/sessions/:id" element={<Suspense fallback={<RouteFallback />}><SessionSetupPage /></Suspense>} />
-									<Route path="/testers" element={<Suspense fallback={<RouteFallback />}><TesterManagementPage /></Suspense>} />
-									<Route path="/teams" element={<Suspense fallback={<RouteFallback />}><TeamManagementPage /></Suspense>} />
-								</Route>
-								<Route path="/sessions/:id/present" element={<Suspense fallback={<RouteFallback />}><PresentationPage /></Suspense>} />
-							</Routes>
-						</BrowserRouter>
+							<BrowserRouter>
+								<Routes>
+									<Route element={<Layout />}>
+										<Route
+											path="/"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<AppPage />
+												</Suspense>
+											}
+										/>
+										<Route
+											path="/sessions"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<SessionsListPage />
+												</Suspense>
+											}
+										/>
+										<Route
+											path="/sessions/:id"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<SessionSetupPage />
+												</Suspense>
+											}
+										/>
+										<Route
+											path="/testers"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<TesterManagementPage />
+												</Suspense>
+											}
+										/>
+										<Route
+											path="/teams"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<TeamManagementPage />
+												</Suspense>
+											}
+										/>
+									</Route>
+									<Route
+										path="/sessions/:id/present"
+										element={
+											<Suspense fallback={<RouteFallback />}>
+												<PresentationPage />
+											</Suspense>
+										}
+									/>
+								</Routes>
+							</BrowserRouter>
 						</SessionTimerProvider>
 					</TeamAccessProvider>
 				</AuthGate>

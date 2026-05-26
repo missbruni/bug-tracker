@@ -13,6 +13,7 @@ import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { useSessionTimer } from '../lib/sessionTimer'
+import { useNotificationStore } from '../stores/notificationStore'
 import type { Tester, Scenario, Assignment, Session, SessionStatus } from '../types'
 
 export default function SessionSetupPage() {
@@ -128,24 +129,26 @@ export default function SessionSetupPage() {
 
   // Reload when AI assistant modifies session data
   React.useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      if (!detail?.sessionId || detail.sessionId === sessionId) {
-        setReloadCounter((prev) => prev + 1)
-      }
-    }
-    window.addEventListener('sessionDataChanged', handler)
-    return () => window.removeEventListener('sessionDataChanged', handler)
+    return useNotificationStore.subscribe(
+      (s) => s.sessionDataChanged.version,
+      () => {
+        const { sessionId: changedId } = useNotificationStore.getState().sessionDataChanged
+        if (!changedId || changedId === sessionId) {
+          setReloadCounter((prev) => prev + 1)
+        }
+      },
+    )
   }, [sessionId])
 
   // Navigate away if this session is deleted via AI
   React.useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      if (detail?.sessionId === sessionId) navigate('/sessions')
-    }
-    window.addEventListener('sessionDeleted', handler)
-    return () => window.removeEventListener('sessionDeleted', handler)
+    return useNotificationStore.subscribe(
+      (s) => s.sessionDeleted.version,
+      () => {
+        const { sessionId: deletedId } = useNotificationStore.getState().sessionDeleted
+        if (deletedId === sessionId) navigate('/sessions')
+      },
+    )
   }, [sessionId, navigate])
 
   const assignTester = async (scenarioId: string, testerId: string) => {

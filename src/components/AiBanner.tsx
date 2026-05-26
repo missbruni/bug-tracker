@@ -1,5 +1,6 @@
 import React from 'react'
 import { Megaphone, X } from 'lucide-react'
+import { usePanelStore } from '../stores/panelStore'
 
 const DISMISSED_KEY = 'ai-banner-dismissed'
 
@@ -14,7 +15,7 @@ export default function AiBanner() {
   }
 
   const openAi = () => {
-    window.dispatchEvent(new CustomEvent('openAiAssistant'))
+    usePanelStore.getState().toggleAiPanel()
     dismiss()
   }
 

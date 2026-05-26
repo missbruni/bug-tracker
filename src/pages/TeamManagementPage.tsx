@@ -6,6 +6,7 @@ import TeamMembersModal from '../components/TeamMembersModal'
 import { useTeamAccess } from '../lib/teamAccess'
 import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
 import { supabase } from '../supabaseClient'
+import { useNotificationStore } from '../stores/notificationStore'
 import { TeamListSkeleton } from '../components/Skeleton'
 
 export default function TeamManagementPage() {
@@ -76,11 +77,10 @@ export default function TeamManagementPage() {
 
   // Refresh when AI creates a team or product
   React.useEffect(() => {
-    const handler = () => {
-      void refreshTeams()
-    }
-    window.addEventListener('teamDataChanged', handler)
-    return () => window.removeEventListener('teamDataChanged', handler)
+    return useNotificationStore.subscribe(
+      (s) => s.teamDataChanged.version,
+      () => { void refreshTeams() },
+    )
   }, [refreshTeams])
 
   const handleAddProduct = async (teamId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {

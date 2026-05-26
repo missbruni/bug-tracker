@@ -3,6 +3,7 @@ import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
 import { generateBugId, insertBugWithRetry } from './aiParsers'
+import { useNotificationStore } from '../stores/notificationStore'
 import type { Severity } from '../constants'
 
 interface ActionContext {
@@ -391,7 +392,7 @@ export async function executeSessionActionWithSession(
       if (sessionId === sid) {
         ctx.onSessionCreated(null as unknown as string) // clears current session
       }
-      window.dispatchEvent(new CustomEvent('sessionDeleted', { detail: { sessionId: sid } }))
+      useNotificationStore.getState().notifySessionDeleted(sid)
       return { action: 'delete_session', success: true, message: `Deleted session "${sessions[0].name}" and all its data` }
     }
 
@@ -790,7 +791,7 @@ export async function executeSessionAction(
     if (TEAM_ACTIONS.has(action.action)) {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
-      setTimeout(() => window.dispatchEvent(new CustomEvent('teamDataChanged')), 0)
+      setTimeout(() => useNotificationStore.getState().notifyTeamDataChanged(), 0)
     }
   }
   return result
