@@ -28,7 +28,7 @@ export default function PublishMenu({ publishing, publishingMode, backlogUrl, on
   }, [menuOpen])
 
   return (
-    <div className="relative w-full sm:w-auto" ref={menuRef}>
+    <div className={`relative w-full sm:w-auto ${menuOpen ? 'z-50' : ''}`} ref={menuRef}>
       <div className="flex w-full" ref={splitRef}>
         <button
           onClick={() => onPublish(false)}
@@ -64,7 +64,7 @@ export default function PublishMenu({ publishing, publishingMode, backlogUrl, on
               setMenuOpen(false)
               onPublish(true)
             }}
-            className="w-full flex items-center gap-1.5 border border-t-0 border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/40 px-3 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-1.5 border border-t-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
             style={{ borderRadius: devinKeyMissing ? 0 : '0 0 6px 6px' }}
           >
             <Rocket size={12} />

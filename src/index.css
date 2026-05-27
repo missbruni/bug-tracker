@@ -431,6 +431,9 @@ button[aria-disabled="true"] {
   overflow: hidden;
   min-height: 0;
 }
+.collapse-grid.open > div {
+  overflow: visible;
+}
 
 @keyframes spin-second {
   from { transform: rotate(0deg); }
