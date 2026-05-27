@@ -12,7 +12,7 @@ import {
 	Link,
 	Check,
 } from "lucide-react";
-import { SEVERITY_STYLES, type Severity } from "../constants";
+import { SEVERITY_STYLES } from "../constants";
 import { TesterBadge } from "./TesterBadge";
 import AttachmentCard from "./AttachmentCard";
 import BugEditForm from "./BugEditForm";
@@ -21,45 +21,7 @@ import { useBugActions } from "../hooks/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
 import BugActivityTimeline from "./BugActivityTimeline";
 import { buildBugPermalink, copyToClipboard } from "../lib/bugPermalink";
-
-export interface Attachment {
-  id?: number
-  bug_id?: string
-  team_id?: string
-  name: string
-  url: string
-  type: string
-  file?: File
-  note?: string
-}
-
-export interface Comment {
-  id?: number
-  bug_id?: string
-  team_id?: string
-  text: string
-  time?: string
-}
-
-export interface Bug {
-  id: string
-  team_id?: string
-  title: string
-  description: string
-  severity: Severity
-  tester: string
-  tester_id?: string | null
-  device: string
-  page: string
-  category: string | null
-  created_at?: string
-  reviewed?: boolean
-  backlog_url?: string | null
-  devin_url?: string | null
-  session_id?: string | null
-  comments: Comment[]
-  attachments: Attachment[]
-}
+import type { Bug } from "../domains/bugs/model";
 
 interface BugCardProps {
 	bug: Bug;

@@ -2,7 +2,7 @@ import React from 'react'
 import { X, Copy } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
-import type { Session, Scenario, Assignment } from '../hooks/useBugs'
+import type { Session, Scenario, Assignment } from '../domains/sessions/model'
 
 interface CloneSessionModalProps {
   session: Pick<Session, 'id' | 'name' | 'product_id' | 'team_id'>

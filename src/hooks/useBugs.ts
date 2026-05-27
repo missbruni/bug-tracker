@@ -5,55 +5,10 @@ import { useTeamAccess } from '../lib/teamAccess'
 import { insertBugWithRetry } from '../lib/aiParsers'
 import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
-import type { Bug, Attachment } from '../components/BugCard'
-import type { Question } from '../components/QuestionsSection'
+import type { Bug, Attachment, Question } from '../domains/bugs/model'
+import type { SessionOption } from '../domains/sessions/model'
 import type { Tester } from '../lib/testerLookup'
 import type { Severity } from '../constants'
-
-export type SessionStatus = 'draft' | 'active' | 'completed'
-
-export interface Session {
-  id: string
-  team_id?: string
-  product_id?: string | null
-  name: string
-  date: string | null
-  status: SessionStatus
-  duration_seconds?: number | null
-  created_at: string
-}
-
-export interface SessionWithStats extends Session {
-  scenario_count?: number
-  assignment_count?: number
-  feedback_avg?: number
-  feedback_count?: number
-}
-
-export interface Scenario {
-  id: string
-  team_id?: string
-  session_id: string
-  letter: string
-  title: string
-  description: string | null
-  device_requirement: string | null
-  sort_order: number
-}
-
-export interface Assignment {
-  id: string
-  team_id?: string
-  session_id: string
-  scenario_id: string
-  tester_id: string
-}
-
-export interface SessionOption {
-  id: string
-  name: string
-  status: string
-}
 
 interface SnackbarState {
   message: string

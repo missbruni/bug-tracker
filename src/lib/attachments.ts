@@ -1,4 +1,4 @@
-import type { Attachment } from '../components/BugCard'
+import type { Attachment } from '../domains/bugs/model'
 
 /** Convert raw File objects to local Attachment entries with blob URLs. */
 export function filesToAttachments(files: File[]): Attachment[] {

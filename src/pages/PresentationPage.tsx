@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, X, Package } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam } from '../lib/teamScope'
-import type { Session, Scenario, Assignment } from '../hooks/useBugs'
+import type { Session, Scenario, Assignment } from '../domains/sessions/model'
 import type { Tester } from '../lib/testerLookup'
 
 interface Slide {
