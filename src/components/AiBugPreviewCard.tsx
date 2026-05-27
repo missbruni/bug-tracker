@@ -3,7 +3,7 @@ import { Check, Pencil, Loader2, Paperclip } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
 import { getImageFilesFromPaste } from '../lib/attachments'
 import AttachmentCard from './AttachmentCard'
-import type { ParsedBug, BugPreview } from '../lib/aiTypes'
+import type { ParsedBug, BugPreview } from '../lib/aiParsers'
 
 export default function AiBugPreviewCard({
   bug,

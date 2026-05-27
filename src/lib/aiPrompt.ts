@@ -121,6 +121,15 @@ When a user wants to create a session, manage testers, or copy scenarios, respon
 \`\`\`
 
 \`\`\`session_action
+{"action":"clone_session","name":"Sprint 42 — Suit Diagnostics","include_assignments":true}
+\`\`\`
+- Duplicates an entire session (metadata, scenarios, and optionally assignments) into a new draft session named "Copy of [original]".
+- "name" is the source session name to clone from (required).
+- "include_assignments" defaults to true. Set to false to skip tester assignments.
+- "date" is optional — sets the date on the new session (defaults to none).
+- When the user says "duplicate this session", "clone the session", or "copy session X", use this action.
+
+\`\`\`session_action
 {"action":"copy_scenarios","from_session":"Source Session Name"}
 \`\`\`
 

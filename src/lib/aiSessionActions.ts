@@ -1,10 +1,89 @@
+export type SessionActionType =
+  | 'create_session'
+  | 'clone_session'
+  | 'copy_scenarios'
+  | 'remove_tester'
+  | 'reactivate_tester'
+  | 'add_tester'
+  | 'delete_tester'
+  | 'assign_tester'
+  | 'delete_session'
+  | 'delete_scenarios'
+  // Bug actions
+  | 'create_bug'
+  | 'edit_bug'
+  | 'resolve_bug'
+  | 'reopen_bug'
+  | 'delete_bug'
+  | 'add_comment'
+  // Bulk bug actions
+  | 'bulk_resolve'
+  | 'bulk_delete'
+  // Export
+  | 'export_bugs'
+  // Scenario actions
+  | 'add_scenario'
+  | 'edit_scenario'
+  // Session status
+  | 'set_session_status'
+  // Tester editing
+  | 'edit_tester'
+  // Bug filters (UI only)
+  | 'set_bug_filters'
+  // Team & product management
+  | 'create_team'
+  | 'create_product'
+  | 'edit_product'
+
 import { supabase } from '../supabaseClient'
-import type { SessionAction, SessionActionResult } from './aiTypes'
 import { queryClient } from './queryClient'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
 import { generateBugId, insertBugWithRetry } from './aiParsers'
 import { useNotificationStore } from '../stores/notificationStore'
 import type { Severity } from '../constants'
+
+export interface SessionAction {
+  action: SessionActionType
+  name?: string
+  date?: string
+  from_session?: string
+  tester?: string
+  devices?: string[]
+  scenario?: string
+  scenarios?: string[]
+  letter?: string
+  title?: string
+  description?: string
+  device_requirement?: string
+  bug?: string
+  severity?: string
+  device?: string
+  page?: string
+  category?: string
+  comment?: string
+  bugs?: string[]
+  filter?: string
+  format?: 'csv' | 'json'
+  session?: string
+  severities?: string[]
+  sort?: string
+  search?: string
+  clear?: boolean
+  include_assignments?: boolean
+  status?: string
+  team?: string
+  link?: string
+}
+
+export interface SessionActionResult {
+  action: SessionActionType
+  success: boolean
+  level?: 'success' | 'warning' | 'error'
+  sessionId?: string
+  sessionName?: string
+  message: string
+  exportFormat?: 'csv' | 'json'
+}
 
 interface ActionContext {
   sessionId: string | null
@@ -14,7 +93,7 @@ interface ActionContext {
   currentUserName?: string
 }
 
-const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
+const SESSION_ACTIONS = new Set(['create_session', 'clone_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
 const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_tester', 'delete_tester', 'edit_tester'])
 const BUG_ACTIONS = new Set(['create_bug', 'edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment', 'bulk_resolve', 'bulk_delete'])
 const EXPORT_ACTIONS = new Set(['export_bugs'])
@@ -108,6 +187,84 @@ export async function executeSessionActionWithSession(
       const session = data[0]
       ctx.onSessionCreated(session.id)
       return { action: 'create_session', success: true, sessionId: session.id, sessionName: name, message: `Session "${name}" created!` }
+    }
+
+    case 'clone_session': {
+      const sourceName = action.name?.trim()
+      if (!sourceName) return { action: 'clone_session', success: false, message: 'Source session name is required' }
+
+      // Find source session
+      const { data: srcSessions } = await scopeToTeam(
+        supabase.from('sessions').select('id, name, product_id').ilike('name', sourceName).limit(1),
+        activeTeamId,
+      )
+      if (!srcSessions?.length) return { action: 'clone_session', success: false, message: `Session "${sourceName}" not found` }
+      const src = srcSessions[0]
+
+      // Create new session
+      const cloneName = `Copy of ${src.name}`
+      const { data: newSession, error: cloneErr } = await supabase
+        .from('sessions')
+        .insert(withTeamPayload({
+          name: cloneName,
+          date: action.date || null,
+          status: 'draft',
+          product_id: src.product_id || null,
+        }, activeTeamId))
+        .select()
+        .single()
+      if (cloneErr || !newSession) return { action: 'clone_session', success: false, message: cloneErr?.message || 'Failed to create cloned session' }
+
+      // Copy scenarios
+      const { data: srcScenarios } = await scopeToTeam(
+        supabase.from('scenarios').select('*').eq('session_id', src.id).order('sort_order'),
+        activeTeamId,
+      )
+      const oldToNew = new Map<string, string>()
+      if (srcScenarios?.length) {
+        const inserts = srcScenarios.map((scenario: { letter: string; title: string; description: string | null; device_requirement: string | null; sort_order: number }) =>
+          withTeamPayload({
+            session_id: newSession.id,
+            letter: scenario.letter,
+            title: scenario.title,
+            description: scenario.description,
+            device_requirement: scenario.device_requirement,
+            sort_order: scenario.sort_order,
+          }, activeTeamId),
+        )
+        const { data: newScenarios } = await supabase.from('scenarios').insert(inserts).select()
+        if (newScenarios) {
+          srcScenarios.forEach((old: { id: string }, idx: number) => {
+            if (newScenarios[idx]) oldToNew.set(old.id, newScenarios[idx].id)
+          })
+        }
+      }
+
+      // Optionally copy assignments
+      if (action.include_assignments !== false && oldToNew.size > 0) {
+        const { data: srcAssignments } = await scopeToTeam(
+          supabase.from('assignments').select('*').eq('session_id', src.id),
+          activeTeamId,
+        )
+        if (srcAssignments?.length) {
+          const assignInserts = srcAssignments
+            .filter((assignment: { scenario_id: string }) => oldToNew.has(assignment.scenario_id))
+            .map((assignment: { scenario_id: string; tester_id: string }) =>
+              withTeamPayload({
+                session_id: newSession.id,
+                scenario_id: oldToNew.get(assignment.scenario_id)!,
+                tester_id: assignment.tester_id,
+              }, activeTeamId),
+            )
+          if (assignInserts.length) await supabase.from('assignments').insert(assignInserts)
+        }
+      }
+
+      ctx.onSessionCreated(newSession.id)
+      const parts = [`Session "${cloneName}" created from "${src.name}"`]
+      if (srcScenarios?.length) parts.push(`${srcScenarios.length} scenario${srcScenarios.length !== 1 ? 's' : ''} copied`)
+      if (action.include_assignments !== false && oldToNew.size > 0) parts.push('with assignments')
+      return { action: 'clone_session', success: true, sessionId: newSession.id, sessionName: cloneName, message: `${parts.join(' — ')}!` }
     }
 
     case 'copy_scenarios': {

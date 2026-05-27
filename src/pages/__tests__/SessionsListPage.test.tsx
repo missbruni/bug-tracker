@@ -117,7 +117,7 @@ describe('SessionsListPage', () => {
 
   test('delete button opens confirm modal requiring session name', () => {
     renderPage()
-    const deleteButtons = screen.getAllByTitle('Delete session')
+    const deleteButtons = screen.getAllByLabelText('Delete')
     fireEvent.click(deleteButtons[0])
     expect(screen.getByText('Delete session?')).toBeInTheDocument()
     expect(screen.getByText('Delete permanently')).toBeDisabled()
@@ -125,7 +125,7 @@ describe('SessionsListPage', () => {
 
   test('delete confirm enables when session name is typed', () => {
     renderPage()
-    const deleteButtons = screen.getAllByTitle('Delete session')
+    const deleteButtons = screen.getAllByLabelText('Delete')
     fireEvent.click(deleteButtons[0])
     fireEvent.change(screen.getByPlaceholderText('Sprint 12'), { target: { value: 'Sprint 12' } })
     expect(screen.getByText('Delete permanently')).not.toBeDisabled()
@@ -133,7 +133,7 @@ describe('SessionsListPage', () => {
 
   test('delete confirm stays disabled with wrong text', () => {
     renderPage()
-    const deleteButtons = screen.getAllByTitle('Delete session')
+    const deleteButtons = screen.getAllByLabelText('Delete')
     fireEvent.click(deleteButtons[0])
     fireEvent.change(screen.getByPlaceholderText('Sprint 12'), { target: { value: 'wrong' } })
     expect(screen.getByText('Delete permanently')).toBeDisabled()
@@ -141,7 +141,7 @@ describe('SessionsListPage', () => {
 
   test('cancel closes delete confirm modal', () => {
     renderPage()
-    const deleteButtons = screen.getAllByTitle('Delete session')
+    const deleteButtons = screen.getAllByLabelText('Delete')
     fireEvent.click(deleteButtons[0])
     expect(screen.getByText('Delete session?')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Cancel'))

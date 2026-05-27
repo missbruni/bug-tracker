@@ -4,8 +4,8 @@ import { chatCompletion, hasAiConfig, type ChatMessage } from '../lib/aiProvider
 import { supabase } from '../supabaseClient'
 import { filesToAttachments } from '../lib/attachments'
 import { buildSystemPrompt } from '../lib/aiPrompt'
-import { parseBugsFromResponse, parseSessionActions, generateBugId, insertBugWithRetry } from '../lib/aiParsers'
-import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
+import { parseBugsFromResponse, parseSessionActions, generateBugId, insertBugWithRetry, type BugPreview, type ParsedBug } from '../lib/aiParsers'
+import { executeSessionAction as executeSessionActionWithCache, type SessionAction, type SessionActionResult } from '../lib/aiSessionActions'
 import { bugsToCSV, bugsToJSON, downloadFile } from '../lib/bugExport'
 import type { ExportFormat } from '../lib/bugExport'
 import { ensureTesterByName } from '../lib/testerLookup'
@@ -14,9 +14,24 @@ import { useAuth, getUserDisplayName } from '../lib/useAuth'
 import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import type { Severity } from '../constants'
 import { useNotificationStore } from '../stores/notificationStore'
-import type { BugPreview, ParsedBug, Message, SessionAction, SessionActionResult, BugFiltersActionPayload } from '../lib/aiTypes'
 
-// ─── Persistence ────────────────────────────────────────────
+export interface BugFiltersActionPayload {
+  severity?: string | string[]
+  severities?: string[]
+  tester?: string
+  date?: string
+  session?: string
+  sort?: string
+  search?: string
+  clear?: boolean
+}
+
+export interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  bugs?: BugPreview[]
+  sessionActions?: SessionActionResult[]
+}
 
 const STORAGE_KEY = 'ai-assistant-chat'
 
