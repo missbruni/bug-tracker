@@ -5,6 +5,40 @@ import { stripJsonBlock } from '../lib/aiParsers'
 import AiBugPreviewCard from './AiBugPreviewCard'
 import useAiAssistant from '../hooks/useAiAssistant'
 
+const BUG_ID_PATTERN = /\b((?:CRT|HI|LO)-\d{2,})\b/g
+
+function renderMessageWithBugLinks(text: string, linkClass: string): React.ReactNode {
+  const matches = [...text.matchAll(BUG_ID_PATTERN)]
+  if (!matches.length) return text
+
+  const elements: React.ReactNode[] = []
+  let cursor = 0
+  for (const match of matches) {
+    const bugId = match[1]
+    const start = match.index!
+    if (start > cursor) elements.push(text.slice(cursor, start))
+    elements.push(
+      <button
+        key={`${bugId}-${start}`}
+        onClick={() => {
+          const element = document.getElementById(`bug-${bugId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.classList.add('ring-2', 'ring-amber-400')
+            setTimeout(() => element.classList.remove('ring-2', 'ring-amber-400'), 2000)
+          }
+        }}
+        className={`font-bold underline cursor-pointer hover:opacity-80 ${linkClass}`}
+      >
+        {bugId}
+      </button>
+    )
+    cursor = start + match[0].length
+  }
+  if (cursor < text.length) elements.push(text.slice(cursor))
+  return <>{elements}</>
+}
+
 // ─── Component ──────────────────────────────────────────────
 
 interface AiAssistantPanelProps {
@@ -255,7 +289,9 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                             ? <AlertCircle size={14} className={iconClass} />
                             : <Check size={12} className={iconClass} />
                           }
-                          <span className={isProminent ? 'flex-1' : 'truncate'}>{result.message}</span>
+                          <span className={isProminent ? 'flex-1 whitespace-pre-line' : 'truncate'}>
+                            {renderMessageWithBugLinks(result.message, linkClass)}
+                          </span>
                           {result.success && result.sessionId && result.action === 'create_session' && (
                             <Link
                               to={`/sessions/${result.sessionId}`}

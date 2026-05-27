@@ -12,12 +12,17 @@ mock.module('../../supabaseClient', () => ({
   supabase: {
     from: (table: string) => {
       if (table === 'bugs') {
-        return {
-          select: () => ({
-            ilike: () => ({
-              limit: () => ({ data: state.bugRows }),
-            }),
+        const chainable = {
+          ilike: () => ({
+            limit: () => ({ data: state.bugRows }),
           }),
+          like: () => ({ data: state.bugRows }),
+          order: () => ({ limit: () => ({ data: [] }) }),
+          eq: () => chainable,
+          limit: () => ({ data: state.bugRows }),
+        }
+        return {
+          select: () => chainable,
           insert: (payload: Record<string, unknown>) => {
             state.insertedBugs.push(payload)
             return { error: null }

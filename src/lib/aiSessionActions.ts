@@ -16,7 +16,8 @@ interface ActionContext {
 
 const SESSION_ACTIONS = new Set(['create_session', 'copy_scenarios', 'delete_session', 'set_session_status', 'add_scenario', 'edit_scenario', 'assign_tester'])
 const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_tester', 'delete_tester', 'edit_tester'])
-const BUG_ACTIONS = new Set(['create_bug', 'edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment'])
+const BUG_ACTIONS = new Set(['create_bug', 'edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment', 'bulk_resolve', 'bulk_delete'])
+const EXPORT_ACTIONS = new Set(['export_bugs'])
 const TEAM_ACTIONS = new Set(['create_team', 'create_product', 'edit_product'])
 
 const SEVERITY_PREFIX: Record<Severity, string> = {
@@ -402,6 +403,33 @@ export async function executeSessionActionWithSession(
       const title = action.title?.trim()
       if (!title) return { action: 'create_bug', success: false, message: 'Bug title is required' }
 
+      // Duplicate detection
+      const { data: existingBugs } = await scopeToTeam(
+        supabase.from('bugs').select('id, title, severity, reviewed').order('created_at', { ascending: false }).limit(50),
+        activeTeamId,
+      )
+      if (existingBugs?.length) {
+        const titleLower = title.toLowerCase()
+        const titleWords = titleLower.split(/\s+/).filter((word) => word.length > 2)
+        const duplicates = existingBugs.filter((bug: { id: string; title: string; severity: string; reviewed: boolean }) => {
+          const bugTitleLower = bug.title.toLowerCase()
+          if (bugTitleLower === titleLower) return true
+          const matchCount = titleWords.filter((word) => bugTitleLower.includes(word)).length
+          return titleWords.length > 0 && matchCount / titleWords.length >= 0.6
+        }).slice(0, 3)
+        if (duplicates.length > 0) {
+          const dupList = duplicates.map((dup: { id: string; title: string; reviewed: boolean }) =>
+            `• ${dup.id}: "${dup.title}"${dup.reviewed ? ' (completed)' : ''}`
+          ).join('\n')
+          return {
+            action: 'create_bug',
+            success: false,
+            level: 'warning',
+            message: `Found similar bug(s) that might be duplicates:\n${dupList}\n\nShould I still create this bug, or is it a duplicate of one of these?`,
+          }
+        }
+      }
+
       const severity = parseSeverity(action.severity)
       const id = await generateBugId(severity, activeTeamId)
       const resolvedTester = action.tester?.trim() || ctx.currentUserName || 'Unknown'
@@ -529,6 +557,64 @@ export async function executeSessionActionWithSession(
       const { error } = await deleteBugQuery
       if (error) return { action: 'delete_bug', success: false, message: error.message }
       return { action: 'delete_bug', success: true, message: `Permanently deleted bug ${bug.id} "${bug.title}"` }
+    }
+
+    case 'bulk_resolve': {
+      const bugIds = action.bugs
+      if (!bugIds?.length) return { action: 'bulk_resolve', success: false, message: 'Specify which bugs to resolve (e.g. ["HI-01", "HI-02"])' }
+
+      const resolved: string[] = []
+      const failed: string[] = []
+      for (const bugRef of bugIds) {
+        const bug = await findBugByQuery(bugRef, activeTeamId)
+        if (!bug) { failed.push(bugRef); continue }
+        const { error } = await scopeToTeam(
+          supabase.from('bugs').update({ reviewed: true }).eq('id', bug.id),
+          activeTeamId,
+        )
+        if (error) { failed.push(bug.id); continue }
+        resolved.push(bug.id)
+      }
+
+      const parts: string[] = []
+      if (resolved.length) parts.push(`Resolved ${resolved.length} bug(s): ${resolved.join(', ')}`)
+      if (failed.length) parts.push(`Failed to resolve: ${failed.join(', ')}`)
+      return { action: 'bulk_resolve', success: resolved.length > 0, message: parts.join('. ') }
+    }
+
+    case 'bulk_delete': {
+      const bugIds = action.bugs
+      if (!bugIds?.length) return { action: 'bulk_delete', success: false, message: 'Specify which bugs to delete (e.g. ["LO-01", "LO-02"])' }
+
+      const deleted: string[] = []
+      const failed: string[] = []
+      for (const bugRef of bugIds) {
+        const bug = await findBugByQuery(bugRef, activeTeamId)
+        if (!bug) { failed.push(bugRef); continue }
+        await scopeToTeam(supabase.from('comments').delete().eq('bug_id', bug.id), activeTeamId)
+        await scopeToTeam(supabase.from('attachments').delete().eq('bug_id', bug.id), activeTeamId)
+        const { error } = await scopeToTeam(
+          supabase.from('bugs').delete().eq('id', bug.id),
+          activeTeamId,
+        )
+        if (error) { failed.push(bug.id); continue }
+        deleted.push(bug.id)
+      }
+
+      const parts: string[] = []
+      if (deleted.length) parts.push(`Deleted ${deleted.length} bug(s): ${deleted.join(', ')}`)
+      if (failed.length) parts.push(`Failed to delete: ${failed.join(', ')}`)
+      return { action: 'bulk_delete', success: deleted.length > 0, message: parts.join('. ') }
+    }
+
+    case 'export_bugs': {
+      const format = action.format || 'csv'
+      return {
+        action: 'export_bugs',
+        success: true,
+        exportFormat: format,
+        message: `Exporting bugs as ${format.toUpperCase()}...`,
+      }
     }
 
     case 'add_comment': {
@@ -787,7 +873,7 @@ export async function executeSessionAction(
   if (result.success) {
     if (SESSION_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['sessions'] })
     if (TESTER_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['testers'] })
-    if (BUG_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['bugs-data'] })
+    if (BUG_ACTIONS.has(action.action) || EXPORT_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['bugs-data'] })
     if (TEAM_ACTIONS.has(action.action)) {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })

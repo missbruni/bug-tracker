@@ -36,6 +36,11 @@ export type SessionActionType =
   | 'reopen_bug'
   | 'delete_bug'
   | 'add_comment'
+  // Bulk bug actions
+  | 'bulk_resolve'
+  | 'bulk_delete'
+  // Export
+  | 'export_bugs'
   // Scenario actions
   | 'add_scenario'
   | 'edit_scenario'
@@ -84,6 +89,11 @@ export interface SessionAction {
   page?: string
   category?: string
   comment?: string
+  // Bulk fields
+  bugs?: string[]
+  filter?: string
+  // Export fields
+  format?: 'csv' | 'json'
   // Bug filters fields
   session?: string
   severities?: string[]
@@ -104,6 +114,7 @@ export interface SessionActionResult {
   sessionId?: string
   sessionName?: string
   message: string
+  exportFormat?: 'csv' | 'json'
 }
 
 export interface Message {

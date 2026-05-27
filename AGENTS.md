@@ -59,6 +59,12 @@
 - Use `import React from 'react'` and access hooks via `React.useState`, `React.useEffect`, etc. Do not destructure hooks from the React import.
 - Zustand stores live in `src/stores/`. Name the file after the domain (e.g. `panelStore.ts`, `notificationStore.ts`) and export a `use<Domain>Store` hook.
 
+## AI Assistant
+
+- The AI assistant (chat agent) must always support any new features or app capabilities.
+- When adding a new feature, always check whether the agent needs updates: action types in `src/lib/aiTypes.ts`, handlers in `src/lib/aiSessionActions.ts`, prompt documentation in `src/lib/aiPrompt.ts`, and result handling in `src/hooks/useAiAssistant.ts`.
+- If a feature adds new bug actions, filters, export formats, or UI capabilities, the agent prompt and session action handlers must be updated in the same PR.
+
 ## Pull Requests
 
 - Keep PR descriptions concise — a short summary of what changed and why.

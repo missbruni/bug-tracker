@@ -199,6 +199,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   testers={registeredTesters}
                   sessions={sessions}
                   activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+                  existingBugs={bugs}
                 />
               </div>
             )}
@@ -216,6 +217,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                     testers={registeredTesters}
                     sessions={sessions}
                     activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+                    existingBugs={bugs}
                   />
                 </BottomSheet>
               </div>

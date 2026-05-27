@@ -163,6 +163,7 @@ export default function BugCard({
 
 	return (
 		<div
+			id={`bug-${bug.id}`}
 			ref={cardRef}
 			className={`card group mb-2 rounded-lg scroll-mt-28 transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
 			style={{
