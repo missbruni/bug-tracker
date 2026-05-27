@@ -65,6 +65,10 @@ mock.module('../aiParsers', () => ({
     if (severity === 'high') return 'HI-77'
     return 'LO-77'
   },
+  insertBugWithRetry: async (_sb: unknown, bugData: Record<string, unknown>, startId: string) => {
+    state.insertedBugs.push({ ...bugData, id: startId })
+    return startId
+  },
 }))
 
 let executeSessionActionWithSession: typeof import('../aiSessionActions').executeSessionActionWithSession

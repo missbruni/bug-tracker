@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import type { BugFiltersActionPayload } from '../lib/aiTypes'
+import type { BugFiltersActionPayload } from '../hooks/useAiAssistant'
 
 interface AppEventState {
   sessionDataChanged: { sessionId: string; version: number }

@@ -11,6 +11,7 @@ import {
 	Trash2,
 	Package,
 	Play,
+	Copy,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabaseClient";
@@ -23,6 +24,8 @@ import StatusMenu from "../components/StatusMenu";
 import ConfirmModal from "../components/ConfirmModal";
 import SecondaryAppBar from "../components/SecondaryAppBar";
 import { SessionListSkeleton } from "../components/Skeleton";
+import CloneSessionModal from "../components/CloneSessionModal";
+import Tooltip from "../components/Tooltip";
 import { useSessionTimer } from "../lib/sessionTimer";
 import type { SessionWithStats } from "../hooks/useBugs";
 
@@ -111,6 +114,7 @@ export default function SessionsListPage() {
 	const [search, setSearch] = React.useState("");
 	const [creatingSession, setCreatingSession] = React.useState(false);
 	const [deletingSession, setDeletingSession] = React.useState(false);
+	const [cloneSession, setCloneSession] = React.useState<Session | null>(null);
 	const [newProductId, setNewProductId] = React.useState("");
 	const [teamProducts, setTeamProducts] = React.useState<Product[]>([]);
 
@@ -389,17 +393,30 @@ export default function SessionsListPage() {
 												<Play size={12} /> Start
 											</button>
 										)}
-										<button
-											onClick={(event) => {
-												event.preventDefault();
-												setDeleteConfirmSession(session);
-												setDeleteConfirmText("");
-											}}
-											className="p-1.5 rounded-md text-slate-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-											title="Delete session"
-										>
-											<Trash2 size={14} />
+										<Tooltip title="Duplicate session">
+											<button
+												onClick={(event) => {
+														event.preventDefault();
+														setCloneSession(session);
+												}}
+												className="p-1.5 rounded-md text-slate-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+											>
+												<Copy size={14} />
 										</button>
+										</Tooltip>
+										<Tooltip title="Delete">
+											<button
+												onClick={(event) => {
+														event.preventDefault();
+														setDeleteConfirmSession(session);
+														setDeleteConfirmText("");
+												}}
+												className="p-1.5 rounded-md text-slate-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+											aria-label="Delete"
+											>
+												<Trash2 size={14} />
+										</button>
+										</Tooltip>
 										{session.status === "completed" && (
 											<div className="flex items-center gap-3 shrink-0">
 												{(session.feedback_count ?? 0) > 0 && (
@@ -493,6 +510,18 @@ export default function SessionsListPage() {
 					/>
 				</ConfirmModal>
 			)}
+		{cloneSession && (
+			<CloneSessionModal
+				session={cloneSession}
+				activeTeamId={activeTeamId}
+				onCloned={(newId) => {
+					setCloneSession(null);
+					queryClient.invalidateQueries({ queryKey: sessionsQueryKey });
+					window.location.href = `/sessions/${newId}`;
+				}}
+				onClose={() => setCloneSession(null)}
+			/>
+		)}
 		</div>
 		</>
 	);

@@ -3,7 +3,26 @@ import { supabase } from '../supabaseClient'
 import { scopeToTeam } from './teamScope'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Severity } from '../constants'
-import type { ParsedBug, SessionAction } from './aiTypes'
+import type { Attachment } from '../components/BugCard'
+import type { SessionAction } from './aiSessionActions'
+
+export interface ParsedBug {
+  title: string
+  description: string
+  severity: Severity
+  tester: string
+  device: string
+  page: string
+  category: string
+}
+
+export interface BugPreview extends ParsedBug {
+  _key: string
+  _created?: boolean
+  _createdId?: string
+  _creating?: boolean
+  _attachments?: Attachment[]
+}
 
 export function parseBugsFromResponse(text: string): ParsedBug[] {
   const jsonMatch = text.match(/```json\s*([\s\S]*?)```/)
