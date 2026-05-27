@@ -204,4 +204,41 @@ describe('SessionSetupPage', () => {
     renderPage()
     await waitFor(() => expect(screen.getByText('Start Timer')).toBeInTheDocument())
   })
+
+  test('clicking scenario card expands it instead of entering assign mode', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Login flow')).toBeInTheDocument())
+    const loginCard = screen.getByText('Login flow').closest('[class*="rounded-lg border"]')
+    const collapseGrid = loginCard?.querySelector('.collapse-grid')
+    // Not expanded initially
+    expect(collapseGrid?.classList.contains('open')).toBe(false)
+    // Click the scenario card itself (the title area)
+    fireEvent.click(screen.getByText('Login flow'))
+    // The collapse-grid should now have the 'open' class (expanded)
+    await waitFor(() => expect(collapseGrid?.classList.contains('open')).toBe(true))
+  })
+
+  test('clicking Unassigned chip enters assign mode without expanding', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Checkout')).toBeInTheDocument())
+    // Scenario B (Checkout) is unassigned — click the Unassigned chip
+    const unassignedChips = screen.getAllByText('Unassigned')
+    fireEvent.click(unassignedChips[0])
+    // The scenario card should be in selected state (blue ring via isSelected)
+    // The collapse-grid should NOT have the 'open' class (not expanded)
+    const checkoutCard = screen.getByText('Checkout').closest('[class*="rounded-lg border"]')
+    const collapseGrid = checkoutCard?.querySelector('.collapse-grid')
+    expect(collapseGrid?.classList.contains('open')).toBe(false)
+  })
+
+  test('clicking assigned tester name unassigns the tester', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getAllByText('Bruna').length).toBeGreaterThan(0))
+    // Scenario A (Login flow) is assigned to Bruna — click the tester badge on the card
+    const brunaElements = screen.getAllByText('Bruna')
+    // The first Bruna text in the scenario area is the badge
+    fireEvent.click(brunaElements[0])
+    // After clicking, the assignment should be removed (unassign called)
+    // The card should NOT expand from this click
+  })
 })

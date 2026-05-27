@@ -21,7 +21,7 @@ async function fetchTesters(activeTeamId: string | null): Promise<Tester[]> {
 
 export default function TesterManagementPage() {
   const queryClient = useQueryClient()
-  const { activeTeamId } = useTeamAccess()
+  const { activeTeamId, activeTeam, teams, isGodMode, setActiveTeamId } = useTeamAccess()
   const testersQueryKey = ['testers', activeTeamId] as const
   const { data: testers = [], isLoading: loading } = useQuery({
     queryKey: testersQueryKey,
@@ -226,6 +226,27 @@ export default function TesterManagementPage() {
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
           <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Tester</h2>
+          <div className="mb-3">
+            <label className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1 block">Team</label>
+            {isGodMode && teams.length > 1 ? (
+              <select
+                value={activeTeamId || ''}
+                onChange={event => setActiveTeamId(event.target.value)}
+                className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500"
+              >
+                {teams.map(team => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">
+                {activeTeam?.name || 'No team selected'}
+              </span>
+            )}
+            {!activeTeamId && (
+              <p className="text-xs text-red-500 mt-1">No active team — tester cannot be created without a team.</p>
+            )}
+          </div>
           <input
             value={newName}
             onChange={event => setNewName(event.target.value)}
@@ -255,7 +276,7 @@ export default function TesterManagementPage() {
               className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-4 py-1.5 text-xs text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-default transition-colors cursor-pointer">
               Cancel
             </button>
-            <button onClick={addTester} disabled={!newName.trim() || addingTester}
+            <button onClick={addTester} disabled={!newName.trim() || addingTester || !activeTeamId}
               className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default">
               {addingTester ? 'Adding...' : 'Add'}
             </button>

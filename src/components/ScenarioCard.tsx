@@ -14,6 +14,7 @@ interface ScenarioCardProps {
 	isDragOver?: boolean
 	draggable?: boolean
 	onClick: () => void
+	onAssignTester: () => void
 	onMoveUp: () => void
 	onMoveDown: () => void
 	onEdit: () => void
@@ -36,6 +37,7 @@ export default function ScenarioCard({
 	isDragOver,
 	draggable,
 	onClick,
+	onAssignTester,
 	onMoveUp,
 	onMoveDown,
 	onEdit,
@@ -82,15 +84,17 @@ export default function ScenarioCard({
 						)}
 					</div>
 				</div>
-				{assigned ? (
-					<span className="badge badge-blue">
-						{assigned.name}
-					</span>
-				) : (
-					<span className="inline-flex items-center rounded-full border border-dashed border-slate-300 dark:border-gray-600 px-2.5 py-0.5 text-[11px] text-slate-400 dark:text-gray-500">
-						Unassigned
-					</span>
-				)}
+				<div onClick={event => event.stopPropagation()}>
+					{assigned ? (
+						<span className="badge badge-blue cursor-pointer hover:ring-2 hover:ring-blue-300 dark:hover:ring-blue-600" onClick={onAssignTester}>
+							{assigned.name}
+						</span>
+					) : (
+						<span className="inline-flex items-center rounded-full border border-dashed border-slate-300 dark:border-gray-600 px-2.5 py-0.5 text-[11px] text-slate-400 dark:text-gray-500 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400" onClick={onAssignTester}>
+							Unassigned
+						</span>
+					)}
+				</div>
 				{!isCompleted && (
 					<div className="flex items-center gap-0.5 shrink-0" onClick={event => event.stopPropagation()}>
 						<button onClick={onMoveUp} disabled={index === 0}
