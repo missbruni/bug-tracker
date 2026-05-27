@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { incrementBugId, insertBugWithRetry } from '../aiParsers'
+import { incrementBugId, insertBugWithRetry } from '../../domains/bugs/id'
 
 describe('incrementBugId', () => {
   test('increments a standard bug ID', () => {

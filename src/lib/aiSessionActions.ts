@@ -38,7 +38,7 @@ export type SessionActionType =
 import { supabase } from '../supabaseClient'
 import { queryClient } from './queryClient'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
-import { generateBugId, insertBugWithRetry } from './aiParsers'
+import { generateBugId, insertBugWithRetry } from '../domains/bugs/id'
 import { useNotificationStore } from '../stores/notificationStore'
 import type { Severity } from '../constants'
 

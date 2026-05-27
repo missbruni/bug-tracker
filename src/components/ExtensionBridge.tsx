@@ -1,6 +1,6 @@
 import React from 'react'
 import { SEVERITIES, type Severity } from '../constants'
-import { generateBugId, insertBugWithRetry } from '../lib/aiParsers'
+import { generateBugId, insertBugWithRetry } from '../domains/bugs/id'
 import { queryClient } from '../lib/queryClient'
 import { buildAttachmentPath, withTeamPayload } from '../lib/teamScope'
 import { findTesterByName } from '../lib/testerLookup'
