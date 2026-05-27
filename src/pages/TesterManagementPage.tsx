@@ -8,7 +8,7 @@ import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
 import SecondaryAppBar from '../components/SecondaryAppBar'
 import { TesterListSkeleton } from '../components/Skeleton'
-import type { Tester } from '../types'
+import type { Tester } from '../lib/testerLookup'
 
 async function fetchTesters(activeTeamId: string | null): Promise<Tester[]> {
   if (!supabase) return []

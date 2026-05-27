@@ -1,13 +1,18 @@
 import React from 'react'
-import { Paperclip } from 'lucide-react'
+import { Paperclip, AlertTriangle } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
 import AttachmentCard from './AttachmentCard'
 import { filesToAttachments, getImageFilesFromPaste } from '../lib/attachments'
+import { findPotentialDuplicates } from '../lib/duplicateDetection'
+import type { DuplicateCandidate } from '../lib/duplicateDetection'
 import type { Severity } from '../constants'
-import type { Attachment, SessionOption, Tester } from '../types'
+import type { Attachment, Bug } from '../components/BugCard'
+import type { SessionOption } from '../hooks/useBugs'
+import type { Tester } from '../lib/testerLookup'
 
 const ADD_NEW_TESTER_VALUE = '__add_new_tester__'
+const EMPTY_BUGS: Bug[] = []
 
 interface NewBugPayload {
   id: string
@@ -33,9 +38,10 @@ interface AddBugFormProps {
   sessions?: SessionOption[]
   activeSessionId?: string | null
   variant?: 'card' | 'sheet'
+  existingBugs?: Bug[]
 }
 
-export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, testers, sessions = [], activeSessionId = null, variant = 'card' }: AddBugFormProps) {
+export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, testers, sessions = [], activeSessionId = null, variant = 'card', existingBugs = EMPTY_BUGS }: AddBugFormProps) {
   const [title, setTitle] = React.useState('')
   const [desc, setDesc] = React.useState('')
   const [severity, setSeverity] = React.useState<Severity>('high')
@@ -48,6 +54,25 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
   const [sessionId, setSessionId] = React.useState<string | null>(activeSessionId)
   const fileRef = React.useRef<HTMLInputElement>(null)
   const [files, setFiles] = React.useState<Attachment[]>([])
+  const [duplicates, setDuplicates] = React.useState<DuplicateCandidate[]>([])
+  const [duplicatesDismissed, setDuplicatesDismissed] = React.useState(false)
+  const duplicateTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    if (duplicateTimer.current) clearTimeout(duplicateTimer.current)
+    if (!title.trim() || existingBugs.length === 0) {
+      setDuplicates([])
+      return
+    }
+    setDuplicatesDismissed(false)
+    duplicateTimer.current = setTimeout(() => {
+      const matches = findPotentialDuplicates(title, existingBugs)
+      setDuplicates(matches)
+    }, 300)
+    return () => {
+      if (duplicateTimer.current) clearTimeout(duplicateTimer.current)
+    }
+  }, [title, existingBugs])
 
   const handleFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(event.target.files || [])
@@ -189,6 +214,41 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
           ))}
         </div>
       </div>
+      {duplicates.length > 0 && !duplicatesDismissed && (
+        <div className="mb-2.5 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+              <AlertTriangle size={13} />
+              Potential duplicate{duplicates.length > 1 ? 's' : ''} found
+            </span>
+            <button
+              onClick={() => setDuplicatesDismissed(true)}
+              className="text-[10px] text-amber-600 dark:text-amber-500 hover:text-amber-800 dark:hover:text-amber-300 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+          {duplicates.map((match) => (
+            <div key={match.bug.id} className="flex items-baseline gap-2 py-0.5">
+              <button
+                onClick={() => {
+                  const element = document.getElementById(`bug-${match.bug.id}`)
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    element.classList.add('ring-2', 'ring-amber-400')
+                    setTimeout(() => element.classList.remove('ring-2', 'ring-amber-400'), 2000)
+                  }
+                }}
+                className="text-[11px] font-bold text-amber-600 dark:text-amber-500 shrink-0 underline hover:text-amber-800 dark:hover:text-amber-300 cursor-pointer"
+              >
+                {match.bug.id}
+              </button>
+              <span className="text-xs text-amber-800 dark:text-amber-300 truncate">{match.bug.title}</span>
+              {match.bug.reviewed && <span className="text-[10px] text-slate-400 dark:text-gray-500 shrink-0">(completed)</span>}
+            </div>
+          ))}
+        </div>
+      )}
       <textarea value={desc} onChange={(event) => setDesc(event.target.value)} placeholder="Description" rows={3}
         className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none resize-y mb-2.5 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
       {files.length > 0 && (

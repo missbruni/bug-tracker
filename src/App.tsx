@@ -6,6 +6,7 @@ import Lightbox from './components/Lightbox'
 import BugCard from './components/BugCard'
 import AddBugForm from './components/AddBugForm'
 import FilterBar from './components/FilterBar'
+import BulkActionBar from './components/BulkActionBar'
 import QuestionsSection from './components/QuestionsSection'
 import BottomSheet from './components/BottomSheet'
 import SecondaryAppBar from './components/SecondaryAppBar'
@@ -14,8 +15,14 @@ import { BugListSkeleton } from './components/Skeleton'
 import { useKonamiLoader } from './hooks/useKonamiLoader'
 import { useBugs } from './hooks/useBugs'
 import { useBugFilters } from './hooks/useBugFilters'
+import { useBulkActions } from './hooks/useBulkActions'
 import { usePanelStore } from './stores/panelStore'
-import type { LightboxState } from './types'
+
+interface LightboxState {
+  src: string
+  alt: string
+  type: string
+}
 
 export default function App() {
   const {
@@ -39,7 +46,9 @@ export default function App() {
   } = useBugs()
 
   const filters = useBugFilters(bugs, questions, sessions)
-  const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
+  const { search, setSearch, severityFilter, testerFilter, testers, activeBugs, filtered, counts, nextIds, grouped, filteredQuestions, isSearchPending } = filters
+
+  const bulk = useBulkActions()
 
   const [lightbox, setLightbox] = React.useState<LightboxState | null>(null)
   const [editingBugId, setEditingBugId] = React.useState<string | null>(null)
@@ -126,7 +135,52 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         setSortOrder={filters.setSortOrder}
         testers={testers}
         sessions={sessions}
+        selectionMode={bulk.selectionMode}
+        onEnterSelectionMode={bulk.enterSelectionMode}
+        filteredBugs={filtered}
       />
+
+      {bulk.selectionMode && (
+        <BulkActionBar
+          selectedCount={bulk.selectedIds.size}
+          totalCount={activeBugs.length}
+          progress={bulk.progress}
+          allSelected={activeBugs.length > 0 && bulk.selectedIds.size === activeBugs.length}
+          onSelectAll={() => bulk.selectAll(activeBugs.map((bug) => bug.id))}
+          onDeselectAll={bulk.deselectAll}
+          onMarkReviewed={async () => {
+            const result = await bulk.bulkMarkReviewed(bugs, updateBug)
+            if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+            setSnackbar({ message: `${result.successCount} bug(s) marked as reviewed`, tone: 'success' })
+            snackbarTimer.current = setTimeout(() => setSnackbar(null), 3000)
+            bulk.setProgress(null)
+            bulk.deselectAll()
+          }}
+          onDelete={async () => {
+            const result = await bulk.bulkDelete(bugs, deleteBugFromState)
+            if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+            setSnackbar({
+              message: `${result.successCount} bug(s) deleted${result.errorCount ? `, ${result.errorCount} failed` : ''}`,
+              tone: result.errorCount ? 'warning' : 'success',
+            })
+            snackbarTimer.current = setTimeout(() => setSnackbar(null), 3000)
+            bulk.setProgress(null)
+            bulk.deselectAll()
+          }}
+          onPublish={async () => {
+            const result = await bulk.bulkPublish(bugs, updateBug)
+            if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
+            setSnackbar({
+              message: `${result.successCount} bug(s) published${result.errorCount ? `, ${result.errorCount} failed` : ''}`,
+              tone: result.errorCount ? 'warning' : 'success',
+            })
+            snackbarTimer.current = setTimeout(() => setSnackbar(null), 3000)
+            bulk.setProgress(null)
+            bulk.deselectAll()
+          }}
+          onExit={bulk.exitSelectionMode}
+        />
+      )}
 
       {/* Content */}
       <div className={`max-w-screen-2xl mx-auto px-4 sm:px-7 pt-4 pb-8 transition-opacity duration-150 ${isSearchPending ? 'opacity-60' : 'opacity-100'}`}>
@@ -150,6 +204,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   testers={registeredTesters}
                   sessions={sessions}
                   activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+                  existingBugs={bugs}
                 />
               </div>
             )}
@@ -167,6 +222,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                     testers={registeredTesters}
                     sessions={sessions}
                     activeSessionId={sessions.find(s => s.status === 'active')?.id || null}
+                    existingBugs={bugs}
                   />
                 </BottomSheet>
               </div>
@@ -190,6 +246,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       bug={bug}
                       onUpdate={updateBug}
                       onDelete={deleteBugFromState}
+                      selectionMode={bulk.selectionMode}
+                      selected={bulk.selectedIds.has(bug.id)}
+                      onToggleSelect={bulk.toggleSelection}
                       onDeleteWithUndo={(deletedBug, hardDelete) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)
                         if (deleteTimer.current) clearTimeout(deleteTimer.current)

@@ -6,6 +6,42 @@ export interface TeamRecord {
   created_at?: string
 }
 
+export interface Organization {
+  id: string
+  name: string
+  created_at?: string
+}
+
+export interface Team {
+  id: string
+  organization_id: string
+  name: string
+  slug: string
+  created_by?: string | null
+  created_at?: string
+}
+
+export type TeamRole = 'team_admin' | 'member'
+
+export interface TeamMember {
+  id: string
+  team_id: string
+  user_id: string
+  role: TeamRole
+  status: 'active' | 'invited' | 'disabled'
+  created_at?: string
+}
+
+export interface TeamInvitation {
+  id: string
+  team_id: string
+  email: string
+  role: TeamRole
+  invited_by: string
+  status: 'pending' | 'accepted' | 'expired'
+  created_at?: string
+}
+
 export const ORGANIZATION_ID = 'theaccessgroup'
 export const DEFAULT_TEAM_SLUG = 'evo-ibe'
 export const DEFAULT_TEAM_NAME = 'EVO IBE'

@@ -2,7 +2,7 @@ import React from 'react'
 import { X, Check, ChevronRight, FileText } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { scopeToTeam } from '../lib/teamScope'
-import type { Scenario } from '../types'
+import type { Scenario } from '../hooks/useBugs'
 
 interface SessionOption {
   id: string

@@ -6,6 +6,8 @@ import { filesToAttachments } from '../lib/attachments'
 import { buildSystemPrompt } from '../lib/aiPrompt'
 import { parseBugsFromResponse, parseSessionActions, generateBugId, insertBugWithRetry } from '../lib/aiParsers'
 import { executeSessionAction as executeSessionActionWithCache } from '../lib/aiSessionActions'
+import { bugsToCSV, bugsToJSON, downloadFile } from '../lib/bugExport'
+import type { ExportFormat } from '../lib/bugExport'
 import { ensureTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
 import { useAuth, getUserDisplayName } from '../lib/useAuth'
@@ -333,6 +335,29 @@ export default function useAiAssistant(open: boolean) {
           sessionIdsToRefresh.add(result.sessionId)
         }
       }
+      // Handle export action — trigger download
+      for (const result of actionResults) {
+        if (result.action === 'export_bugs' && result.success && result.exportFormat) {
+          const format = result.exportFormat as ExportFormat
+          const { data: exportBugs } = await scopeToTeam(
+            supabase!.from('bugs')
+              .select('id, title, description, severity, tester, device, page, category, created_at, reviewed, backlog_url, session_id')
+              .order('created_at', { ascending: false }),
+            activeTeamId,
+          )
+          if (exportBugs?.length) {
+            const bugsForExport = exportBugs.map((bugRow: Record<string, unknown>) => ({
+              ...bugRow,
+              comments: [],
+              attachments: [],
+            })) as unknown as import('../components/BugCard').Bug[]
+            const timestamp = new Date().toISOString().slice(0, 10)
+            const content = format === 'csv' ? bugsToCSV(bugsForExport) : bugsToJSON(bugsForExport)
+            downloadFile(content, `bugs-export-${timestamp}.${format}`, format)
+          }
+        }
+      }
+
       // Notify outside React batch
       if (sessionIdsToRefresh.size > 0) {
         setTimeout(() => {

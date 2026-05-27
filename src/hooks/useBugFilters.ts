@@ -1,7 +1,9 @@
 import React from "react";
 import { SEVERITIES } from "../constants";
 import { matchesDateFilter } from "../lib/dateFilter";
-import type { Bug, Question, SessionOption } from "../types";
+import type { Bug } from "../components/BugCard";
+import type { Question } from "../components/QuestionsSection";
+import type { SessionOption } from "../hooks/useBugs";
 import type { Severity } from "../constants";
 import { useNotificationStore } from "../stores/notificationStore";
 

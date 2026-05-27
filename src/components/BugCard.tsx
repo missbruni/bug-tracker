@@ -12,21 +12,63 @@ import {
 	Link,
 	Check,
 } from "lucide-react";
-import { SEVERITY_STYLES } from "../constants";
+import { SEVERITY_STYLES, type Severity } from "../constants";
 import { TesterBadge } from "./TesterBadge";
 import AttachmentCard from "./AttachmentCard";
 import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../hooks/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
+import BugActivityTimeline from "./BugActivityTimeline";
 import { buildBugPermalink, copyToClipboard } from "../lib/bugPermalink";
-import type { Bug } from "../types";
+
+export interface Attachment {
+  id?: number
+  bug_id?: string
+  team_id?: string
+  name: string
+  url: string
+  type: string
+  file?: File
+  note?: string
+}
+
+export interface Comment {
+  id?: number
+  bug_id?: string
+  team_id?: string
+  text: string
+  time?: string
+}
+
+export interface Bug {
+  id: string
+  team_id?: string
+  title: string
+  description: string
+  severity: Severity
+  tester: string
+  tester_id?: string | null
+  device: string
+  page: string
+  category: string | null
+  created_at?: string
+  reviewed?: boolean
+  backlog_url?: string | null
+  devin_url?: string | null
+  session_id?: string | null
+  comments: Comment[]
+  attachments: Attachment[]
+}
 
 interface BugCardProps {
 	bug: Bug;
 	onUpdate: (bug: Bug) => void;
 	onImageClick: (src: string, alt: string, type: string) => void;
 	onDelete: (bugId: string) => void;
+	selectionMode?: boolean;
+	selected?: boolean;
+	onToggleSelect?: (bugId: string) => void;
 	onDeleteWithUndo?: (bug: Bug, hardDelete: () => Promise<boolean>) => void;
 	onPersistError?: (message: string) => void;
 	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
@@ -46,6 +88,9 @@ export default function BugCard({
 	onLinkCopied,
 	initialEditing = false,
 	onEditingChange,
+	selectionMode = false,
+	selected = false,
+	onToggleSelect,
 }: BugCardProps) {
 	const [expanded, setExpanded] = React.useState(initialEditing);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
@@ -156,6 +201,7 @@ export default function BugCard({
 
 	return (
 		<div
+			id={`bug-${bug.id}`}
 			ref={cardRef}
 			className={`card group mb-2 rounded-lg scroll-mt-28 transition-shadow hover:shadow-xs dark:hover:shadow-md dark:hover:shadow-black/20 ${bug.reviewed ? "bg-slate-50/60! dark:bg-gray-900/60! opacity-60" : ""} ${isDeleting ? "opacity-50" : ""}`}
 			style={{
@@ -163,6 +209,23 @@ export default function BugCard({
 			}}
 		>
 			<div className="flex items-center">
+				{selectionMode && (
+					<button
+						onClick={() => onToggleSelect?.(bug.id)}
+						className="shrink-0 pl-4 pr-1 py-3 cursor-pointer transition-colors"
+						title={selected ? 'Deselect' : 'Select'}
+					>
+						<div className={`w-4 h-4 rounded border-2 transition-colors flex items-center justify-center ${
+							selected
+								? 'bg-blue-500 dark:bg-mushi-primary border-blue-500 dark:border-mushi-primary'
+								: 'border-slate-300 dark:border-gray-600'
+						}`}>
+							{selected && (
+								<Check size={10} className="text-white dark:text-mushi-bg" />
+							)}
+						</div>
+					</button>
+				)}
 				<button
 					onClick={actions.toggleReviewed}
 					className={`shrink-0 pl-4 pr-1 py-3 cursor-pointer transition-colors ${bug.reviewed ? "text-green-500" : "text-slate-300 dark:text-gray-600 hover:text-green-400"}`}
@@ -392,6 +455,8 @@ export default function BugCard({
 							))}
 						</div>
 					)}
+
+					<BugActivityTimeline bugId={bug.id} />
 
 					<div className="flex flex-col sm:flex-row sm:items-center gap-2">
 						<button

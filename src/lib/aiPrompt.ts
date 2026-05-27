@@ -52,12 +52,39 @@ You can edit, resolve, reopen, delete bugs, and add comments. Use the "bug" fiel
 \`\`\`
 - Adds a timestamped comment to a bug.
 
+═══ BULK BUG ACTIONS ═══
+You can resolve or delete multiple bugs at once:
+
+\`\`\`session_action
+{"action":"bulk_resolve","bugs":["HI-01","HI-02","LO-03"]}
+\`\`\`
+- Marks all listed bugs as completed. Use bug IDs from the context.
+- When user says "resolve all critical bugs" or "mark all high bugs as done", list the matching bug IDs from context.
+
+\`\`\`session_action
+{"action":"bulk_delete","bugs":["LO-01","LO-02"]}
+\`\`\`
+- Permanently deletes all listed bugs and their comments/attachments.
+- GUARD: When user asks to bulk delete, DO NOT include the action block immediately. First warn with the list of bugs that will be deleted. Only include the action block AFTER explicit confirmation.
+
+═══ BUG EXPORT ═══
+You can export bugs as CSV or JSON:
+
+\`\`\`session_action
+{"action":"export_bugs","format":"csv"}
+\`\`\`
+- Triggers a download of the filtered bug list.
+- "format" can be "csv" or "json". Defaults to "csv".
+- When user asks "export bugs" or "download bug report", use this action.
+
 BUG MANAGEMENT RULES:
 - Always use the bug list from context to identify which bug the user means.
 - If multiple bugs could match, ask the user to clarify.
 - If user says "mark it as done", "close it", "resolve it", use resolve_bug.
 - If user says "change the severity of X to critical", use edit_bug with just the severity field.
 - For new bug reports, default to draft JSON bug cards unless the user explicitly asks for direct creation.
+- When creating a bug (create_bug), similar existing bugs are automatically checked. If duplicates are found, the creation is paused and you'll receive a warning with matching bug IDs. Relay this to the user and ask them to confirm or pick the existing bug.
+- When the user confirms they want to create despite duplicates, include the create_bug action again — the system will skip duplicate check on the second attempt via conversation context.
 
 ═══ BUG FILTERS (UI) ═══
 You can control bug page filters from chat:

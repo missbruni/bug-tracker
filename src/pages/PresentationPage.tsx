@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight, X, Package } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam } from '../lib/teamScope'
-import type { Session, Scenario, Tester, Assignment } from '../types'
+import type { Session, Scenario, Assignment } from '../hooks/useBugs'
+import type { Tester } from '../lib/testerLookup'
 
 interface Slide {
   type: 'title' | 'objective' | 'timeline' | 'assignments' | 'scenario' | 'crosscutting' | 'edgecases' | 'bugreporting' | 'tips'

@@ -1,8 +1,63 @@
 import React from "react"
-import { ArrowDownUp, SlidersHorizontal } from "lucide-react";
+import { ArrowDownUp, SlidersHorizontal, CheckSquare, Download } from "lucide-react";
 import BottomSheet from "./BottomSheet";
-import type { Bug, SessionOption } from "../types";
+import { bugsToCSV, bugsToJSON, downloadFile } from "../lib/bugExport";
+import type { ExportFormat } from "../lib/bugExport";
+import type { Bug } from "./BugCard";
+import type { SessionOption } from "../hooks/useBugs";
 import type { Severity } from "../constants";
+
+function ExportDropdown({ filteredBugs }: { filteredBugs: Bug[] }) {
+	const [open, setOpen] = React.useState(false);
+	const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		if (!open) return;
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+				setOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [open]);
+
+	const handleExport = (format: ExportFormat) => {
+		const timestamp = new Date().toISOString().slice(0, 10);
+		const content = format === "csv" ? bugsToCSV(filteredBugs) : bugsToJSON(filteredBugs);
+		downloadFile(content, `bugs-export-${timestamp}.${format}`, format);
+		setOpen(false);
+	};
+
+	return (
+		<div ref={dropdownRef} className="relative">
+			<button
+				onClick={() => setOpen(!open)}
+				className="flex items-center justify-center gap-1 rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+				title="Export bugs"
+			>
+				<Download size={12} />
+				Export
+			</button>
+			{open && (
+				<div className="absolute right-0 top-full mt-1 z-50 min-w-[120px] rounded-md border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1">
+					<button
+						onClick={() => handleExport("csv")}
+						className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
+					>
+						Export as CSV
+					</button>
+					<button
+						onClick={() => handleExport("json")}
+						className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
+					>
+						Export as JSON
+					</button>
+				</div>
+			)}
+		</div>
+	);
+}
 
 interface FilterBarProps {
 	bugs: Bug[];
@@ -20,6 +75,9 @@ interface FilterBarProps {
 	setSortOrder: (value: string) => void;
 	testers: string[];
 	sessions: SessionOption[];
+	selectionMode?: boolean;
+	onEnterSelectionMode?: () => void;
+	filteredBugs?: Bug[];
 }
 
 export default function FilterBar({
@@ -38,6 +96,9 @@ export default function FilterBar({
 	setSortOrder,
 	testers,
 	sessions,
+	selectionMode = false,
+	onEnterSelectionMode,
+	filteredBugs,
 }: FilterBarProps) {
 	const [sheetOpen, setSheetOpen] = React.useState(false);
 
@@ -160,6 +221,19 @@ export default function FilterBar({
 						? "Oldest"
 						: "Sort"}
 			</button>
+			{!selectionMode && onEnterSelectionMode && (
+				<button
+					onClick={onEnterSelectionMode}
+					className="flex items-center justify-center gap-1 rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+					title="Select multiple bugs"
+				>
+					<CheckSquare size={12} />
+					Select
+				</button>
+			)}
+			{filteredBugs && filteredBugs.length > 0 && (
+				<ExportDropdown filteredBugs={filteredBugs} />
+			)}
 		</>
 	);
 
