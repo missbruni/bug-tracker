@@ -2,7 +2,7 @@ import React from 'react'
 import { Plus, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import { SEVERITIES, SEVERITY_STYLES } from './constants'
-import Lightbox from './components/Lightbox'
+import Lightbox, { type LightboxItem } from './components/Lightbox'
 import BugCard from './components/BugCard'
 import AddBugForm from './components/AddBugForm'
 import FilterBar from './components/FilterBar'
@@ -19,9 +19,8 @@ import { useBulkActions } from './hooks/useBulkActions'
 import { usePanelStore } from './stores/panelStore'
 
 interface LightboxState {
-  src: string
-  alt: string
-  type: string
+  items: LightboxItem[]
+  currentIndex: number
 }
 
 export default function App() {
@@ -96,7 +95,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
   return (
     <>
-      {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} type={lightbox.type} onClose={() => setLightbox(null)} />}
+      {lightbox && <Lightbox items={lightbox.items} currentIndex={lightbox.currentIndex} onClose={() => setLightbox(null)} />}
 
       {/* Secondary bar — bugs page only */}
       <SecondaryAppBar
@@ -271,7 +270,18 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                         snackbarTimer.current = setTimeout(() => setSnackbar(null), 5500)
                       }}
                       onPersistError={showPersistError}
-                      onImageClick={(src, alt, type) => setLightbox({ src, alt, type })}
+                      onImageClick={(src, alt, type) => {
+                        const mediaAttachments = bug.attachments.filter(att =>
+                          att.url && (att.type?.startsWith('image/') || att.type?.startsWith('video/') || att.name?.match(/\.(png|jpe?g|gif|webp|svg|mp4|webm|mov|ogg)$/i))
+                        )
+                        const items: LightboxItem[] = mediaAttachments.map(att => ({
+                          src: att.url,
+                          alt: att.name,
+                          type: att.type?.startsWith('video/') || att.name?.match(/\.(mp4|webm|mov|ogg)$/i) ? 'video' : 'image',
+                        }))
+                        const currentIndex = items.findIndex(item => item.src === src)
+                        setLightbox({ items: items.length ? items : [{ src, alt, type }], currentIndex: Math.max(0, currentIndex) })
+                      }}
                       initialEditing={editingBugId === bug.id}
                       onEditingChange={(editing) => setEditingBugId(editing ? bug.id : null)}
                       onLinkCopied={(bugId) => {

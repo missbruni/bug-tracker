@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, Star, Send, MessageSquareHeart } from 'lucide-react'
+import { X, Star, Send, MessageSquareHeart, Link2, Check } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
@@ -73,6 +73,7 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
     return done.includes(sessionId)
   })
   const [submitting, setSubmitting] = React.useState(false)
+  const [linkCopied, setLinkCopied] = React.useState(false)
 
   // Form state
   const [rating, setRating] = React.useState(0)
@@ -311,7 +312,29 @@ export default function FeedbackModal({ sessionId, sessionName, onClose, inline 
             <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100">Session Feedback</h2>
             <span className="text-xs text-slate-400 dark:text-gray-500">{sessionName}</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 cursor-pointer"><X size={18} /></button>
+          <div className="flex items-center gap-1.5">
+            <div className="relative">
+              <button
+                onClick={() => {
+                  const feedbackUrl = `${window.location.origin}/sessions/${sessionId}?feedback`
+                  navigator.clipboard.writeText(feedbackUrl).then(() => {
+                    setLinkCopied(true)
+                    setTimeout(() => setLinkCopied(false), 2000)
+                  })
+                }}
+                className={`cursor-pointer transition-colors ${linkCopied ? 'text-green-500' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
+                title="Copy feedback link"
+              >
+                {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+              </button>
+              {linkCopied && (
+                <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 dark:bg-gray-700 px-2 py-0.5 text-[10px] font-medium text-white shadow-lg">
+                  Copied!
+                </span>
+              )}
+            </div>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 cursor-pointer"><X size={18} /></button>
+          </div>
         </div>
         {content}
       </div>

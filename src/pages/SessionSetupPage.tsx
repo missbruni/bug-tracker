@@ -1,6 +1,6 @@
 import React from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy, GripVertical } from 'lucide-react'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Plus, Trash2, Lock, Shuffle, RotateCcw, Presentation, Pencil, MessageSquareHeart, AlertCircle, Package, Play, Pause, Square, Copy, GripVertical, Check } from 'lucide-react'
 import SessionSummaryBanner from '../components/SessionSummaryBanner'
 import FeedbackModal from '../components/FeedbackModal'
 import StatusMenu from '../components/StatusMenu'
@@ -19,6 +19,7 @@ import type { Session, Scenario, Assignment, SessionStatus } from '../hooks/useB
 
 export default function SessionSetupPage() {
   const { id: sessionId } = useParams<{ id: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { activeTeamId } = useTeamAccess()
   const [session, setSession] = React.useState<Session | null>(null)
   const [scenarios, setScenarios] = React.useState<Scenario[]>([])
@@ -41,6 +42,8 @@ export default function SessionSetupPage() {
   const { timer, elapsed, startTimer, pauseTimer, resumeTimer, stopTimer } = useSessionTimer()
   const isTimerForThis = timer?.sessionId === sessionId
   const [timerError, setTimerError] = React.useState<string | null>(null)
+  const [showFeedbackModal, setShowFeedbackModal] = React.useState(false)
+  const [feedbackLinkCopied, setFeedbackLinkCopied] = React.useState(false)
 
   // Add/edit scenario state
   const [showAddScenario, setShowAddScenario] = React.useState(false)
@@ -140,6 +143,13 @@ export default function SessionSetupPage() {
       },
     )
   }, [sessionId])
+
+  React.useEffect(() => {
+    if (!loading && session && searchParams.has('feedback')) {
+      setShowFeedbackModal(true)
+      setSearchParams((prev) => { prev.delete('feedback'); return prev }, { replace: true })
+    }
+  }, [loading, session, searchParams, setSearchParams])
 
   // Navigate away if this session is deleted via AI
   React.useEffect(() => {
@@ -723,8 +733,11 @@ export default function SessionSetupPage() {
                   isDragOver={dragOverScenarioId === scenario.id}
                   draggable={!isCompleted}
                   onClick={() => {
-                    if (isCompleted) {
-                      setExpandedScenarioId(expandedScenarioId === scenario.id ? null : scenario.id)
+                    setExpandedScenarioId(expandedScenarioId === scenario.id ? null : scenario.id)
+                  }}
+                  onAssignTester={() => {
+                    if (assigned) {
+                      unassign(scenario.id)
                     } else {
                       setSelectedScenarioId(isSelected ? null : scenario.id)
                     }
@@ -833,9 +846,28 @@ export default function SessionSetupPage() {
 
           {isCompleted && (
             <div className="mt-4">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3 flex items-center gap-1.5">
-                <MessageSquareHeart size={14} /> Session Feedback
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 flex items-center gap-1.5">
+                  <MessageSquareHeart size={14} /> Session Feedback
+                </h2>
+                <button
+                  onClick={() => {
+                    const feedbackUrl = `${window.location.origin}/sessions/${session.id}?feedback`
+                    navigator.clipboard.writeText(feedbackUrl).then(() => {
+                      setFeedbackLinkCopied(true)
+                      setTimeout(() => setFeedbackLinkCopied(false), 2000)
+                    })
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer ${
+                    feedbackLinkCopied
+                      ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                      : 'border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-500 dark:hover:text-blue-400'
+                  }`}
+                  title="Copy shareable feedback link"
+                >
+                  {feedbackLinkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy feedback link</>}
+                </button>
+              </div>
               <FeedbackModal sessionId={session.id} sessionName={session.name} onClose={() => {}} inline />
             </div>
           )}
@@ -887,6 +919,14 @@ export default function SessionSetupPage() {
           activeTeamId={activeTeamId}
           onCopy={copyScenarios}
           onClose={() => setShowCopyScenarios(false)}
+        />
+      )}
+
+      {showFeedbackModal && session && (
+        <FeedbackModal
+          sessionId={session.id}
+          sessionName={session.name}
+          onClose={() => setShowFeedbackModal(false)}
         />
       )}
     </div>
