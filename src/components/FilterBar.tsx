@@ -1,8 +1,8 @@
 import React from "react"
 import { ArrowDownUp, SlidersHorizontal, CheckSquare, Download } from "lucide-react";
 import BottomSheet from "./BottomSheet";
-import { bugsToCSV, bugsToJSON, downloadFile } from "../lib/bugExport";
-import type { ExportFormat } from "../lib/bugExport";
+import { bugsToCSV, bugsToJSON, downloadFile } from "../domains/bugs/export";
+import type { ExportFormat } from "../domains/bugs/export";
 import type { Bug } from "../domains/bugs/model";
 import type { SessionOption } from "../domains/sessions/model";
 import type { Severity } from "../constants";

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Check, Pencil, Loader2, Paperclip } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
-import { getImageFilesFromPaste } from '../lib/attachments'
+import { getImageFilesFromPaste } from '../domains/bugs/attachments'
 import AttachmentCard from './AttachmentCard'
 import type { ParsedBug, BugPreview } from '../lib/aiParsers'
 
