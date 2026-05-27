@@ -1,5 +1,6 @@
 import { ChevronUp, ChevronDown, GripVertical, Pencil, Trash2, Lock } from 'lucide-react'
-import type { Scenario, Tester } from '../types'
+import type { Scenario } from '../hooks/useBugs'
+import type { Tester } from '../lib/testerLookup'
 
 interface ScenarioCardProps {
 	scenario: Scenario

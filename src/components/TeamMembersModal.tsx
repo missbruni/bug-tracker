@@ -2,7 +2,7 @@ import React from 'react'
 import { X, UserPlus, Check, ChevronDown, Shield, User, Search, Mail, Clock, Trash2 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../lib/useAuth'
-import type { TeamRole } from '../types'
+import type { TeamRole } from '../lib/teamScope'
 
 interface MemberRow {
   id: string

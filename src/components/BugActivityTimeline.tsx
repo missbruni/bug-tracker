@@ -11,7 +11,25 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { useBugActivity } from '../hooks/useBugActivity'
-import type { BugActivityAction } from '../types'
+
+export type BugActivityAction =
+  | 'created'
+  | 'edited'
+  | 'severity_changed'
+  | 'reviewed'
+  | 'reopened'
+  | 'comment_added'
+  | 'published'
+
+export interface BugActivity {
+  id: number
+  bug_id: string
+  team_id?: string
+  action: BugActivityAction
+  description: string
+  actor: string | null
+  created_at: string
+}
 
 const ACTION_CONFIG: Record<BugActivityAction, { icon: React.ReactNode; color: string }> = {
   created: { icon: <Plus size={12} />, color: 'text-blue-500 dark:text-blue-400' },

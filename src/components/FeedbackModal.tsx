@@ -3,7 +3,23 @@ import { X, Star, Send, MessageSquareHeart } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
-import type { Feedback } from '../types'
+
+export type LengthFeel = 'too_short' | 'just_right' | 'too_long'
+export type Helpfulness = 'not_at_all' | 'somewhat' | 'very'
+
+export interface Feedback {
+  id: string
+  team_id?: string
+  session_id: string
+  name: string | null
+  rating: number
+  length_feel: LengthFeel
+  clarity: number
+  helpfulness: Helpfulness
+  worked_well: string | null
+  to_improve: string | null
+  created_at: string
+}
 
 interface Props {
   sessionId: string

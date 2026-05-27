@@ -350,7 +350,7 @@ export default function useAiAssistant(open: boolean) {
               ...bugRow,
               comments: [],
               attachments: [],
-            })) as unknown as import('../types').Bug[]
+            })) as unknown as import('../components/BugCard').Bug[]
             const timestamp = new Date().toISOString().slice(0, 10)
             const content = format === 'csv' ? bugsToCSV(bugsForExport) : bugsToJSON(bugsForExport)
             downloadFile(content, `bugs-export-${timestamp}.${format}`, format)

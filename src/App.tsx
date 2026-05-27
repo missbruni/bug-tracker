@@ -17,7 +17,12 @@ import { useBugs } from './hooks/useBugs'
 import { useBugFilters } from './hooks/useBugFilters'
 import { useBulkActions } from './hooks/useBulkActions'
 import { usePanelStore } from './stores/panelStore'
-import type { LightboxState } from './types'
+
+interface LightboxState {
+  src: string
+  alt: string
+  type: string
+}
 
 export default function App() {
   const {

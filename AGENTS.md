@@ -55,6 +55,7 @@
 
 ## Code Style
 
+- **Types co-location**: Types should live in the file where they are used. If a type is reused across files, export it from the file closest to its domain. **Do not create or grow a centralized `types.ts` file — keep types co-located with their usage.**
 - Do not use single-character variable names. Use descriptive names that convey intent.
 - Use `import React from 'react'` and access hooks via `React.useState`, `React.useEffect`, etc. Do not destructure hooks from the React import.
 - Zustand stores live in `src/stores/`. Name the file after the domain (e.g. `panelStore.ts`, `notificationStore.ts`) and export a `use<Domain>Store` hook.

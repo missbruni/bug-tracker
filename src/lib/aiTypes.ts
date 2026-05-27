@@ -1,5 +1,5 @@
 import type { Severity } from '../constants'
-import type { Attachment } from '../types'
+import type { Attachment } from '../components/BugCard'
 
 export interface ParsedBug {
   title: string

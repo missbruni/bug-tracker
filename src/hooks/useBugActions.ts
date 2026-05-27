@@ -5,7 +5,7 @@ import { findTesterByName } from '../lib/testerLookup'
 import { useTeamAccess } from '../lib/teamAccess'
 import { shouldOpenPbiOnPublishSuccess } from '../lib/azureSettings'
 import { buildAttachmentPath, parseAttachmentStoragePath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
-import type { Bug, Attachment } from '../types'
+import type { Bug, Attachment } from '../components/BugCard'
 import type { Severity } from '../constants'
 
 interface UseBugActionsParams {

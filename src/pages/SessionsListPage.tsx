@@ -24,7 +24,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import SecondaryAppBar from "../components/SecondaryAppBar";
 import { SessionListSkeleton } from "../components/Skeleton";
 import { useSessionTimer } from "../lib/sessionTimer";
-import type { SessionWithStats } from "../types";
+import type { SessionWithStats } from "../hooks/useBugs";
 
 type Session = SessionWithStats;
 

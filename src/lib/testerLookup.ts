@@ -1,6 +1,14 @@
 import { supabase } from '../supabaseClient'
 import { scopeToTeam, withTeamPayload } from './teamScope'
 
+export interface Tester {
+  id: string
+  team_id?: string
+  name: string
+  devices: string[]
+  active?: boolean
+}
+
 export async function findTesterByName(name: string, activeTeamId: string | null = null): Promise<{ id: string; name: string } | null> {
   if (!supabase) return null
   const normalized = name.trim()

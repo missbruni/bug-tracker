@@ -1,4 +1,4 @@
-import type { Bug } from '../types'
+import type { Bug } from '../components/BugCard'
 
 const CSV_COLUMNS = [
   'ID',

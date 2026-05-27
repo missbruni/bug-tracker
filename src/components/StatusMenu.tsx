@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react'
 import { SESSION_STATUS_STYLES } from '../constants'
-import type { SessionStatus } from '../types'
+import type { SessionStatus } from '../hooks/useBugs'
 
 interface StatusMenuProps {
 	currentStatus: SessionStatus

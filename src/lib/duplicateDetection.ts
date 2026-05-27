@@ -1,4 +1,4 @@
-import type { Bug } from '../types'
+import type { Bug } from '../components/BugCard'
 
 const STOP_WORDS = new Set([
   'the', 'a', 'an', 'is', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or',

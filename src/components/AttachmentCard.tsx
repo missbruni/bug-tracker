@@ -1,5 +1,5 @@
 import { Paperclip, Play, X } from 'lucide-react'
-import type { Attachment } from '../types'
+import type { Attachment } from './BugCard'
 
 interface AttachmentCardProps {
   att: Attachment

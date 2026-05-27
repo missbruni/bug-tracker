@@ -7,7 +7,9 @@ import { filesToAttachments, getImageFilesFromPaste } from '../lib/attachments'
 import { findPotentialDuplicates } from '../lib/duplicateDetection'
 import type { DuplicateCandidate } from '../lib/duplicateDetection'
 import type { Severity } from '../constants'
-import type { Attachment, Bug, SessionOption, Tester } from '../types'
+import type { Attachment, Bug } from '../components/BugCard'
+import type { SessionOption } from '../hooks/useBugs'
+import type { Tester } from '../lib/testerLookup'
 
 const ADD_NEW_TESTER_VALUE = '__add_new_tester__'
 const EMPTY_BUGS: Bug[] = []
