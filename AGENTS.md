@@ -68,6 +68,7 @@
 
 ## Pull Requests
 
+- Do not commit or push code without being explicitly asked by the user.
 - Keep PR descriptions concise — a short summary of what changed and why.
 - Do not include a test plan section.
 - Do not include "Generated with Devin" or similar attribution lines.
