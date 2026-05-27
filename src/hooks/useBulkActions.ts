@@ -2,7 +2,7 @@ import React from 'react'
 import { supabase } from '../supabaseClient'
 import { useTeamAccess } from '../lib/teamAccess'
 import { scopeToTeam, parseAttachmentStoragePath } from '../lib/teamScope'
-import type { Bug } from '../components/BugCard'
+import type { Bug } from '../domains/bugs/model'
 
 export interface BulkProgress {
   total: number

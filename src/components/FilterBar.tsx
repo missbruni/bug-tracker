@@ -3,8 +3,8 @@ import { ArrowDownUp, SlidersHorizontal, CheckSquare, Download } from "lucide-re
 import BottomSheet from "./BottomSheet";
 import { bugsToCSV, bugsToJSON, downloadFile } from "../lib/bugExport";
 import type { ExportFormat } from "../lib/bugExport";
-import type { Bug } from "./BugCard";
-import type { SessionOption } from "../hooks/useBugs";
+import type { Bug } from "../domains/bugs/model";
+import type { SessionOption } from "../domains/sessions/model";
 import type { Severity } from "../constants";
 
 function ExportDropdown({ filteredBugs }: { filteredBugs: Bug[] }) {

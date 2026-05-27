@@ -16,7 +16,7 @@ import { scopeToTeam, withTeamPayload } from '../lib/teamScope'
 import { useSessionTimer } from '../lib/sessionTimer'
 import { useNotificationStore } from '../stores/notificationStore'
 import type { Tester } from '../lib/testerLookup'
-import type { Session, Scenario, Assignment, SessionStatus } from '../hooks/useBugs'
+import type { Session, Scenario, Assignment, SessionStatus } from '../domains/sessions/model'
 
 export default function SessionSetupPage() {
   const { id: sessionId } = useParams<{ id: string }>()

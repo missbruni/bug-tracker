@@ -27,7 +27,7 @@ import { SessionListSkeleton } from "../components/Skeleton";
 import CloneSessionModal from "../components/CloneSessionModal";
 import Tooltip from "../components/Tooltip";
 import { useSessionTimer } from "../lib/sessionTimer";
-import type { SessionWithStats } from "../hooks/useBugs";
+import type { SessionWithStats } from "../domains/sessions/model";
 
 type Session = SessionWithStats;
 

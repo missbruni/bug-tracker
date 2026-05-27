@@ -1,13 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { TesterBadge } from './TesterBadge'
-
-export interface Question {
-  id: string
-  team_id?: string
-  text: string
-  tester: string
-  created_at?: string
-}
+import type { Question } from '../domains/bugs/model'
 
 interface QuestionsSectionProps {
   questions: Question[]

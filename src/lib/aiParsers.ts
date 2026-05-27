@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import { scopeToTeam } from './teamScope'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Severity } from '../constants'
-import type { Attachment } from '../components/BugCard'
+import type { Attachment } from '../domains/bugs/model'
 import type { SessionAction } from './aiSessionActions'
 
 export interface ParsedBug {
