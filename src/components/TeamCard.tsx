@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Check, X, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, Check, X, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp, Activity } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
 import InlineDeleteConfirm from './InlineDeleteConfirm'
 
@@ -35,6 +35,7 @@ interface TeamCardProps {
   products: Product[]
   canEdit?: boolean
   onManageMembers?: () => void
+  onViewActivity?: () => void
   onSelect: () => void
   onStartEdit: () => void
   onDelete: () => void
@@ -77,6 +78,7 @@ export default function TeamCard({
   products,
   canEdit = true,
   onManageMembers,
+  onViewActivity,
   onSelect,
   onStartEdit,
   onDelete,
@@ -194,6 +196,16 @@ export default function TeamCard({
               <span className="badge badge-blue">
                 Active
               </span>
+            )}
+            {onViewActivity && (
+              <button
+                onClick={onViewActivity}
+                title="View team activity"
+                aria-label="View team activity"
+                className="text-slate-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-mushi-primary transition-colors cursor-pointer p-1"
+              >
+                <Activity size={14} />
+              </button>
             )}
             {canEdit && !isDefault && (
               <button

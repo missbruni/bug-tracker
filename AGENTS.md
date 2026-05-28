@@ -56,6 +56,9 @@
 ## Code Style
 
 - **Types co-location**: Types should live in the file where they are used. If a type is reused across files, export it from the file closest to its domain. **Do not create or grow a centralized `types.ts` file — keep types co-located with their usage.**
+- **Activity / view-row types belong on the component, not the hook**: when a hook fetches rows and a component renders them, the row/action types are exported from the **component** and imported by the hook (see `BugActivity`/`BugActivityAction` in `src/components/BugActivityTimeline.tsx`, imported by `src/hooks/useBugActivity.ts`). Follow the same direction for any new `*Activity` / `*Timeline` / `*Feed` features. Do not invert this so the hook owns the types and the component re-exports them.
+- **No new top-level folders without a refactor PR**: pages live in `src/pages/`, components in `src/components/`, hooks in `src/hooks/`, Zustand stores in `src/stores/`, cross-cutting helpers in `src/lib/`, and domain modules in `src/domains/<entity>/` (currently only `bugs/` and `sessions/`). Don't add a new domain folder (e.g. `domains/teams/`) just to host a single new file — put the file in the conventional location and propose a dedicated refactor PR if a new domain is warranted.
+- **No dangling re-exports**: don't `export type { X }` from a file just because another file would otherwise have to import `X` from a third location. Import `X` directly from its source.
 - Do not use single-character variable names. Use descriptive names that convey intent.
 - Use `import React from 'react'` and access hooks via `React.useState`, `React.useEffect`, etc. Do not destructure hooks from the React import.
 - Zustand stores live in `src/stores/`. Name the file after the domain (e.g. `panelStore.ts`, `notificationStore.ts`) and export a `use<Domain>Store` hook.
