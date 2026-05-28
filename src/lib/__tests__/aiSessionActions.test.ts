@@ -59,7 +59,7 @@ mock.module('../../supabaseClient', () => ({
   },
 }))
 
-mock.module('../aiParsers', () => ({
+mock.module('../../domains/bugs/id', () => ({
   generateBugId: async (severity: Severity) => {
     if (severity === 'critical') return 'CRT-77'
     if (severity === 'high') return 'HI-77'
