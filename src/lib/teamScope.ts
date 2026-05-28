@@ -4,6 +4,8 @@ export interface TeamRecord {
   name: string
   slug: string
   created_at?: string
+  timezone?: string | null
+  default_product_id?: string | null
 }
 
 export interface Organization {

@@ -94,7 +94,7 @@ async function fetchSessions(activeTeamId: string | null): Promise<Session[]> {
 
 export default function SessionsListPage() {
 	const queryClient = useQueryClient();
-	const { activeTeamId } = useTeamAccess();
+	const { activeTeamId, activeTeam } = useTeamAccess();
 	const { timer, startTimer } = useSessionTimer();
 	const sessionsQueryKey = ['sessions', activeTeamId] as const;
 	const { data: sessions = [], isLoading: loading } = useQuery({
@@ -133,9 +133,15 @@ export default function SessionsListPage() {
 
 	// Keep local state in sync
 	React.useEffect(() => {
-		setTeamProducts(productsData || []);
-		if (productsData?.length === 1) setNewProductId(productsData[0].id);
-	}, [productsData]);
+		const products = productsData || [];
+		setTeamProducts(products);
+		const defaultId = activeTeam?.default_product_id ?? null;
+		if (defaultId && products.some((p) => p.id === defaultId)) {
+			setNewProductId(defaultId);
+		} else if (products.length === 1) {
+			setNewProductId(products[0].id);
+		}
+	}, [productsData, activeTeam?.default_product_id]);
 
 	const createSession = async () => {
 		if (!supabase || !newName.trim() || creatingSession) return;
@@ -154,7 +160,12 @@ export default function SessionsListPage() {
 				]);
 				setNewName("");
 				setNewDate(new Date().toISOString().split("T")[0]);
-				setNewProductId(teamProducts.length === 1 ? teamProducts[0].id : "");
+				const defaultId = activeTeam?.default_product_id ?? null;
+				if (defaultId && teamProducts.some((p) => p.id === defaultId)) {
+					setNewProductId(defaultId);
+				} else {
+					setNewProductId(teamProducts.length === 1 ? teamProducts[0].id : "");
+				}
 				setShowCreate(false);
 			}
 		} finally {

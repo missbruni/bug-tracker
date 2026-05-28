@@ -92,7 +92,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     const { data, error } = await supabase
       .from('teams')
-      .select('id, organization_id, name, slug, created_at')
+      .select('id, organization_id, name, slug, created_at, timezone, default_product_id')
       .eq('organization_id', ORGANIZATION_ID)
       .order('created_at', { ascending: true })
 
@@ -227,7 +227,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
           name: normalizedName,
           slug,
         })
-        .select('id, organization_id, name, slug, created_at')
+        .select('id, organization_id, name, slug, created_at, timezone, default_product_id')
         .single()
 
       if (error || !data) {
@@ -275,7 +275,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
           name: team.name,
           slug: team.slug,
         })
-        .select('id, organization_id, name, slug, created_at')
+        .select('id, organization_id, name, slug, created_at, timezone, default_product_id')
         .single()
 
       if (error || !data) {

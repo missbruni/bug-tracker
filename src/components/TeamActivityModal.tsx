@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import {
   X,
   Plus,
@@ -15,6 +16,13 @@ import {
   Package,
   Building2,
   Activity,
+  Settings,
+  CalendarDays,
+  Play,
+  CheckSquare,
+  Eye,
+  EyeOff,
+  Trash2,
 } from 'lucide-react'
 import { useTeamActivity } from '../hooks/useTeamActivity'
 import type { BugActivity, BugActivityAction } from './BugActivityTimeline'
@@ -22,6 +30,8 @@ import type { BugActivity, BugActivityAction } from './BugActivityTimeline'
 export type TeamActivityAction =
   | 'team_created'
   | 'team_renamed'
+  | 'team_timezone_changed'
+  | 'team_default_product_changed'
   | 'member_added'
   | 'member_removed'
   | 'role_changed'
@@ -33,6 +43,17 @@ export type TeamActivityAction =
   | 'product_renamed'
   | 'product_updated'
   | 'product_removed'
+  | 'session_created'
+  | 'session_renamed'
+  | 'session_started'
+  | 'session_completed'
+  | 'session_reopened'
+  | 'session_removed'
+  | 'tester_added'
+  | 'tester_renamed'
+  | 'tester_activated'
+  | 'tester_deactivated'
+  | 'tester_removed'
 
 export interface TeamActivityRow {
   id: number
@@ -41,6 +62,7 @@ export interface TeamActivityRow {
   description: string
   actor: string | null
   created_at: string
+  entity_id?: string | null
 }
 
 export type UnifiedActivity =
@@ -50,12 +72,15 @@ export type UnifiedActivity =
 interface TeamActivityModalProps {
   teamId: string
   teamName: string
+  teamTimezone?: string | null
   onClose: () => void
 }
 
 const TEAM_ACTION_CONFIG: Record<TeamActivityAction, { icon: React.ReactNode; color: string }> = {
   team_created: { icon: <Building2 size={12} />, color: 'text-blue-500 dark:text-blue-400' },
   team_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  team_timezone_changed: { icon: <Settings size={12} />, color: 'text-blue-500 dark:text-blue-400' },
+  team_default_product_changed: { icon: <Settings size={12} />, color: 'text-blue-500 dark:text-blue-400' },
   member_added: { icon: <UserPlus size={12} />, color: 'text-green-500 dark:text-green-400' },
   member_removed: { icon: <UserMinus size={12} />, color: 'text-red-500 dark:text-red-400' },
   role_changed: { icon: <Shield size={12} />, color: 'text-amber-500 dark:text-amber-400' },
@@ -67,6 +92,17 @@ const TEAM_ACTION_CONFIG: Record<TeamActivityAction, { icon: React.ReactNode; co
   product_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
   product_updated: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
   product_removed: { icon: <Package size={12} />, color: 'text-red-500 dark:text-red-400' },
+  session_created: { icon: <CalendarDays size={12} />, color: 'text-amber-500 dark:text-amber-400' },
+  session_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  session_started: { icon: <Play size={12} />, color: 'text-green-500 dark:text-green-400' },
+  session_completed: { icon: <CheckSquare size={12} />, color: 'text-teal-500 dark:text-teal-400' },
+  session_reopened: { icon: <RotateCcw size={12} />, color: 'text-orange-500 dark:text-orange-400' },
+  session_removed: { icon: <Trash2 size={12} />, color: 'text-red-500 dark:text-red-400' },
+  tester_added: { icon: <UserPlus size={12} />, color: 'text-green-500 dark:text-green-400' },
+  tester_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  tester_activated: { icon: <Eye size={12} />, color: 'text-green-500 dark:text-green-400' },
+  tester_deactivated: { icon: <EyeOff size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  tester_removed: { icon: <UserMinus size={12} />, color: 'text-red-500 dark:text-red-400' },
 }
 
 const BUG_ACTION_CONFIG: Record<BugActivityAction, { icon: React.ReactNode; color: string }> = {
@@ -79,7 +115,7 @@ const BUG_ACTION_CONFIG: Record<BugActivityAction, { icon: React.ReactNode; colo
   published: { icon: <Rocket size={12} />, color: 'text-teal-500 dark:text-teal-400' },
 }
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: string, timezone?: string | null): string {
   const date = new Date(dateString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -94,7 +130,19 @@ function formatRelativeTime(dateString: string): string {
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 7) return `${diffDays}d ago`
 
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: timezone || undefined })
+}
+
+function formatAbsoluteTime(dateString: string, timezone?: string | null): string {
+  try {
+    return new Date(dateString).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: timezone || undefined,
+    })
+  } catch {
+    return new Date(dateString).toLocaleString()
+  }
 }
 
 function getEntryConfig(entry: UnifiedActivity) {
@@ -106,11 +154,23 @@ function getEntryConfig(entry: UnifiedActivity) {
 
 function getEntryLabel(entry: UnifiedActivity): string {
   if (entry.kind === 'bug') return `Bug ${entry.bug_id}`
+  if (entry.action.startsWith('session_')) return 'Session'
   return 'Team'
 }
 
-export default function TeamActivityModal({ teamId, teamName, onClose }: TeamActivityModalProps) {
-  const { activities, loading } = useTeamActivity(teamId)
+function getEntryHref(entry: UnifiedActivity, existingSessionIds: Set<string>, existingBugIds: Set<string>): string | null {
+  if (entry.kind === 'bug') {
+    if (!entry.bug_id || !existingBugIds.has(entry.bug_id)) return null
+    return `/?q=${encodeURIComponent(entry.bug_id)}`
+  }
+  if (entry.action.startsWith('session_') && entry.entity_id && existingSessionIds.has(entry.entity_id)) {
+    return `/sessions/${entry.entity_id}`
+  }
+  return null
+}
+
+export default function TeamActivityModal({ teamId, teamName, teamTimezone, onClose }: TeamActivityModalProps) {
+  const { activities, loading, existingSessionIds, existingBugIds } = useTeamActivity(teamId)
 
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -163,7 +223,20 @@ export default function TeamActivityModal({ teamId, teamName, onClose }: TeamAct
               {activities.map((entry) => {
                 const config = getEntryConfig(entry)
                 const label = getEntryLabel(entry)
+                const href = getEntryHref(entry, existingSessionIds, existingBugIds)
                 const key = `${entry.kind}-${entry.id}`
+                const labelClass = 'text-[10px] font-semibold uppercase tracking-wide'
+                const labelNode = href ? (
+                  <Link
+                    to={href}
+                    onClick={onClose}
+                    className={`${labelClass} text-blue-600 dark:text-blue-400 hover:underline`}
+                  >
+                    {label}
+                  </Link>
+                ) : (
+                  <span className={`${labelClass} text-slate-400 dark:text-gray-500`}>{label}</span>
+                )
                 return (
                   <div key={key} className="relative flex items-start gap-2.5 py-1.5">
                     <span className={`relative z-10 mt-0.5 shrink-0 rounded-full bg-white dark:bg-gray-900 p-0.5 ${config.color}`}>
@@ -171,14 +244,15 @@ export default function TeamActivityModal({ teamId, teamName, onClose }: TeamAct
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-gray-500">
-                          {label}
-                        </span>
+                        {labelNode}
                         <span className="text-xs text-slate-700 dark:text-gray-300">{entry.description}</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-gray-500 whitespace-nowrap">
+                      <span
+                        className="text-[10px] text-slate-400 dark:text-gray-500 whitespace-nowrap"
+                        title={formatAbsoluteTime(entry.created_at, teamTimezone)}
+                      >
                         {entry.actor && <>{entry.actor} &middot; </>}
-                        {formatRelativeTime(entry.created_at)}
+                        {formatRelativeTime(entry.created_at, teamTimezone)}
                       </span>
                     </div>
                   </div>

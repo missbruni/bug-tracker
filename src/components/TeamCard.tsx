@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Check, X, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp, Activity } from 'lucide-react'
+import { Pencil, Trash2, Check, X, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp, Activity, Settings } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
 import InlineDeleteConfirm from './InlineDeleteConfirm'
 
@@ -36,6 +36,7 @@ interface TeamCardProps {
   canEdit?: boolean
   onManageMembers?: () => void
   onViewActivity?: () => void
+  onOpenSettings?: () => void
   onSelect: () => void
   onStartEdit: () => void
   onDelete: () => void
@@ -79,6 +80,7 @@ export default function TeamCard({
   canEdit = true,
   onManageMembers,
   onViewActivity,
+  onOpenSettings,
   onSelect,
   onStartEdit,
   onDelete,
@@ -205,6 +207,16 @@ export default function TeamCard({
                 className="text-slate-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-mushi-primary transition-colors cursor-pointer p-1"
               >
                 <Activity size={14} />
+              </button>
+            )}
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                title="Team settings"
+                aria-label="Team settings"
+                className="text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer p-1"
+              >
+                <Settings size={14} />
               </button>
             )}
             {canEdit && !isDefault && (

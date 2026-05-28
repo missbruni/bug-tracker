@@ -4,6 +4,7 @@ import SecondaryAppBar from '../components/SecondaryAppBar'
 import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
 import TeamMembersModal from '../components/TeamMembersModal'
 import TeamActivityModal from '../components/TeamActivityModal'
+import TeamSettingsModal from '../components/TeamSettingsModal'
 import { useTeamAccess } from '../lib/teamAccess'
 import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
 import { supabase } from '../supabaseClient'
@@ -42,6 +43,7 @@ export default function TeamManagementPage() {
   const [products, setProducts] = React.useState<Product[]>([])
   const [memberModalTeamId, setMemberModalTeamId] = React.useState<string | null>(null)
   const [activityModalTeamId, setActivityModalTeamId] = React.useState<string | null>(null)
+  const [settingsModalTeamId, setSettingsModalTeamId] = React.useState<string | null>(null)
   const [statsVersion, setStatsVersion] = React.useState(0)
 
   React.useEffect(() => {
@@ -270,6 +272,7 @@ export default function TeamManagementPage() {
                 canEdit={isTeamAdmin}
                 onManageMembers={isTeamAdmin ? () => setMemberModalTeamId(team.id) : undefined}
                 onViewActivity={() => setActivityModalTeamId(team.id)}
+                onOpenSettings={isTeamAdmin ? () => setSettingsModalTeamId(team.id) : undefined}
                 onSelect={() => setActiveTeamId(team.id)}
                 onStartEdit={() => startEdit(team)}
                 onDelete={() => { if (!deletingId) setPendingDeleteId(team.id) }}
@@ -302,9 +305,23 @@ export default function TeamManagementPage() {
           <TeamActivityModal
             teamId={activityModalTeamId}
             teamName={teams.find((team) => team.id === activityModalTeamId)?.name ?? ''}
+            teamTimezone={teams.find((team) => team.id === activityModalTeamId)?.timezone ?? null}
             onClose={() => setActivityModalTeamId(null)}
           />
         )}
+
+        {settingsModalTeamId && (() => {
+          const settingsTeam = teams.find((team) => team.id === settingsModalTeamId)
+          if (!settingsTeam) return null
+          return (
+            <TeamSettingsModal
+              team={settingsTeam}
+              products={products.filter((prod) => prod.team_id === settingsTeam.id)}
+              onClose={() => setSettingsModalTeamId(null)}
+              onSaved={() => { void refreshTeams() }}
+            />
+          )
+        })()}
 
         {toast && (
           <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg bg-white dark:bg-mushi-surface border-slate-200 dark:border-gray-700 ${toast.tone === 'success' ? 'text-teal-600 dark:text-mushi-primary' : 'text-red-600 dark:text-red-400'}`}>
