@@ -15,6 +15,12 @@ import {
   Package,
   Building2,
   Activity,
+  CalendarDays,
+  Play,
+  CheckSquare,
+  Eye,
+  EyeOff,
+  Trash2,
 } from 'lucide-react'
 import { useTeamActivity } from '../hooks/useTeamActivity'
 import type { BugActivity, BugActivityAction } from './BugActivityTimeline'
@@ -33,6 +39,17 @@ export type TeamActivityAction =
   | 'product_renamed'
   | 'product_updated'
   | 'product_removed'
+  | 'session_created'
+  | 'session_renamed'
+  | 'session_started'
+  | 'session_completed'
+  | 'session_reopened'
+  | 'session_removed'
+  | 'tester_added'
+  | 'tester_renamed'
+  | 'tester_activated'
+  | 'tester_deactivated'
+  | 'tester_removed'
 
 export interface TeamActivityRow {
   id: number
@@ -67,6 +84,17 @@ const TEAM_ACTION_CONFIG: Record<TeamActivityAction, { icon: React.ReactNode; co
   product_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
   product_updated: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
   product_removed: { icon: <Package size={12} />, color: 'text-red-500 dark:text-red-400' },
+  session_created: { icon: <CalendarDays size={12} />, color: 'text-amber-500 dark:text-amber-400' },
+  session_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  session_started: { icon: <Play size={12} />, color: 'text-green-500 dark:text-green-400' },
+  session_completed: { icon: <CheckSquare size={12} />, color: 'text-teal-500 dark:text-teal-400' },
+  session_reopened: { icon: <RotateCcw size={12} />, color: 'text-orange-500 dark:text-orange-400' },
+  session_removed: { icon: <Trash2 size={12} />, color: 'text-red-500 dark:text-red-400' },
+  tester_added: { icon: <UserPlus size={12} />, color: 'text-green-500 dark:text-green-400' },
+  tester_renamed: { icon: <Pencil size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  tester_activated: { icon: <Eye size={12} />, color: 'text-green-500 dark:text-green-400' },
+  tester_deactivated: { icon: <EyeOff size={12} />, color: 'text-slate-500 dark:text-gray-400' },
+  tester_removed: { icon: <UserMinus size={12} />, color: 'text-red-500 dark:text-red-400' },
 }
 
 const BUG_ACTION_CONFIG: Record<BugActivityAction, { icon: React.ReactNode; color: string }> = {

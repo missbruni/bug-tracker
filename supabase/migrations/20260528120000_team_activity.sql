@@ -310,3 +310,140 @@ CREATE TRIGGER trg_log_product_activity
   AFTER INSERT OR UPDATE OR DELETE ON public.products
   FOR EACH ROW
   EXECUTE FUNCTION public.log_product_activity();
+
+-- ─── Sessions trigger ────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.log_session_activity()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+declare
+  actor_name text := team_activity_actor_name();
+begin
+  if TG_OP = 'INSERT' then
+    insert into public.team_activity (team_id, action, description, actor)
+    values (
+      new.team_id,
+      'session_created',
+      format('Created session "%s"', new.name),
+      coalesce(actor_name, 'System')
+    );
+    return new;
+  end if;
+
+  if TG_OP = 'UPDATE' then
+    if old.name IS DISTINCT FROM new.name then
+      insert into public.team_activity (team_id, action, description, actor)
+      values (
+        new.team_id,
+        'session_renamed',
+        format('Renamed session from "%s" to "%s"', old.name, new.name),
+        coalesce(actor_name, 'System')
+      );
+    end if;
+
+    if old.status IS DISTINCT FROM new.status then
+      if new.status = 'active' then
+        insert into public.team_activity (team_id, action, description, actor)
+        values (new.team_id, 'session_started', format('Started session "%s"', new.name), coalesce(actor_name, 'System'));
+      elsif new.status = 'completed' then
+        insert into public.team_activity (team_id, action, description, actor)
+        values (new.team_id, 'session_completed', format('Completed session "%s"', new.name), coalesce(actor_name, 'System'));
+      elsif new.status = 'draft' then
+        insert into public.team_activity (team_id, action, description, actor)
+        values (new.team_id, 'session_reopened', format('Reopened session "%s" as draft', new.name), coalesce(actor_name, 'System'));
+      end if;
+    end if;
+    return new;
+  end if;
+
+  if TG_OP = 'DELETE' then
+    insert into public.team_activity (team_id, action, description, actor)
+    values (
+      old.team_id,
+      'session_removed',
+      format('Deleted session "%s"', old.name),
+      coalesce(actor_name, 'System')
+    );
+    return old;
+  end if;
+
+  return coalesce(new, old);
+exception when others then
+  raise warning 'log_session_activity failed: %', sqlerrm;
+  return coalesce(new, old);
+end;
+$$;
+
+CREATE TRIGGER trg_log_session_activity
+  AFTER INSERT OR UPDATE OR DELETE ON public.sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.log_session_activity();
+
+-- ─── Testers trigger ─────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.log_tester_activity()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+declare
+  actor_name text := team_activity_actor_name();
+begin
+  if TG_OP = 'INSERT' then
+    insert into public.team_activity (team_id, action, description, actor)
+    values (
+      new.team_id,
+      'tester_added',
+      format('Added tester "%s"', new.name),
+      coalesce(actor_name, 'System')
+    );
+    return new;
+  end if;
+
+  if TG_OP = 'UPDATE' then
+    if old.name IS DISTINCT FROM new.name then
+      insert into public.team_activity (team_id, action, description, actor)
+      values (
+        new.team_id,
+        'tester_renamed',
+        format('Renamed tester from "%s" to "%s"', old.name, new.name),
+        coalesce(actor_name, 'System')
+      );
+    end if;
+
+    if old.active IS DISTINCT FROM new.active then
+      if new.active then
+        insert into public.team_activity (team_id, action, description, actor)
+        values (new.team_id, 'tester_activated', format('Activated tester "%s"', new.name), coalesce(actor_name, 'System'));
+      else
+        insert into public.team_activity (team_id, action, description, actor)
+        values (new.team_id, 'tester_deactivated', format('Deactivated tester "%s"', new.name), coalesce(actor_name, 'System'));
+      end if;
+    end if;
+    return new;
+  end if;
+
+  if TG_OP = 'DELETE' then
+    insert into public.team_activity (team_id, action, description, actor)
+    values (
+      old.team_id,
+      'tester_removed',
+      format('Removed tester "%s"', old.name),
+      coalesce(actor_name, 'System')
+    );
+    return old;
+  end if;
+
+  return coalesce(new, old);
+exception when others then
+  raise warning 'log_tester_activity failed: %', sqlerrm;
+  return coalesce(new, old);
+end;
+$$;
+
+CREATE TRIGGER trg_log_tester_activity
+  AFTER INSERT OR UPDATE OR DELETE ON public.testers
+  FOR EACH ROW
+  EXECUTE FUNCTION public.log_tester_activity();
