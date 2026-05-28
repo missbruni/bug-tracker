@@ -24,6 +24,7 @@ const SessionSetupPage = lazy(() => import("./pages/SessionSetupPage"));
 const PresentationPage = lazy(() => import("./pages/PresentationPage"));
 const TesterManagementPage = lazy(() => import("./pages/TesterManagementPage"));
 const TeamManagementPage = lazy(() => import("./pages/TeamManagementPage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 const SettingsSidebar = lazy(() => import("./components/SettingsSidebar"));
 const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel"));
 
@@ -191,6 +192,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 											element={
 												<Suspense fallback={<RouteFallback />}>
 													<TeamManagementPage />
+												</Suspense>
+											}
+										/>
+										<Route
+											path="/profile"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<UserProfilePage />
 												</Suspense>
 											}
 										/>
