@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2 } from "lucide-react";
+import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2, UserCircle } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
@@ -187,6 +187,14 @@ export default function NavBar({
 														<p className="text-xs text-slate-500 dark:text-gray-400 truncate mt-0.5">{userEmail}</p>
 													)}
 												</div>
+												<Link
+													to="/profile"
+													onClick={() => setProfileOpen(false)}
+													className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+												>
+													<UserCircle size={14} />
+													Edit profile
+												</Link>
 												{onLogout && (
 													<button
 														onClick={() => { setProfileOpen(false); onLogout() }}
@@ -263,6 +271,14 @@ export default function NavBar({
 							)}
 						</div>
 					</div>
+					<Link
+						to="/profile"
+						onClick={() => setProfileOpen(false)}
+						className="w-full flex items-center gap-3 py-3.5 text-sm font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer rounded-md"
+					>
+						<UserCircle size={18} />
+						Edit profile
+					</Link>
 					{onLogout && (
 						<button
 							onClick={() => { setProfileOpen(false); onLogout() }}
