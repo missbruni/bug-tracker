@@ -31,9 +31,11 @@ ON CONFLICT DO NOTHING;
 
 -- ─── Product ────────────────────────────────────────────────────────
 
-INSERT INTO products (id, team_id, name, slug, description, link) VALUES
+INSERT INTO products (id, team_id, name, slug, description, link, links) VALUES
   ('aaaa0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
-   'Jarvis UI', 'jarvis-ui', 'AI assistant interface — holographic & web', '{"label":"Jarvis","url":"https://jarvis.stark.local"}')
+   'Jarvis UI', 'jarvis-ui', 'AI assistant interface — holographic & web',
+   'https://jarvis.stark.local',
+   ARRAY['{"label":"Jarvis","url":"https://jarvis.stark.local"}'])
 ON CONFLICT DO NOTHING;
 
 -- ─── Testers ────────────────────────────────────────────────────────
