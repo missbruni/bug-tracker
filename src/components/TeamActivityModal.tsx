@@ -16,8 +16,36 @@ import {
   Building2,
   Activity,
 } from 'lucide-react'
-import { useTeamActivity, type TeamActivityAction, type UnifiedActivity } from '../hooks/useTeamActivity'
-import type { BugActivityAction } from './BugActivityTimeline'
+import { useTeamActivity } from '../hooks/useTeamActivity'
+import type { BugActivity, BugActivityAction } from './BugActivityTimeline'
+
+export type TeamActivityAction =
+  | 'team_created'
+  | 'team_renamed'
+  | 'member_added'
+  | 'member_removed'
+  | 'role_changed'
+  | 'member_status_changed'
+  | 'invitation_sent'
+  | 'invitation_cancelled'
+  | 'invitation_status_changed'
+  | 'product_added'
+  | 'product_renamed'
+  | 'product_updated'
+  | 'product_removed'
+
+export interface TeamActivityRow {
+  id: number
+  team_id: string
+  action: TeamActivityAction
+  description: string
+  actor: string | null
+  created_at: string
+}
+
+export type UnifiedActivity =
+  | ({ kind: 'team' } & TeamActivityRow)
+  | ({ kind: 'bug' } & BugActivity)
 
 interface TeamActivityModalProps {
   teamId: string
