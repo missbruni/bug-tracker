@@ -170,7 +170,7 @@ export default function CopyScenariosModal({ currentSessionId, activeTeamId, onC
                         >
                           <div className={`flex items-center justify-center w-5 h-5 rounded border shrink-0 transition-colors ${
                             isSelected
-                              ? 'bg-blue-500 border-blue-500 text-white'
+                              ? 'bg-blue-500 border-blue-500 text-white dark:text-mushi-bg'
                               : 'border-slate-300 dark:border-gray-600'
                           }`}>
                             {isSelected && <Check size={12} />}
