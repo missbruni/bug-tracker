@@ -314,7 +314,7 @@ export default function SessionsListPage() {
 						<button
 							onClick={createSession}
 							disabled={!newName.trim() || creatingSession}
-							className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
+							className="rounded-md px-5 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default"
 						>
 							{creatingSession ? "Creating..." : "Create"}
 						</button>

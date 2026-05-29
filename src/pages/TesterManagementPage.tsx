@@ -277,7 +277,7 @@ export default function TesterManagementPage() {
               Cancel
             </button>
             <button onClick={addTester} disabled={!newName.trim() || addingTester || !activeTeamId}
-              className="rounded-md px-5 py-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default">
+              className="rounded-md px-5 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 transition-colors cursor-pointer disabled:cursor-default">
               {addingTester ? 'Adding...' : 'Add'}
             </button>
           </div>

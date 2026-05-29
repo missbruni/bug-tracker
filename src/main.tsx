@@ -11,6 +11,7 @@ import { useActiveBugCount } from "./hooks/useActiveBugCount";
 import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth, getUserDisplayName } from "./lib/useAuth";
+import { useOnboardingTour } from "./hooks/useOnboardingTour";
 import PageLoader from "./components/PageLoader";
 import ExtensionBridge from "./components/ExtensionBridge";
 import { SessionTimerProvider } from "./lib/sessionTimer";
@@ -27,6 +28,7 @@ const TeamManagementPage = lazy(() => import("./pages/TeamManagementPage"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 const SettingsSidebar = lazy(() => import("./components/SettingsSidebar"));
 const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel"));
+const OnboardingTour = lazy(() => import("./components/OnboardingTour"));
 
 function RouteFallback() {
 	return <PageLoader />;
@@ -42,6 +44,7 @@ function Layout() {
 	const activeBugCount = useActiveBugCount();
 	const settingsOpen = usePanelStore((s) => s.settingsOpen);
 	const aiPanelOpen = usePanelStore((s) => s.aiPanelOpen);
+	const { shouldShow: showOnboarding, markComplete: completeOnboarding } = useOnboardingTour();
 	const [aiPanelMounted, setAiPanelMounted] = React.useState(
 		() => sessionStorage.getItem("aiPanelOpen") === "true",
 	);
@@ -139,6 +142,11 @@ function Layout() {
 							usePanelStore.getState().openSettings();
 						}}
 					/>
+				</Suspense>
+			)}
+			{showOnboarding && (
+				<Suspense fallback={null}>
+					<OnboardingTour onComplete={() => { void completeOnboarding(); }} />
 				</Suspense>
 			)}
 		</div>

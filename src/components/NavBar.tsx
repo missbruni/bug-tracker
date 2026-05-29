@@ -103,6 +103,7 @@ export default function NavBar({
 									key={to}
 									to={to}
 									ref={(el) => { tabRefs.current[i] = el; }}
+									data-tour-id={to === '/' ? 'nav-bugs' : undefined}
 									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold uppercase tracking-wide font-heading border-b-2 border-transparent transition-colors ${
 										active
 											? "text-blue-600 dark:text-blue-400"
@@ -146,6 +147,7 @@ export default function NavBar({
 							)}
 							<button
 								onClick={() => usePanelStore.getState().toggleAiPanel()}
+								data-tour-id="ai-button"
 								className="flex items-center gap-1.5 rounded-full border border-blue-500 dark:border-mushi-primary bg-blue-50 dark:bg-mushi-primary/10 px-2 sm:px-3 py-1 text-blue-600 dark:text-mushi-primary hover:bg-blue-100 dark:hover:bg-mushi-primary/20 transition-colors cursor-pointer"
 								title="AI Assistant (⌘I)"
 							>
@@ -156,6 +158,7 @@ export default function NavBar({
 								<div className="relative">
 									<button
 										onClick={() => setProfileOpen((prev) => !prev)}
+										data-tour-id="profile-button"
 										className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-1.5 sm:px-2 py-1 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
 										title={userEmail || userDisplayName}
 										aria-label="Profile menu"
