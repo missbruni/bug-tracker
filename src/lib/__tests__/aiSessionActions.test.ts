@@ -69,6 +69,12 @@ mock.module('../../domains/bugs/id', () => ({
     state.insertedBugs.push({ ...bugData, id: startId })
     return startId
   },
+  incrementBugId: (currentId: string) => {
+    const match = currentId.match(/^([A-Z]+-?)(\d+)$/)
+    if (!match) return `${currentId}-1`
+    const [, prefix, digits] = match
+    return `${prefix}${String(Number(digits) + 1).padStart(digits.length, '0')}`
+  },
 }))
 
 let executeSessionActionWithSession: typeof import('../aiSessionActions').executeSessionActionWithSession
