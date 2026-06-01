@@ -1,8 +1,8 @@
 import React, { createContext } from 'react'
 import type { ReactNode } from 'react'
-import { supabase } from '../supabaseClient'
-import { useTeamAccess } from './teamAccess'
-import { scopeToTeam } from './teamScope'
+import { supabase } from '../../supabaseClient'
+import { useTeamAccess } from '../../lib/teamAccess'
+import { scopeToTeam } from '../../lib/teamScope'
 
 export type TimerStatus = 'idle' | 'running' | 'paused'
 

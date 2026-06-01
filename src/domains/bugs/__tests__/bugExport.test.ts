@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test'
-import { bugsToCSV, bugsToJSON } from '../bugExport'
-import type { Bug } from '../../types'
+import { bugsToCSV, bugsToJSON } from '../export'
+import type { Bug } from '../model'
 
 const makeBug = (overrides: Partial<Bug> = {}): Bug => ({
   id: 'HI-1',

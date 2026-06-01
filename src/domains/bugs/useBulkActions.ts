@@ -1,8 +1,8 @@
 import React from 'react'
-import { supabase } from '../supabaseClient'
-import { useTeamAccess } from '../lib/teamAccess'
-import { scopeToTeam, parseAttachmentStoragePath } from '../lib/teamScope'
-import type { Bug } from '../domains/bugs/model'
+import { supabase } from '../../supabaseClient'
+import { useTeamAccess } from '../../lib/teamAccess'
+import { scopeToTeam, parseAttachmentStoragePath } from '../../lib/teamScope'
+import type { Bug } from './model'
 
 export interface BulkProgress {
   total: number

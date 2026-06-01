@@ -1,10 +1,10 @@
 import React from "react";
-import { SEVERITIES } from "../constants";
-import { matchesDateFilter } from "../lib/dateFilter";
-import type { Bug, Question } from "../domains/bugs/model";
-import type { SessionOption } from "../domains/sessions/model";
-import type { Severity } from "../constants";
-import { useNotificationStore } from "../stores/notificationStore";
+import { SEVERITIES } from "../../constants";
+import { matchesDateFilter } from "./dateFilter";
+import type { Bug, Question } from "./model";
+import type { SessionOption } from "../../domains/sessions/model";
+import type { Severity } from "../../constants";
+import { useNotificationStore } from "../../stores/notificationStore";
 
 const VALID_SEVERITY_FILTERS = new Set([
 	"all",

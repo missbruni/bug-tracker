@@ -1,18 +1,18 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
-import { chatCompletion, hasAiConfig, type ChatMessage } from '../lib/aiProvider'
+import { chatCompletion, hasAiConfig, type ChatMessage } from './aiProvider'
 import { supabase } from '../supabaseClient'
 import { filesToAttachments } from '../domains/bugs/attachments'
 import { generateBugId, insertBugWithRetry } from '../domains/bugs/id'
-import { buildSystemPrompt } from '../lib/aiPrompt'
-import { parseBugsFromResponse, parseSessionActions, type BugPreview, type ParsedBug } from '../lib/aiParsers'
-import { executeSessionAction as executeSessionActionWithCache, type SessionAction, type SessionActionResult } from '../lib/aiSessionActions'
+import { buildSystemPrompt } from './aiPrompt'
+import { parseBugsFromResponse, parseSessionActions, type BugPreview, type ParsedBug } from './aiParsers'
+import { executeSessionAction as executeSessionActionWithCache, type SessionAction, type SessionActionResult } from './aiSessionActions'
 import { bugsToCSV, bugsToJSON, downloadFile } from '../domains/bugs/export'
 import type { ExportFormat } from '../domains/bugs/export'
-import { ensureTesterByName } from '../lib/testerLookup'
-import { useTeamAccess } from '../lib/teamAccess'
-import { useAuth, getUserDisplayName } from '../lib/useAuth'
-import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
+import { ensureTesterByName } from './testerLookup'
+import { useTeamAccess } from './teamAccess'
+import { useAuth, getUserDisplayName } from './useAuth'
+import { buildAttachmentPath, scopeToTeam, withTeamPayload } from './teamScope'
 import type { Severity } from '../constants'
 import type { Bug } from '../domains/bugs/model'
 import { useNotificationStore } from '../stores/notificationStore'
@@ -38,7 +38,7 @@ export interface Message {
 const STORAGE_KEY = 'ai-assistant-chat'
 
 function isBugMainPage(path: string): boolean {
-  return !path.includes('/sessions') && !path.includes('/testers')
+  return !path.includes('/sessions') && !path.includes('/testers') && !path.includes('/analytics')
 }
 
 function loadPersistedState(): { messages: Message[]; currentSessionId: string | null } {
@@ -197,6 +197,8 @@ export default function useAiAssistant(open: boolean) {
         parts.push('The user is currently on the sessions list page.')
       } else if (path.includes('/testers')) {
         parts.push('The user is currently on the tester management page.')
+      } else if (path.includes('/analytics')) {
+        parts.push('The user is currently on the Analytics page, viewing bug trends, tester performance, session stats, and the bug killer leaderboard.')
       } else {
         parts.push('The user is currently on the Mushi main page.')
       }

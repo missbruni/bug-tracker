@@ -1,14 +1,14 @@
 import React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../supabaseClient'
-import { insertBugWithRetry } from '../domains/bugs/id'
-import { useTeamAccess } from '../lib/teamAccess'
-import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
-import { findTesterByName } from '../lib/testerLookup'
-import type { Bug, Attachment, Question } from '../domains/bugs/model'
-import type { SessionOption } from '../domains/sessions/model'
-import type { Tester } from '../lib/testerLookup'
-import type { Severity } from '../constants'
+import { supabase } from '../../supabaseClient'
+import { insertBugWithRetry } from './id'
+import { useTeamAccess } from '../../lib/teamAccess'
+import { buildAttachmentPath, scopeToTeam, withTeamPayload } from '../../lib/teamScope'
+import { findTesterByName } from '../../lib/testerLookup'
+import type { Bug, Attachment, Question } from './model'
+import type { SessionOption } from '../../domains/sessions/model'
+import type { Tester } from '../../lib/testerLookup'
+import type { Severity } from '../../constants'
 
 interface SnackbarState {
   message: string

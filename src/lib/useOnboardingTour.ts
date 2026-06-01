@@ -1,6 +1,6 @@
 import React from 'react'
 import { supabase } from '../supabaseClient'
-import { useAuth } from '../lib/useAuth'
+import { useAuth } from './useAuth'
 
 const METADATA_KEY = 'onboarded_at'
 

@@ -1,7 +1,7 @@
 import React from 'react'
-import { supabase } from '../supabaseClient'
-import { useTeamAccess } from '../lib/teamAccess'
-import { scopeToTeam } from '../lib/teamScope'
+import { supabase } from '../../supabaseClient'
+import { useTeamAccess } from '../../lib/teamAccess'
+import { scopeToTeam } from '../../lib/teamScope'
 
 export function useActiveBugCount(initialCount = 3): number {
   const [count, setCount] = React.useState(initialCount)

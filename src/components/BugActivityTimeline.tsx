@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { useBugActivity } from '../hooks/useBugActivity'
+import { useBugActivity } from '../domains/bugs/useBugActivity'
 
 export type BugActivityAction =
   | 'created'

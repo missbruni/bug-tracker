@@ -70,6 +70,10 @@ function random(min: number, max: number) {
   return min + Math.random() * (max - min)
 }
 
+function randomInt(min: number, max: number) {
+  return Math.round(random(min, max))
+}
+
 function deg2rad(deg: number) {
   return deg * (Math.PI / 180)
 }
@@ -81,10 +85,10 @@ function createBug(containerW: number, containerH: number): BugState {
     angle: random(0, 360),
     walkIndex: 0,
     frameCounter: 0,
-    smallTurnCounter: Math.round(random(5, 15)),
-    largeTurnCounter: Math.round(random(20, 60)),
+    smallTurnCounter: randomInt(5, 15),
+    largeTurnCounter: randomInt(20, 60),
     largeTurnAngle: 0,
-    stationaryCounter: Math.round(random(150, 400)),
+    stationaryCounter: randomInt(150, 400),
     stationary: false,
     zoom: random(ZOOM_MIN, ZOOM_MAX),
     wingsOpen: Math.random() > 0.5,
@@ -107,9 +111,10 @@ const EDGE_DIRS: Record<number, number> = {
 
 interface CrawlingBugsProps {
   count?: number
+  onKill?: () => void
 }
 
-export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
+export default function CrawlingBugs({ count = 3, onKill }: CrawlingBugsProps) {
   const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   const mobileMax = 6
   const numBugs = Math.min(Math.max(count, 0), isMobile ? Math.min(MAX_BUGS, mobileMax) : MAX_BUGS)
@@ -121,6 +126,8 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
   const spriteRef = React.useRef<HTMLImageElement | null>(null)
   const spriteLoadedRef = React.useRef(false)
   const splatsRef = React.useRef<SplatState[]>([])
+  const onKillRef = React.useRef(onKill)
+  onKillRef.current = onKill
 
   React.useEffect(() => {
     const img = new Image()
@@ -181,6 +188,7 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
           splatsRef.current.push(createSplat(bug.x, bug.y, bug.zoom))
           bugsRef.current.splice(i, 1)
           playSquashSound()
+          onKillRef.current?.()
           return
         }
       }
@@ -217,7 +225,7 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
         bug.stationaryCounter--
         if (bug.stationaryCounter <= 0) {
           bug.stationary = !bug.stationary
-          bug.stationaryCounter = bug.stationary ? Math.round(random(20, 60)) : Math.round(random(150, 400))
+          bug.stationaryCounter = bug.stationary ? randomInt(20, 60) : randomInt(150, 400)
         }
 
         if (!bug.stationary) {
@@ -239,14 +247,14 @@ export default function CrawlingBugs({ count = 3 }: CrawlingBugsProps) {
           bug.largeTurnCounter--
           if (bug.largeTurnCounter <= 0) {
             bug.largeTurnAngle = random(-MAX_LARGE_TURN, MAX_LARGE_TURN)
-            bug.largeTurnCounter = Math.round(random(20, 60))
+            bug.largeTurnCounter = randomInt(20, 60)
           }
 
           // small turn
           bug.smallTurnCounter--
           if (bug.smallTurnCounter <= 0) {
             bug.angle += random(-MAX_SMALL_TURN, MAX_SMALL_TURN)
-            bug.smallTurnCounter = Math.round(random(5, 15))
+            bug.smallTurnCounter = randomInt(5, 15)
           } else {
             let wiggle = random(-MAX_WIGGLE, MAX_WIGGLE)
             if ((bug.largeTurnAngle > 0 && wiggle < 0) || (bug.largeTurnAngle < 0 && wiggle > 0)) {

@@ -17,10 +17,10 @@ import { TesterBadge } from "./TesterBadge";
 import AttachmentCard from "./AttachmentCard";
 import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
-import { useBugActions } from "../hooks/useBugActions";
+import { useBugActions } from "../domains/bugs/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
 import BugActivityTimeline from "./BugActivityTimeline";
-import { buildBugPermalink, copyToClipboard } from "../lib/bugPermalink";
+import { buildBugPermalink, copyToClipboard } from "../domains/bugs/bugPermalink";
 import type { Bug } from "../domains/bugs/model";
 
 interface BugCardProps {

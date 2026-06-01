@@ -7,16 +7,17 @@ import AuthGate from "./components/AuthGate";
 import NavBar from "./components/NavBar";
 import ThemeToggle from "./components/ThemeToggle";
 import SoundToggle from "./components/SoundToggle";
-import { useActiveBugCount } from "./hooks/useActiveBugCount";
+import { useActiveBugCount } from "./domains/bugs/useActiveBugCount";
 import { AuthProvider } from "./lib/auth";
 import { TeamAccessProvider, useTeamAccess } from "./lib/teamAccess";
 import { useAuth, getUserDisplayName } from "./lib/useAuth";
-import { useOnboardingTour } from "./hooks/useOnboardingTour";
+import { useOnboardingTour } from "./lib/useOnboardingTour";
 import PageLoader from "./components/PageLoader";
 import ExtensionBridge from "./components/ExtensionBridge";
-import { SessionTimerProvider } from "./lib/sessionTimer";
+import { SessionTimerProvider } from "./domains/sessions/sessionTimer";
 import SessionTimerBar from "./components/SessionTimerBar";
 import { usePanelStore } from "./stores/panelStore";
+import { useBugKillTracker } from "./domains/bugs/useBugKills";
 import "./index.css";
 
 const AppPage = lazy(() => import("./App"));
@@ -26,6 +27,7 @@ const PresentationPage = lazy(() => import("./pages/PresentationPage"));
 const TesterManagementPage = lazy(() => import("./pages/TesterManagementPage"));
 const TeamManagementPage = lazy(() => import("./pages/TeamManagementPage"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const SettingsSidebar = lazy(() => import("./components/SettingsSidebar"));
 const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel"));
 const OnboardingTour = lazy(() => import("./components/OnboardingTour"));
@@ -42,6 +44,7 @@ function Layout() {
 		() => localStorage.getItem("showBugs") !== "false",
 	);
 	const activeBugCount = useActiveBugCount();
+	const { kill: onBugKill } = useBugKillTracker();
 	const settingsOpen = usePanelStore((s) => s.settingsOpen);
 	const aiPanelOpen = usePanelStore((s) => s.aiPanelOpen);
 	const { shouldShow: showOnboarding, markComplete: completeOnboarding } = useOnboardingTour();
@@ -109,6 +112,7 @@ function Layout() {
 				userDisplayName={userDisplayName}
 				userEmail={user?.email}
 				userAvatarUrl={userAvatarUrl}
+				onBugKill={onBugKill}
 				onLogout={handleLogout}
 			>
 				<ThemeToggle />
@@ -200,6 +204,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 											element={
 												<Suspense fallback={<RouteFallback />}>
 													<TeamManagementPage />
+												</Suspense>
+											}
+										/>
+										<Route
+											path="/analytics"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<AnalyticsPage />
 												</Suspense>
 											}
 										/>

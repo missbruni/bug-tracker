@@ -26,7 +26,7 @@ import SecondaryAppBar from "../components/SecondaryAppBar";
 import { SessionListSkeleton } from "../components/Skeleton";
 import CloneSessionModal from "../components/CloneSessionModal";
 import Tooltip from "../components/Tooltip";
-import { useSessionTimer } from "../lib/sessionTimer";
+import { useSessionTimer } from "../domains/sessions/sessionTimer";
 import type { SessionWithStats } from "../domains/sessions/model";
 
 type Session = SessionWithStats;

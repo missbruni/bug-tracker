@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2, UserCircle } from "lucide-react";
+import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2, UserCircle, BarChart3 } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
@@ -37,6 +37,7 @@ export default function NavBar({
 	userDisplayName,
 	userEmail,
 	userAvatarUrl,
+	onBugKill,
 	onLogout,
 }: {
 	children?: ReactNode;
@@ -53,11 +54,12 @@ export default function NavBar({
 	userDisplayName?: string;
 	userEmail?: string;
 	userAvatarUrl?: string;
+	onBugKill?: () => void;
 	onLogout?: () => void;
 }) {
 	const navItems = showTeamsNav
-		? [...NAV_ITEMS, { to: "/teams", label: "Teams", icon: Building2 }]
-		: NAV_ITEMS;
+		? [...NAV_ITEMS, { to: "/teams", label: "Teams", icon: Building2 }, { to: "/analytics", label: "Analytics", icon: BarChart3 }]
+		: [...NAV_ITEMS, { to: "/analytics", label: "Analytics", icon: BarChart3 }];
 
 	const location = useLocation();
 	const tabRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
@@ -85,7 +87,7 @@ export default function NavBar({
 			className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800"
 			style={showBugs ? { cursor: getFlySwatCursor(isDark) } : undefined}
 		>
-				{showBugs && <div className="absolute inset-0 overflow-hidden pointer-events-auto"><CrawlingBugs count={bugCount} /></div>}
+				{showBugs && <div className="absolute inset-0 overflow-hidden pointer-events-auto"><CrawlingBugs count={bugCount} onKill={onBugKill} /></div>}
 				<div className="max-w-screen-2xl mx-auto px-4 sm:px-7 flex items-center gap-3 sm:gap-4 relative z-10">
 					{/* Branding */}
 					<div className="flex items-center gap-3 py-3 shrink-0">
