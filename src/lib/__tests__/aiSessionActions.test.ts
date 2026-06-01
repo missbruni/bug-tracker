@@ -59,21 +59,43 @@ mock.module('../../supabaseClient', () => ({
   },
 }))
 
+// The mock replaces the entire module. All three exports must be present so
+// other test files (bugIdGeneration.test.ts) that import from the same path
+// are not broken by a partial mock. incrementBugId and insertBugWithRetry
+// are inlined verbatim from the real implementation.
 mock.module('../../domains/bugs/id', () => ({
   generateBugId: async (severity: Severity) => {
     if (severity === 'critical') return 'CRT-77'
     if (severity === 'high') return 'HI-77'
     return 'LO-77'
   },
-  insertBugWithRetry: async (_sb: unknown, bugData: Record<string, unknown>, startId: string) => {
-    state.insertedBugs.push({ ...bugData, id: startId })
-    return startId
-  },
   incrementBugId: (currentId: string) => {
     const match = currentId.match(/^([A-Z]+-?)(\d+)$/)
     if (!match) return `${currentId}-1`
     const [, prefix, digits] = match
     return `${prefix}${String(Number(digits) + 1).padStart(digits.length, '0')}`
+  },
+  insertBugWithRetry: async (
+    supabaseClient: { from: (t: string) => { insert: (d: unknown) => Promise<{ error: { code: string; message: string } | null }> } },
+    bugData: Record<string, unknown>,
+    startId: string,
+  ) => {
+    const MAX_RETRIES = 50
+    let finalId = startId
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      bugData.id = finalId
+      const { error } = await supabaseClient.from('bugs').insert(bugData)
+      if (!error) return finalId
+      if (error.code === '23505') {
+        const match = finalId.match(/^([A-Z]+-?)(\d+)$/)
+        if (!match) { finalId = `${finalId}-1`; continue }
+        const [, prefix, digits] = match
+        finalId = `${prefix}${String(Number(digits) + 1).padStart(digits.length, '0')}`
+        continue
+      }
+      throw new Error(error.message)
+    }
+    throw new Error('Failed to create bug after multiple ID retries')
   },
 }))
 
