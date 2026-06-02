@@ -25,7 +25,7 @@ const baseBug: Bug = {
 
 const noop = () => {}
 
-function renderBugCard(bugOverrides: Partial<Bug> = {}, props: { onUpdate?: (b: Bug) => void; onDelete?: (id: string) => void; onReviewed?: (b: Bug, undo: () => void) => void } = {}) {
+function renderBugCard(bugOverrides: Partial<Bug> = {}, props: { onUpdate?: (b: Bug) => void; onDelete?: (id: string) => void; onReviewed?: (b: Bug, undo: () => void) => void; autoExpand?: boolean } = {}) {
   const bug = { ...baseBug, ...bugOverrides }
   return render(
     <BugCard
@@ -34,6 +34,7 @@ function renderBugCard(bugOverrides: Partial<Bug> = {}, props: { onUpdate?: (b: 
       onDelete={props.onDelete ?? noop}
       onImageClick={noop}
       onReviewed={props.onReviewed}
+      autoExpand={props.autoExpand}
     />,
   )
 }
@@ -112,6 +113,13 @@ describe('BugCard', () => {
     const titleEl = screen.getByText('Login button broken')
     fireEvent.click(titleEl.closest('button')!)
     // Description should now be visible (collapse-grid has open class)
+    expect(desc.closest('.collapse-grid')!.classList.contains('open')).toBe(true)
+  })
+
+  test('auto-expands when requested', () => {
+    renderBugCard({ description: 'Detailed steps to reproduce the issue' }, { autoExpand: true })
+
+    const desc = screen.getByText('Detailed steps to reproduce the issue')
     expect(desc.closest('.collapse-grid')!.classList.contains('open')).toBe(true)
   })
 

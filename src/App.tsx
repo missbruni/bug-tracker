@@ -57,6 +57,11 @@ export default function App() {
 
   const sevStyles = isDark ? SEVERITY_STYLES.dark : SEVERITY_STYLES.light
   const searchRef = React.useRef<HTMLInputElement>(null)
+  const focusedBugId = React.useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+    if (!normalizedSearch) return null
+    return bugs.find((bug) => bug.id.toLowerCase() === normalizedSearch)?.id ?? null
+  }, [bugs, search])
 
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -284,6 +289,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                         setLightbox({ items: items.length ? items : [{ src, alt, type }], currentIndex: Math.max(0, currentIndex) })
                       }}
                       initialEditing={editingBugId === bug.id}
+                      autoExpand={focusedBugId === bug.id}
                       onEditingChange={(editing) => setEditingBugId(editing ? bug.id : null)}
                       onLinkCopied={(bugId) => {
                         if (snackbarTimer.current) clearTimeout(snackbarTimer.current)

@@ -51,7 +51,7 @@ You can edit, resolve, reopen, delete bugs, and add comments. Use the "bug" fiel
 {"action":"add_comment","bug":"the sidebar bug","comment":"Reproduces on Firefox too"}
 \`\`\`
 - Adds a timestamped comment to a bug.
-- To tag people in the comment, include their visible @name in the comment and add a "mentions" array with exact display names or emails. Tagged active team members receive an email.
+- To tag people in the comment, include their visible @name in the comment and add a "mentions" array with exact display names or emails. Tagged active team members receive an email and an in-app notification.
 
 \`\`\`session_action
 {"action":"add_comment","bug":"HI-03","comment":"@Alex Smith can you confirm the expected copy here?","mentions":["Alex Smith"]}

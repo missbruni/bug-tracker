@@ -37,6 +37,7 @@ interface BugCardProps {
 	onReviewed?: (bug: Bug, undo: () => void, message?: string) => void;
 	onLinkCopied?: (bugId: string) => void;
 	initialEditing?: boolean;
+	autoExpand?: boolean;
 	onEditingChange?: (editing: boolean) => void;
 }
 
@@ -62,12 +63,13 @@ export default function BugCard({
 	onReviewed,
 	onLinkCopied,
 	initialEditing = false,
+	autoExpand = false,
 	onEditingChange,
 	selectionMode = false,
 	selected = false,
 	onToggleSelect,
 }: BugCardProps) {
-	const [expanded, setExpanded] = React.useState(initialEditing);
+	const [expanded, setExpanded] = React.useState(initialEditing || autoExpand);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
 	const [isDeleting] = React.useState(false);
 	const [showCommentInput, setShowCommentInput] = React.useState(false);
@@ -166,6 +168,14 @@ export default function BugCard({
 			});
 		}
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
+
+	React.useEffect(() => {
+		if (!autoExpand) return;
+		setExpanded(true);
+		requestAnimationFrame(() => {
+			cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+		});
+	}, [autoExpand, bug.id]);
 
 	return (
 		<div
