@@ -125,6 +125,26 @@ export default function useAiAssistant(open: boolean) {
         parts.push(`Products:\n${productList.join('\n')}`)
       }
 
+      if (activeTeamId) {
+        const [membersRes, orgUsersRes] = await Promise.all([
+          supabase
+            .from('team_members')
+            .select('user_id')
+            .eq('team_id', activeTeamId)
+            .eq('status', 'active'),
+          supabase.rpc('get_org_users'),
+        ])
+        if (!membersRes.error && !orgUsersRes.error) {
+          const memberIds = new Set(((membersRes.data || []) as Array<{ user_id: string }>).map((member) => member.user_id))
+          const teamMembers = ((orgUsersRes.data || []) as Array<{ id: string; email: string; display_name: string }>)
+            .filter((member) => memberIds.has(member.id))
+            .map((member) => `- ${member.display_name} (${member.email})`)
+          if (teamMembers.length) {
+            parts.push(`Active team members for @mentions:\n${teamMembers.join('\n')}`)
+          }
+        }
+      }
+
       // Recent sessions with scenario counts
       const { data: sessions } = await scopeToTeam(
         supabase

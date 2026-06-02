@@ -15,6 +15,7 @@ export interface Comment {
   id?: number
   bug_id?: string
   team_id?: string
+  mentioned_user_ids?: string[]
   text: string
   time?: string
 }

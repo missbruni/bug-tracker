@@ -144,17 +144,56 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     if (mountedRef.current) setPublishingMode(null)
   }
 
-  const addComment = async (commentText: string) => {
+  const notifyMentionedUsers = async (commentId: number, mentionedUserIds: string[]) => {
+    if (!supabase || mentionedUserIds.length === 0) return
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    if (!token) return
+
+    try {
+      const res = await fetch('/api/bug-comment-mention', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bugId: bug.id,
+          commentId,
+          mentionedUserIds,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        console.warn('[mentions] email notification failed:', body.error || res.statusText)
+      } else {
+        const body = await res.json().catch(() => ({})) as { sent?: number; warning?: string }
+        if (body.warning) console.warn('[mentions] email notification warning:', body.warning)
+        else if (body.sent === 0) console.warn('[mentions] no email notifications were sent: No recipients or email provider not configured.')
+      }
+    } catch (mentionError) {
+      console.warn('[mentions] email notification failed:', mentionError)
+    }
+  }
+
+  const addComment = async (commentText: string, mentionedUserIds: string[] = []) => {
     if (!commentText.trim()) return
-    const newComment = { text: commentText.trim(), time: 'Just now' }
+    const uniqueMentionedUserIds = Array.from(new Set(mentionedUserIds))
+    const newComment = { text: commentText.trim(), time: 'Just now', mentioned_user_ids: uniqueMentionedUserIds }
 
     if (supabase) {
       const { data, error } = await supabase
         .from('comments')
-        .insert(withTeamPayload({ bug_id: bug.id, text: newComment.text, time: newComment.time }, activeTeamId))
+        .insert(withTeamPayload({
+          bug_id: bug.id,
+          text: newComment.text,
+          time: newComment.time,
+          mentioned_user_ids: uniqueMentionedUserIds,
+        }, activeTeamId))
         .select()
       if (!error && data?.[0]) {
         onUpdate({ ...bug, comments: [...bug.comments, { ...newComment, id: data[0].id }] })
+        void notifyMentionedUsers(data[0].id as number, uniqueMentionedUserIds)
       }
     } else {
       onUpdate({ ...bug, comments: [...bug.comments, newComment] })

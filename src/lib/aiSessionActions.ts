@@ -73,6 +73,7 @@ export interface SessionAction {
   status?: string
   team?: string
   link?: string
+  mentions?: string[]
 }
 
 export interface SessionActionResult {
@@ -157,6 +158,72 @@ async function findBugByQuery(query: string, activeTeamId: string | null): Promi
   if (idFallback?.length) return idFallback[0]
 
   return null
+}
+
+interface MentionableUser {
+  id: string
+  email: string
+  display_name: string
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function includesMention(text: string, displayName: string): boolean {
+  return new RegExp(`(^|\\s)@${escapeRegExp(displayName)}(?=\\s|$|[.,!?;:])`, 'i').test(text)
+}
+
+async function resolveMentionedUserIds(comment: string, explicitMentions: string[] | undefined, activeTeamId: string | null): Promise<string[]> {
+  if (!supabase || !activeTeamId) return []
+
+  const [membersRes, orgUsersRes] = await Promise.all([
+    supabase
+      .from('team_members')
+      .select('user_id')
+      .eq('team_id', activeTeamId)
+      .eq('status', 'active'),
+    supabase.rpc('get_org_users'),
+  ])
+
+  if (membersRes.error || orgUsersRes.error) return []
+
+  const memberIds = new Set(((membersRes.data || []) as Array<{ user_id: string }>).map((member) => member.user_id))
+  const mentionNames = new Set((explicitMentions || []).map((mention) => mention.trim().toLowerCase()).filter(Boolean))
+
+  return ((orgUsersRes.data || []) as MentionableUser[])
+    .filter((user) => memberIds.has(user.id))
+    .filter((user) => {
+      const displayName = user.display_name.toLowerCase()
+      const email = user.email.toLowerCase()
+      return mentionNames.has(displayName) || mentionNames.has(email) || includesMention(comment, user.display_name)
+    })
+    .map((user) => user.id)
+}
+
+async function notifyMentionedUsersFromAction(bugId: string, commentId: number, mentionedUserIds: string[]): Promise<void> {
+  if (!supabase || mentionedUserIds.length === 0) return
+
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) return
+
+  try {
+    const res = await fetch('/api/bug-comment-mention', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ bugId, commentId, mentionedUserIds }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      console.warn('[mentions] email notification failed:', body.error || res.statusText)
+    }
+  } catch (mentionError) {
+    console.warn('[mentions] email notification failed:', mentionError)
+  }
 }
 
 export async function executeSessionActionWithSession(
@@ -781,13 +848,17 @@ export async function executeSessionActionWithSession(
       if (!comment) return { action: 'add_comment', success: false, message: 'Comment text required' }
       const bug = await findBugByQuery(bugQuery, activeTeamId)
       if (!bug) return { action: 'add_comment', success: false, message: `Bug "${bugQuery}" not found` }
-      const { error } = await supabase.from('comments').insert(withTeamPayload({
+      const mentionedUserIds = await resolveMentionedUserIds(comment, action.mentions, activeTeamId)
+      const { data, error } = await supabase.from('comments').insert(withTeamPayload({
         bug_id: bug.id,
         text: comment,
         time: new Date().toLocaleString(),
-      }, activeTeamId))
+        mentioned_user_ids: mentionedUserIds,
+      }, activeTeamId)).select('id')
       if (error) return { action: 'add_comment', success: false, message: error.message }
-      return { action: 'add_comment', success: true, message: `Added comment to ${bug.id} "${bug.title}"` }
+      if (data?.[0]?.id) void notifyMentionedUsersFromAction(bug.id, data[0].id as number, mentionedUserIds)
+      const mentionText = mentionedUserIds.length ? ` and notified ${mentionedUserIds.length} mentioned user${mentionedUserIds.length === 1 ? '' : 's'}` : ''
+      return { action: 'add_comment', success: true, message: `Added comment to ${bug.id} "${bug.title}"${mentionText}` }
     }
 
     // ─── Scenario Actions ─────────────────────────────────────

@@ -20,6 +20,7 @@ import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../domains/bugs/useBugActions";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
 import BugActivityTimeline from "./BugActivityTimeline";
+import BugCommentComposer from "./BugCommentComposer";
 import { buildBugPermalink, copyToClipboard } from "../domains/bugs/bugPermalink";
 import type { Bug } from "../domains/bugs/model";
 
@@ -37,6 +38,18 @@ interface BugCardProps {
 	onLinkCopied?: (bugId: string) => void;
 	initialEditing?: boolean;
 	onEditingChange?: (editing: boolean) => void;
+}
+
+function renderCommentText(text: string) {
+	const parts = text.split(/(@[A-Za-z][A-Za-z0-9._-]*(?:\s+[A-Z][A-Za-z0-9._-]*)*)/g);
+	return parts.map((part, index) => {
+		if (!part.startsWith("@")) return part;
+		return (
+			<strong key={`${part}-${index}`} className="font-semibold text-teal-600 dark:text-mushi-primary">
+				{part}
+			</strong>
+		);
+	});
 }
 
 export default function BugCard({
@@ -57,7 +70,6 @@ export default function BugCard({
 	const [expanded, setExpanded] = React.useState(initialEditing);
 	const [pendingDelete, setPendingDelete] = React.useState(false);
 	const [isDeleting] = React.useState(false);
-	const [commentText, setCommentText] = React.useState("");
 	const [showCommentInput, setShowCommentInput] = React.useState(false);
 	const [publishingMode, setPublishingMode] = React.useState<
 		"backlog" | "devin" | null
@@ -109,12 +121,6 @@ export default function BugCard({
 			event.preventDefault();
 			await actions.uploadFiles(imageFiles);
 		}
-	};
-
-	const handleAddComment = async () => {
-		await actions.addComment(commentText);
-		setCommentText("");
-		setShowCommentInput(false);
 	};
 
 	const startEditing = () => {
@@ -399,7 +405,7 @@ export default function BugCard({
 									className="group/comment mb-1.5 flex items-start gap-2 rounded-md bg-slate-50 dark:bg-gray-800 px-3 py-2 text-sm text-slate-700 dark:text-gray-300"
 								>
 									<span className="flex-1">
-										{c.text}
+										{renderCommentText(c.text)}
 										{c.time && (
 											<span className="ml-2 text-xs text-slate-400 dark:text-gray-500">
 												({c.time})
@@ -437,22 +443,13 @@ export default function BugCard({
 							className="hidden"
 						/>
 						{showCommentInput ? (
-							<div className="flex flex-1 items-center gap-2">
-								<input
-									value={commentText}
-									onChange={(event) => setCommentText(event.target.value)}
-									onKeyDown={(event) => event.key === "Enter" && handleAddComment()}
-									placeholder="Write a comment..."
-									className="flex-1 rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500"
-									autoFocus
-								/>
-								<button
-									onClick={handleAddComment}
-									className="rounded-md bg-blue-500 px-3.5 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors cursor-pointer"
-								>
-									Add
-								</button>
-							</div>
+							<BugCommentComposer
+								onAddComment={async (text, mentionedUserIds) => {
+									await actions.addComment(text, mentionedUserIds);
+									setShowCommentInput(false);
+								}}
+								onCancel={() => setShowCommentInput(false)}
+							/>
 						) : (
 							<button
 								onClick={() => setShowCommentInput(true)}
