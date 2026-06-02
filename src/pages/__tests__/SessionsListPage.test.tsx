@@ -40,7 +40,7 @@ mock.module('../../supabaseClient', () => ({ supabase: null }))
 mock.module('../../lib/teamAccess', () => ({
   useTeamAccess: () => ({ activeTeamId: 'team-1', activeTeam: null, teams: [], isGodMode: false, setActiveTeamId: () => {} }),
 }))
-mock.module('../../lib/sessionTimer', () => ({
+mock.module('../../domains/sessions/sessionTimer', () => ({
   useSessionTimer: () => ({ timer: null, elapsed: 0, startTimer: mock(() => {}), pauseTimer: mock(() => {}), resumeTimer: mock(() => {}), stopTimer: mock(() => {}) }),
 }))
 

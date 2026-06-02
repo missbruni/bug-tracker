@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Play, Pause, Square, X } from 'lucide-react'
-import { useSessionTimer } from '../lib/sessionTimer'
+import { useSessionTimer } from '../domains/sessions/sessionTimer'
 import ConfirmModal from './ConfirmModal'
 
 function TickingClock({ animate }: { animate: boolean }) {

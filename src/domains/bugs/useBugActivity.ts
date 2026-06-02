@@ -1,8 +1,8 @@
 import React from 'react'
-import { supabase } from '../supabaseClient'
-import { useTeamAccess } from '../lib/teamAccess'
-import { scopeToTeam } from '../lib/teamScope'
-import type { BugActivity } from '../components/BugActivityTimeline'
+import { supabase } from '../../supabaseClient'
+import { useTeamAccess } from '../../lib/teamAccess'
+import { scopeToTeam } from '../../lib/teamScope'
+import type { BugActivity } from '../../components/BugActivityTimeline'
 
 const ACTIVITY_LIMIT = 30
 

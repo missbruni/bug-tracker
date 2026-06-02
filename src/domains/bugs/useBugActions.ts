@@ -1,12 +1,12 @@
 import React from 'react'
-import { supabase } from '../supabaseClient'
-import { playTickSound } from '../lib/audio'
-import { findTesterByName } from '../lib/testerLookup'
-import { useTeamAccess } from '../lib/teamAccess'
-import { shouldOpenPbiOnPublishSuccess } from '../lib/azureSettings'
-import { buildAttachmentPath, parseAttachmentStoragePath, scopeToTeam, withTeamPayload } from '../lib/teamScope'
-import type { Bug, Attachment } from '../domains/bugs/model'
-import type { Severity } from '../constants'
+import { supabase } from '../../supabaseClient'
+import { playTickSound } from '../../lib/audio'
+import { findTesterByName } from '../../lib/testerLookup'
+import { useTeamAccess } from '../../lib/teamAccess'
+import { shouldOpenPbiOnPublishSuccess } from '../../lib/azureSettings'
+import { buildAttachmentPath, parseAttachmentStoragePath, scopeToTeam, withTeamPayload } from '../../lib/teamScope'
+import type { Bug, Attachment } from './model'
+import type { Severity } from '../../constants'
 
 interface UseBugActionsParams {
   bug: Bug

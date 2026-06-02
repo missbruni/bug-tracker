@@ -2,7 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, cleanup, act } from '@testing-library/react'
 import { useBugFilters } from '../useBugFilters'
-import { useNotificationStore } from '../../stores/notificationStore'
+import { useNotificationStore } from '../../../stores/notificationStore'
 import type { Bug, Question, SessionOption } from '../../types'
 
 afterEach(() => cleanup())

@@ -1,6 +1,6 @@
 import React from 'react'
 import { CheckCircle, Trash2, Rocket, X, CheckSquare, Square } from 'lucide-react'
-import type { BulkProgress } from '../hooks/useBulkActions'
+import type { BulkProgress } from '../domains/bugs/useBulkActions'
 
 interface BulkActionBarProps {
   selectedCount: number

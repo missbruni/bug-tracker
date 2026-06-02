@@ -24,7 +24,7 @@ import {
   EyeOff,
   Trash2,
 } from 'lucide-react'
-import { useTeamActivity } from '../hooks/useTeamActivity'
+import { useTeamActivity } from '../lib/useTeamActivity'
 import type { BugActivity, BugActivityAction } from './BugActivityTimeline'
 
 export type TeamActivityAction =

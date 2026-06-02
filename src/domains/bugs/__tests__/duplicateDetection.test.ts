@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test'
 import { findPotentialDuplicates } from '../duplicateDetection'
-import type { Bug } from '../../types'
+import type { Bug } from '../model'
 
 const makeBug = (overrides: Partial<Bug> = {}): Bug => ({
   id: 'HI-1',

@@ -3,7 +3,7 @@ import { X, Send, Check, AlertCircle, Settings, Trash2, ExternalLink, Bug, Calen
 import { Link } from 'react-router-dom'
 import { stripJsonBlock } from '../lib/aiParsers'
 import AiBugPreviewCard from './AiBugPreviewCard'
-import useAiAssistant from '../hooks/useAiAssistant'
+import useAiAssistant from '../lib/useAiAssistant'
 
 const BUG_ID_PATTERN = /\b((?:CRT|HI|LO)-\d{2,})\b/g
 
