@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --mode staging",
-    "dev:local": "supabase status > /dev/null 2>&1 || supabase start && supabase db push --local && vite --mode localdb",
+    "dev": "vite --mode staging --open",
+    "dev:local": "supabase status > /dev/null 2>&1 || supabase start && supabase db push --local && vite --mode localdb --open",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

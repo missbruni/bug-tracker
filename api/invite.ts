@@ -165,15 +165,17 @@ export default async function handler(req: any, res: any): Promise<void> {
   if (resendKey) {
     const resend = new Resend(resendKey)
     const appUrl = process.env.APP_URL ?? 'https://mushi.vercel.app'
+    const assetBaseUrl = process.env.EMAIL_ASSET_BASE_URL ?? appUrl
     const fromAddress = process.env.INVITE_FROM_EMAIL ?? 'Mushi <onboarding@resend.dev>'
 
     try {
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: fromAddress,
         to: [email],
         subject: `You're invited to join ${teamName} on Mushi`,
-        html: buildInviteEmailHtml({ inviterName, teamName, appUrl }),
+        html: buildInviteEmailHtml({ inviterName, teamName, appUrl, assetBaseUrl }),
       })
+      if (result.error) throw new Error(result.error.message)
     } catch (emailError) {
       console.warn('[invite] email send failed:', emailError)
       // Invitation was still created — don't fail the request
