@@ -6,6 +6,8 @@ export interface TeamRecord {
   created_at?: string
   timezone?: string | null
   default_product_id?: string | null
+  backlog_key?: string | null
+  default_backlog_provider?: 'mushi' | 'azure'
 }
 
 export interface Organization {
@@ -81,6 +83,16 @@ export function buildAttachmentPath(teamId: string | null, bugId: string, fileNa
     return `${bugId}/${Date.now()}-${fileName}`
   }
   return `teams/${teamId}/bugs/${bugId}/${Date.now()}-${fileName}`
+}
+
+export function buildBacklogAttachmentPath(teamId: string | null, itemId: string, fileName: string): string {
+  if (!teamId) {
+    if (import.meta.env.DEV) {
+      console.warn('[buildBacklogAttachmentPath] No teamId — using legacy unscoped path.')
+    }
+    return `backlog/${itemId}/${Date.now()}-${fileName}`
+  }
+  return `teams/${teamId}/backlog/${itemId}/${Date.now()}-${fileName}`
 }
 
 export function parseAttachmentStoragePath(url?: string): string | null {

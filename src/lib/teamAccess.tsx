@@ -21,11 +21,18 @@ interface TeamMutationResult {
 
 type TeamRole = 'team_admin' | 'member' | null
 
+interface TeamMembership {
+  team_id: string
+  role: Exclude<TeamRole, null>
+  status: 'active'
+}
+
 interface TeamAccessContextValue {
   teams: TeamRecord[]
   activeTeamId: string | null
   activeTeam: TeamRecord | null
   allowedTeamIds: string[]
+  manageableTeamIds: string[]
   teamRole: TeamRole
   isGodMode: boolean
   isTeamAdmin: boolean
@@ -43,6 +50,7 @@ const defaultContextValue: TeamAccessContextValue = {
   activeTeamId: null,
   activeTeam: null,
   allowedTeamIds: [],
+  manageableTeamIds: [],
   teamRole: null,
   isGodMode: false,
   isTeamAdmin: false,
@@ -77,9 +85,9 @@ function setStoredActiveTeamId(teamId: string | null) {
 export function TeamAccessProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [teams, setTeams] = React.useState<TeamRecord[]>([])
+  const [teamMemberships, setTeamMemberships] = React.useState<TeamMembership[]>([])
   const [loading, setLoading] = React.useState(true)
   const [activeTeamIdState, setActiveTeamIdState] = React.useState<string | null>(() => getStoredActiveTeamId())
-  const [teamRole, setTeamRole] = React.useState<TeamRole>(null)
   const [isAppOwner, setIsAppOwner] = React.useState(false)
 
   const refreshTeams = async () => {
@@ -92,7 +100,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     const { data, error } = await supabase
       .from('teams')
-      .select('id, organization_id, name, slug, created_at, timezone, default_product_id')
+      .select('id, organization_id, name, slug, created_at, timezone, default_product_id, backlog_key, default_backlog_provider')
       .eq('organization_id', ORGANIZATION_ID)
       .order('created_at', { ascending: true })
 
@@ -110,6 +118,32 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
   React.useEffect(() => {
     void refreshTeams()
   }, [])
+
+  React.useEffect(() => {
+    let cancelled = false
+    const fetchMemberships = async () => {
+      if (!supabase || !user?.id) {
+        if (!cancelled) setTeamMemberships([])
+        return
+      }
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('team_id, role, status')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+
+      if (!cancelled) {
+        if (error) {
+          console.error('Failed to load team memberships:', error)
+          setTeamMemberships([])
+        } else {
+          setTeamMemberships((data || []) as TeamMembership[])
+        }
+      }
+    }
+    void fetchMemberships()
+    return () => { cancelled = true }
+  }, [user?.id])
 
   React.useEffect(() => {
     let cancelled = false
@@ -131,37 +165,25 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [user?.id])
 
-  React.useEffect(() => {
-    let cancelled = false
-    const fetchRole = async () => {
-      if (!supabase || !user?.id || !activeTeamIdState) {
-        if (!cancelled) setTeamRole(null)
-        return
-      }
-      const { data } = await supabase
-        .from('team_members')
-        .select('role')
-        .eq('team_id', activeTeamIdState)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single()
-      if (!cancelled) {
-        setTeamRole((data?.role as TeamRole) ?? null)
-      }
-    }
-    void fetchRole()
-    return () => { cancelled = true }
-  }, [user?.id, activeTeamIdState])
-
   const isGodMode = isAppOwner
+  const teamRole = teamMemberships.find((membership) => membership.team_id === activeTeamIdState)?.role ?? null
   const isTeamAdmin = isAppOwner || teamRole === 'team_admin'
   const fallbackTeam = teams.find((team) => team.slug === DEFAULT_TEAM_SLUG) || teams[0] || null
 
-  const allowedTeamIds = (() => {
+  const allowedTeamIds = React.useMemo(() => {
     if (!teams.length) return []
     if (isGodMode) return teams.map((team) => team.id)
-    return fallbackTeam ? [fallbackTeam.id] : []
-  })()
+    const memberTeamIds = new Set(teamMemberships.map((membership) => membership.team_id))
+    const membershipTeamIds = teams.filter((team) => memberTeamIds.has(team.id)).map((team) => team.id)
+    return membershipTeamIds.length ? membershipTeamIds : fallbackTeam ? [fallbackTeam.id] : []
+  }, [teams, isGodMode, teamMemberships, fallbackTeam])
+
+  const manageableTeamIds = React.useMemo(() => {
+    if (!teams.length) return []
+    if (isGodMode) return teams.map((team) => team.id)
+    const adminTeamIds = new Set(teamMemberships.filter((membership) => membership.role === 'team_admin').map((membership) => membership.team_id))
+    return teams.filter((team) => adminTeamIds.has(team.id)).map((team) => team.id)
+  }, [teams, isGodMode, teamMemberships])
 
   React.useEffect(() => {
     if (!teams.length) {
@@ -187,16 +209,18 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const next = fallbackTeam?.id || null
+    const preferred = [activeTeamIdState, stored, fallbackTeam?.id, allowedTeamIds[0]].find(
+      (id): id is string => Boolean(id && allowedTeamIds.includes(id)),
+    )
+    const next = preferred || null
     if (next !== activeTeamIdState) {
       setActiveTeamIdState(next)
     }
     setStoredActiveTeamId(next)
-  }, [teams, isGodMode, fallbackTeam, activeTeamIdState])
+  }, [teams, isGodMode, fallbackTeam, activeTeamIdState, allowedTeamIds])
 
   const setActiveTeamId = (teamId: string) => {
-    if (!isGodMode) return
-    if (!teams.some((team) => team.id === teamId)) return
+    if (!allowedTeamIds.includes(teamId)) return
     setActiveTeamIdState(teamId)
     setStoredActiveTeamId(teamId)
   }
@@ -227,7 +251,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
           name: normalizedName,
           slug,
         })
-        .select('id, organization_id, name, slug, created_at, timezone, default_product_id')
+        .select('id, organization_id, name, slug, created_at, timezone, default_product_id, backlog_key, default_backlog_provider')
         .single()
 
       if (error || !data) {
@@ -236,6 +260,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
       const created = data as TeamRecord
       setTeams((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setTeamMemberships((prev) => [...prev.filter((membership) => membership.team_id !== created.id), { team_id: created.id, role: 'team_admin', status: 'active' }])
       setActiveTeamIdState(created.id)
       setStoredActiveTeamId(created.id)
 
@@ -244,7 +269,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const updateTeam = async (teamId: string, name: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isTeamAdmin) return { error: 'Only team admins can update teams.' }
+      if (!manageableTeamIds.includes(teamId)) return { error: 'Only team admins can update teams.' }
 
       const normalizedName = name.trim()
       if (!normalizedName) return { error: 'Team name is required.' }
@@ -265,7 +290,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const restoreTeam = async (team: TeamRecord, makeActive = false): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isTeamAdmin) return { error: 'Only team admins can restore teams.' }
+      if (!isGodMode && !teamMemberships.some((membership) => membership.team_id === team.id && membership.role === 'team_admin')) return { error: 'Only team admins can restore teams.' }
 
       const { data, error } = await supabase
         .from('teams')
@@ -284,6 +309,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
       const restoredTeam = data as TeamRecord
       setTeams((prev) => [...prev, restoredTeam].sort((a, b) => a.name.localeCompare(b.name)))
+      setTeamMemberships((prev) => [...prev.filter((membership) => membership.team_id !== restoredTeam.id), { team_id: restoredTeam.id, role: 'team_admin', status: 'active' }])
 
       if (makeActive) {
         setActiveTeamIdState(restoredTeam.id)
@@ -295,7 +321,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
 
   const deleteTeam = async (teamId: string): Promise<TeamMutationResult> => {
       if (!supabase) return { error: 'Database is not connected.' }
-      if (!isTeamAdmin) return { error: 'Only team admins can delete teams.' }
+      if (!manageableTeamIds.includes(teamId)) return { error: 'Only team admins can delete teams.' }
       if (teamId === DEFAULT_TEAM_ID) return { error: 'Cannot delete the default team.' }
 
       const { error } = await supabase.from('teams').delete().eq('id', teamId)
@@ -304,7 +330,8 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
       setTeams((prev) => prev.filter((t) => t.id !== teamId))
 
       if (activeTeamIdState === teamId) {
-        const fallback = teams.find((t) => t.slug === DEFAULT_TEAM_SLUG && t.id !== teamId) || teams.find((t) => t.id !== teamId) || null
+        const nextAllowedTeamId = allowedTeamIds.find((allowedTeamId) => allowedTeamId !== teamId) || null
+        const fallback = nextAllowedTeamId ? teams.find((team) => team.id === nextAllowedTeamId) || null : null
         setActiveTeamIdState(fallback?.id || null)
         setStoredActiveTeamId(fallback?.id || null)
       }
@@ -319,6 +346,7 @@ export function TeamAccessProvider({ children }: { children: ReactNode }) {
     activeTeamId: activeTeamIdState,
     activeTeam,
     allowedTeamIds,
+    manageableTeamIds,
     teamRole,
     isGodMode,
     isTeamAdmin,

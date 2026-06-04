@@ -129,7 +129,7 @@ export function useBulkActions() {
     bugs: Bug[],
     onUpdate: (bug: Bug) => void,
   ): Promise<{ successCount: number; errorCount: number }> => {
-    const targetBugs = bugs.filter((bug) => selectedIds.has(bug.id) && !bug.backlog_url)
+    const targetBugs = bugs.filter((bug) => selectedIds.has(bug.id) && !(bug.azure_url || bug.backlog_url))
     if (!targetBugs.length) return { successCount: 0, errorCount: 0 }
 
     let successCount = 0
@@ -170,11 +170,11 @@ export function useBulkActions() {
 
         if (data.success) {
           const backlogUrl = (data.url as string) || null
-          const updates: Partial<Bug> = { backlog_url: backlogUrl, reviewed: true }
+          const updates: Partial<Bug> = { backlog_url: backlogUrl, azure_url: backlogUrl, reviewed: true }
 
           if (supabase) {
             await scopeToTeam(
-              supabase.from('bugs').update({ backlog_url: backlogUrl, reviewed: true }).eq('id', bug.id),
+              supabase.from('bugs').update({ backlog_url: backlogUrl, azure_url: backlogUrl, reviewed: true }).eq('id', bug.id),
               activeTeamId,
             )
           }

@@ -17,7 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabaseClient";
 import { useTeamAccess } from "../lib/teamAccess";
 import { scopeToTeam, withTeamPayload } from "../lib/teamScope";
-import type { Product } from "../components/TeamCard";
+import type { Product } from "../domains/teams/model";
 import { SESSION_STATUS_STYLES } from "../constants";
 import FeedbackModal from "../components/FeedbackModal";
 import StatusMenu from "../components/StatusMenu";
@@ -248,13 +248,22 @@ export default function SessionsListPage() {
 				onSearchChange={setSearch}
 				searchPlaceholder="Search sessions..."
 				actionButton={
-					<button
-						onClick={() => setShowCreate(true)}
-						className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
-					>
-						<Plus size={14} />
-						New Session
-					</button>
+					<div className="flex h-full items-center gap-2">
+						<Link
+							to="/participants"
+							className="h-full flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-gray-700 px-3 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap"
+						>
+							<Users size={14} />
+							Participants
+						</Link>
+						<button
+							onClick={() => setShowCreate(true)}
+							className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
+						>
+							<Plus size={14} />
+							New Session
+						</button>
+					</div>
 				}
 			/>
 

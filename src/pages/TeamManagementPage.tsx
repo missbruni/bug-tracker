@@ -1,21 +1,23 @@
 import React from 'react'
 import { Plus, CheckCircle, XCircle } from 'lucide-react'
 import SecondaryAppBar from '../components/SecondaryAppBar'
-import TeamCard, { type Product, type ProductLink, type TeamStats } from '../components/TeamCard'
+import TeamCard from '../components/TeamCard'
 import TeamMembersModal from '../components/TeamMembersModal'
 import TeamActivityModal from '../components/TeamActivityModal'
 import TeamSettingsModal from '../components/TeamSettingsModal'
 import { useTeamAccess } from '../lib/teamAccess'
-import { DEFAULT_TEAM_ID, slugifyTeamName } from '../lib/teamScope'
-import { supabase } from '../supabaseClient'
+import { DEFAULT_TEAM_ID } from '../lib/teamScope'
 import { useNotificationStore } from '../stores/notificationStore'
 import { TeamListSkeleton } from '../components/Skeleton'
+import { useTeamOverview } from '../domains/teams/useTeamOverview'
 
 export default function TeamManagementPage() {
   const {
     teams,
     activeTeamId,
-    isTeamAdmin,
+    allowedTeamIds,
+    manageableTeamIds,
+    isGodMode,
     loading,
     setActiveTeamId,
     refreshTeams,
@@ -39,45 +41,10 @@ export default function TeamManagementPage() {
     tone: 'success' | 'error'
     undo?: () => Promise<void> | void
   } | null>(null)
-  const [teamStats, setTeamStats] = React.useState<Record<string, TeamStats>>({})
-  const [products, setProducts] = React.useState<Product[]>([])
   const [memberModalTeamId, setMemberModalTeamId] = React.useState<string | null>(null)
   const [activityModalTeamId, setActivityModalTeamId] = React.useState<string | null>(null)
   const [settingsModalTeamId, setSettingsModalTeamId] = React.useState<string | null>(null)
   const [statsVersion, setStatsVersion] = React.useState(0)
-
-  React.useEffect(() => {
-    const loadTeamStats = async () => {
-      if (!supabase || !teams.length) return
-      const [testersRes, sessionsRes, bugsRes, productsRes, membersRes] = await Promise.all([
-        supabase.from('testers').select('team_id, active'),
-        supabase.from('sessions').select('team_id'),
-        supabase.from('bugs').select('team_id, reviewed'),
-        supabase.from('products').select('id, team_id, name, slug, description, link, links'),
-        supabase.from('team_members').select('team_id').eq('status', 'active'),
-      ])
-      const stats: Record<string, TeamStats> = {}
-      const ensure = (id: string) => { if (!stats[id]) stats[id] = { testers: 0, activeTesters: 0, sessions: 0, activeBugs: 0, members: 0 } }
-      for (const row of (testersRes.data || []) as Array<{ team_id: string; active: boolean }>) {
-        ensure(row.team_id); stats[row.team_id].testers++
-        if (row.active) stats[row.team_id].activeTesters++
-      }
-      for (const row of (sessionsRes.data || []) as Array<{ team_id: string }>) {
-        ensure(row.team_id); stats[row.team_id].sessions++
-      }
-      for (const row of (bugsRes.data || []) as Array<{ team_id: string; reviewed: boolean }>) {
-        ensure(row.team_id)
-        if (!row.reviewed) stats[row.team_id].activeBugs++
-      }
-      for (const row of (membersRes.data || []) as Array<{ team_id: string }>) {
-        ensure(row.team_id); stats[row.team_id].members++
-      }
-      setTeamStats(stats)
-      setProducts((productsRes.data || []) as Product[])
-    }
-
-    void loadTeamStats()
-  }, [teams.length, statsVersion])
 
   // Refresh when AI creates a team or product
   React.useEffect(() => {
@@ -87,48 +54,29 @@ export default function TeamManagementPage() {
     )
   }, [refreshTeams])
 
-  const handleAddProduct = async (teamId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {
-    if (!supabase) return
-    const slug = slugifyTeamName(product.name)
-    const links = product.links?.length ? product.links : []
-    const { data, error: err } = await supabase
-      .from('products')
-      .insert({ team_id: teamId, name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links })
-      .select('id, team_id, name, slug, description, link, links')
-      .single()
-    if (err) {
-      setToast({ message: err.message, tone: 'error' })
-    } else if (data) {
-      setProducts((prev) => [...prev, data as Product])
-    }
+  const visibleTeams = React.useMemo(
+    () => isGodMode ? teams : teams.filter((team) => allowedTeamIds.includes(team.id)),
+    [allowedTeamIds, isGodMode, teams],
+  )
+  const overviewTeamIds = React.useMemo(() => visibleTeams.map((team) => team.id), [visibleTeams])
+  const { teamStats, products, addProduct, updateProduct, deleteProduct } = useTeamOverview(overviewTeamIds, statsVersion)
+
+  const sortedTeams = [...visibleTeams].sort((a, b) => a.name.localeCompare(b.name))
+
+  const handleAddProduct = async (teamId: string, product: Parameters<typeof addProduct>[1]) => {
+    const result = await addProduct(teamId, product)
+    if (result.error) setToast({ message: result.error, tone: 'error' })
   }
 
-  const handleUpdateProduct = async (productId: string, product: { name: string; description?: string; links?: ProductLink[] }) => {
-    if (!supabase) return
-    const slug = slugifyTeamName(product.name)
-    const links = product.links?.length ? product.links : []
-    const { error: err } = await supabase
-      .from('products')
-      .update({ name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links })
-      .eq('id', productId)
-    if (err) {
-      setToast({ message: err.message, tone: 'error' })
-    } else {
-      setProducts((prev) => prev.map((prod) => prod.id === productId ? { ...prod, name: product.name, slug, description: product.description || null, link: links[0]?.url || null, links } : prod))
-    }
+  const handleUpdateProduct = async (productId: string, product: Parameters<typeof updateProduct>[1]) => {
+    const result = await updateProduct(productId, product)
+    if (result.error) setToast({ message: result.error, tone: 'error' })
   }
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!supabase) return
-    const { error: err } = await supabase.from('products').delete().eq('id', productId)
-    if (err) {
-      setToast({ message: err.message, tone: 'error' })
-    } else {
-      setProducts((prev) => prev.filter((prod) => prod.id !== productId))
-    }
+    const result = await deleteProduct(productId)
+    if (result.error) setToast({ message: result.error, tone: 'error' })
   }
-
-  const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name))
 
   const filteredTeams = (() => {
     const query = search.trim().toLowerCase()
@@ -261,35 +209,38 @@ export default function TeamManagementPage() {
           <div className="text-sm text-slate-500 dark:text-gray-500">No teams found yet.</div>
         ) : (
           <div className="space-y-2">
-            {filteredTeams.map((team) => (
-              <TeamCard
-                key={team.id}
-                team={team}
-                isActive={activeTeamId === team.id}
-                isDefault={team.id === DEFAULT_TEAM_ID}
-                stats={teamStats[team.id]}
-                products={products.filter((prod) => prod.team_id === team.id)}
-                canEdit={isTeamAdmin}
-                onManageMembers={isTeamAdmin ? () => setMemberModalTeamId(team.id) : undefined}
-                onViewActivity={() => setActivityModalTeamId(team.id)}
-                onOpenSettings={isTeamAdmin ? () => setSettingsModalTeamId(team.id) : undefined}
-                onSelect={() => setActiveTeamId(team.id)}
-                onStartEdit={() => startEdit(team)}
-                onDelete={() => { if (!deletingId) setPendingDeleteId(team.id) }}
-                onAddProduct={(product) => handleAddProduct(team.id, product)}
-                onUpdateProduct={handleUpdateProduct}
-                onDeleteProduct={handleDeleteProduct}
-                isEditing={editingId === team.id}
-                editName={editName}
-                onEditNameChange={setEditName}
-                onSaveEdit={saveEdit}
-                onCancelEdit={() => setEditingId(null)}
-                pendingDelete={pendingDeleteId === team.id}
-                deleting={deletingId === team.id}
-                onConfirmDelete={() => { void confirmDelete(team.id) }}
-                onCancelDelete={() => setPendingDeleteId(null)}
-              />
-            ))}
+            {filteredTeams.map((team) => {
+              const canManageTeam = manageableTeamIds.includes(team.id)
+              return (
+                <TeamCard
+                  key={team.id}
+                  team={team}
+                  isActive={activeTeamId === team.id}
+                  isDefault={team.id === DEFAULT_TEAM_ID}
+                  stats={teamStats[team.id]}
+                  products={products.filter((prod) => prod.team_id === team.id)}
+                  canEdit={canManageTeam}
+                  onManageMembers={canManageTeam ? () => setMemberModalTeamId(team.id) : undefined}
+                  onViewActivity={() => setActivityModalTeamId(team.id)}
+                  onOpenSettings={canManageTeam ? () => setSettingsModalTeamId(team.id) : undefined}
+                  onSelect={() => setActiveTeamId(team.id)}
+                  onStartEdit={() => startEdit(team)}
+                  onDelete={() => { if (!deletingId) setPendingDeleteId(team.id) }}
+                  onAddProduct={(product) => handleAddProduct(team.id, product)}
+                  onUpdateProduct={handleUpdateProduct}
+                  onDeleteProduct={handleDeleteProduct}
+                  isEditing={editingId === team.id}
+                  editName={editName}
+                  onEditNameChange={setEditName}
+                  onSaveEdit={saveEdit}
+                  onCancelEdit={() => setEditingId(null)}
+                  pendingDelete={pendingDeleteId === team.id}
+                  deleting={deletingId === team.id}
+                  onConfirmDelete={() => { void confirmDelete(team.id) }}
+                  onCancelDelete={() => setPendingDeleteId(null)}
+                />
+              )
+            })}
           </div>
         )}
 

@@ -18,6 +18,7 @@ import AttachmentCard from "./AttachmentCard";
 import BugEditForm from "./BugEditForm";
 import PublishMenu from "./PublishMenu";
 import { useBugActions } from "../domains/bugs/useBugActions";
+import { useTeamAccess } from "../lib/teamAccess";
 import InlineDeleteConfirm from "./InlineDeleteConfirm";
 import BugActivityTimeline from "./BugActivityTimeline";
 import BugCommentComposer from "./BugCommentComposer";
@@ -74,7 +75,7 @@ export default function BugCard({
 	const [isDeleting] = React.useState(false);
 	const [showCommentInput, setShowCommentInput] = React.useState(false);
 	const [publishingMode, setPublishingMode] = React.useState<
-		"backlog" | "devin" | null
+		"azure" | "devin" | "mushi" | null
 	>(null);
 	const [editing, setEditingRaw] = React.useState(initialEditing);
 	const setEditing = (value: boolean) => {
@@ -86,7 +87,10 @@ export default function BugCard({
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const cardRef = React.useRef<HTMLDivElement>(null);
 	const style = SEVERITY_STYLES.dark[bug.severity];
-	const backlogUrl = bug.backlog_url || null;
+	const { activeTeam } = useTeamAccess();
+	const defaultBacklogProvider = activeTeam?.default_backlog_provider || "azure";
+	const azureUrl = bug.azure_url || bug.backlog_url || null;
+	const nativeBacklogUrl = bug.backlog_item_id ? `/backlog?item=${encodeURIComponent(bug.backlog_item_id)}` : null;
 	const devinUrl = bug.devin_url || null;
 
 	const actions = useBugActions({
@@ -270,16 +274,26 @@ export default function BugCard({
 						>
 							{linkCopied ? <Check size={14} /> : <Link size={14} />}
 						</span>
-						{backlogUrl && (
+						{nativeBacklogUrl && (
 							<a
-								href={backlogUrl}
+								href={nativeBacklogUrl}
+								onClick={(event) => event.stopPropagation()}
+								className="badge badge-green hover:brightness-110"
+							>
+								<ExternalLink size={10} />
+								In Backlog
+							</a>
+						)}
+						{azureUrl && (
+							<a
+								href={azureUrl}
 								target="_blank"
 								rel="noopener noreferrer"
 								onClick={(event) => event.stopPropagation()}
 								className="badge badge-green hover:brightness-110"
 							>
 								<ExternalLink size={10} />
-								View in Backlog
+								Azure PBI
 							</a>
 						)}
 						{devinUrl && (
@@ -477,24 +491,38 @@ export default function BugCard({
 							{linkCopied ? <Check size={12} /> : <Link size={12} />}
 							{linkCopied ? "Copied!" : "Copy Link"}
 						</button>
-						{backlogUrl && (
+						{nativeBacklogUrl && (
 							<a
-								href={backlogUrl}
+								href={nativeBacklogUrl}
+								className="badge badge-green hover:brightness-110 px-3 py-1.5 text-xs"
+							>
+								<ExternalLink size={12} />
+								View Backlog Item
+							</a>
+						)}
+						{azureUrl && (
+							<a
+								href={azureUrl}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="badge badge-green hover:brightness-110 px-3 py-1.5 text-xs"
 							>
 								<ExternalLink size={12} />
-								View in Backlog
+								View Azure PBI
 							</a>
 						)}
 						<PublishMenu
 							publishing={publishing}
 							publishingMode={publishingMode}
-							backlogUrl={backlogUrl}
-							onPublish={(withDevin) =>
-								actions.publishToBacklog(withDevin, setPublishingMode, () => {})
+							defaultProvider={defaultBacklogProvider}
+							azureUrl={azureUrl}
+							nativeBacklogUrl={nativeBacklogUrl}
+							onPublishAzure={(withDevin) =>
+								actions.publishToAzure(withDevin, setPublishingMode, () => {})
 							}
+							onMoveToBacklog={() => {
+								void actions.moveToMushiBacklog(setPublishingMode);
+							}}
 						/>
 						{pendingDelete && expanded ? (
 							<InlineDeleteConfirm

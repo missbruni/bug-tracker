@@ -296,7 +296,7 @@ export default function useAnalytics(preset: TimePreset) {
       { label: 'Bugs / Day', value: avgPerDay, detail: `Last ${days}d` },
       { label: 'Sessions', value: sessions.length, detail: `${completionRate}% completed` },
       { label: 'Avg Feedback', value: avgFeedbackRating ?? '—', detail: feedback.length ? `${feedback.length} ratings` : 'No feedback' },
-      { label: 'Active Testers', value: testerPerformance.length, detail: testerPerformance[0] ? `Top: ${testerPerformance[0].tester}` : '' },
+      { label: 'Active Participants', value: testerPerformance.length, detail: testerPerformance[0] ? `Top: ${testerPerformance[0].tester}` : '' },
     ]
   }, [allBugs, bugs, sessions, feedback, testerPerformance, sessionStatus, avgFeedbackRating, days])
 

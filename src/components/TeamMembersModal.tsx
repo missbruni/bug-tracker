@@ -1,29 +1,7 @@
 import React from 'react'
 import { X, UserPlus, Check, ChevronDown, Shield, User, Search, Mail, Clock, Trash2 } from 'lucide-react'
-import { supabase } from '../supabaseClient'
-import { useAuth } from '../lib/useAuth'
-import type { TeamRole } from '../lib/teamScope'
-
-interface MemberRow {
-  id: string
-  user_id: string
-  email: string
-  display_name: string
-  role: TeamRole
-}
-
-interface InvitedRow {
-  id: string
-  email: string
-  role: TeamRole
-  created_at: string
-}
-
-interface OrgUser {
-  id: string
-  email: string
-  display_name: string
-}
+import { useTeamMembers } from '../domains/teams/useTeamMembers'
+import type { TeamRole } from '../domains/teams/model'
 
 interface TeamMembersModalProps {
   teamId: string
@@ -31,214 +9,37 @@ interface TeamMembersModalProps {
   onClose: () => void
 }
 
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
 export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMembersModalProps) {
-  const { session, allowedEmailDomain, allowedEmailDomains } = useAuth()
-  const [members, setMembers] = React.useState<MemberRow[]>([])
-  const [invitations, setInvitations] = React.useState<InvitedRow[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [orgUsers, setOrgUsers] = React.useState<OrgUser[]>([])
-  const [showAdd, setShowAdd] = React.useState(false)
-  const [searchQuery, setSearchQuery] = React.useState('')
-  const [selectedUserIds, setSelectedUserIds] = React.useState<Set<string>>(new Set())
-  const [adding, setAdding] = React.useState(false)
-  const [inviting, setInviting] = React.useState(false)
-  const [cancellingInvite, setCancellingInvite] = React.useState<string | null>(null)
-  const [updatingRole, setUpdatingRole] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
-  const [inviteSuccess, setInviteSuccess] = React.useState<string | null>(null)
-
-  const fetchMembers = React.useCallback(async (opts?: { silent?: boolean }) => {
-    if (!supabase) return
-    if (!opts?.silent) setLoading(true)
-    const [membersRes, orgRes, invitesRes] = await Promise.all([
-      supabase
-        .from('team_members')
-        .select('id, user_id, role')
-        .eq('team_id', teamId)
-        .eq('status', 'active')
-        .order('role'),
-      supabase.rpc('get_org_users'),
-      supabase
-        .from('team_invitations')
-        .select('id, email, role, created_at')
-        .eq('team_id', teamId)
-        .eq('status', 'pending')
-        .order('created_at'),
-    ])
-
-    if (membersRes.error) {
-      setError('Failed to load members.')
-      setLoading(false)
-      return
-    }
-
-    // Enrich with user info from get_org_users
-    const userMap = new Map<string, OrgUser>()
-    for (const user of (orgRes.data || []) as OrgUser[]) {
-      userMap.set(user.id, user)
-    }
-
-    const enriched: MemberRow[] = ((membersRes.data || []) as { id: string; user_id: string; role: TeamRole }[]).map((row) => {
-      const info = userMap.get(row.user_id)
-      return {
-        id: row.id,
-        user_id: row.user_id,
-        email: info?.email ?? 'Unknown',
-        display_name: info?.display_name ?? 'Unknown',
-        role: row.role,
-      }
-    })
-
-    setMembers(enriched)
-    setOrgUsers((orgRes.data || []) as OrgUser[])
-    setInvitations((invitesRes.data || []) as InvitedRow[])
-    setLoading(false)
-  }, [teamId])
-
-  React.useEffect(() => {
-    void fetchMembers()
-  }, [fetchMembers])
-
-  const adminCount = members.filter((member) => member.role === 'team_admin').length
-
-  const handleRoleChange = async (memberId: string, userId: string, newRole: TeamRole) => {
-    if (!supabase) return
-    const member = members.find((mem) => mem.id === memberId)
-    if (!member) return
-
-    if (member.role === 'team_admin' && newRole === 'member' && adminCount <= 1) {
-      setError('Cannot demote the last team admin.')
-      return
-    }
-
-    setUpdatingRole(memberId)
-    setError(null)
-
-    const { error: updateError } = await supabase
-      .from('team_members')
-      .update({ role: newRole })
-      .eq('id', memberId)
-
-    if (updateError) {
-      setError('Failed to update role.')
-    } else {
-      setMembers((prev) =>
-        prev.map((mem) => (mem.id === memberId ? { ...mem, role: newRole } : mem))
-      )
-    }
-    setUpdatingRole(null)
-  }
-
-  const toggleUser = (userId: string) => {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) next.delete(userId)
-      else next.add(userId)
-      return next
-    })
-  }
-
-  const handleAddSelected = async () => {
-    if (!supabase || selectedUserIds.size === 0) return
-    setAdding(true)
-    setError(null)
-
-    const rows = Array.from(selectedUserIds).map((userId) => ({
-      team_id: teamId, user_id: userId, role: 'member' as const, status: 'active' as const,
-    }))
-
-    const { error: insertError } = await supabase
-      .from('team_members')
-      .insert(rows)
-
-    if (insertError) {
-      setError('Failed to add members.')
-    } else {
-      // Optimistic: move selected users into the members list immediately
-      const added: MemberRow[] = Array.from(selectedUserIds).map((userId) => {
-        const info = orgUsers.find((u) => u.id === userId)
-        return { id: `optimistic-${userId}`, user_id: userId, email: info?.email ?? 'Unknown', display_name: info?.display_name ?? 'Unknown', role: 'member' as const }
-      })
-      setMembers((prev) => [...prev, ...added])
-      setSelectedUserIds(new Set())
-      setSearchQuery('')
-      setShowAdd(false)
-      // Background sync to get real ids
-      void fetchMembers({ silent: true })
-    }
-    setAdding(false)
-  }
-
-  const handleInviteByEmail = async () => {
-    const email = searchQuery.trim().toLowerCase()
-    if (!email || !session?.access_token) return
-    setInviting(true)
-    setError(null)
-    setInviteSuccess(null)
-
-    try {
-      const res = await fetch('/api/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ teamId, email }),
-      })
-
-      const data = await res.json() as { error?: string }
-      if (!res.ok) {
-        setError(data.error || 'Failed to send invitation.')
-      } else {
-        setInviteSuccess(`Invitation sent to ${email}`)
-        setSearchQuery('')
-        // Optimistic: show the invitation immediately
-        setInvitations((prev) => [...prev, { id: `optimistic-${Date.now()}`, email, role: 'member', created_at: new Date().toISOString() }])
-        // Background sync to get the real id
-        void fetchMembers({ silent: true })
-      }
-    } catch {
-      setError('Failed to send invitation.')
-    }
-    setInviting(false)
-  }
-
-  const handleCancelInvite = async (inviteId: string) => {
-    if (!supabase) return
-    setCancellingInvite(inviteId)
-    const { error: delError } = await supabase
-      .from('team_invitations')
-      .delete()
-      .eq('id', inviteId)
-
-    if (delError) {
-      setError('Failed to cancel invitation.')
-    } else {
-      setInvitations((prev) => prev.filter((inv) => inv.id !== inviteId))
-    }
-    setCancellingInvite(null)
-  }
-
-  const memberUserIds = new Set(members.map((member) => member.user_id))
-  const invitedEmails = new Set(invitations.map((inv) => inv.email.toLowerCase()))
-  const availableUsers = orgUsers
-    .filter((user) => !memberUserIds.has(user.id))
-    .filter((user) => {
-      if (!searchQuery.trim()) return true
-      const query = searchQuery.toLowerCase()
-      return user.email.toLowerCase().includes(query) || user.display_name.toLowerCase().includes(query)
-    })
-
-  // Determine if the search query is an invitable email
-  const trimmedQuery = searchQuery.trim().toLowerCase()
-  const isOrgEmail = isValidEmail(trimmedQuery) && allowedEmailDomains.some((d) => trimmedQuery.endsWith(`@${d}`))
-  const alreadyMember = orgUsers.some((u) => u.email.toLowerCase() === trimmedQuery && memberUserIds.has(u.id))
-  const alreadyInvited = invitedEmails.has(trimmedQuery)
-  const canInvite = isOrgEmail && !alreadyMember && !alreadyInvited && availableUsers.length === 0
+  const {
+    members,
+    invitations,
+    loading,
+    showAdd,
+    setShowAdd,
+    searchQuery,
+    setSearchQuery,
+    selectedUserIds,
+    adding,
+    inviting,
+    cancellingInvite,
+    updatingRole,
+    error,
+    setError,
+    inviteSuccess,
+    adminCount,
+    availableUsers,
+    trimmedQuery,
+    alreadyMember,
+    alreadyInvited,
+    canInvite,
+    allowedEmailDomain,
+    toggleUser,
+    resetAddMember,
+    handleRoleChange,
+    handleAddSelected,
+    handleInviteByEmail,
+    handleCancelInvite,
+  } = useTeamMembers(teamId)
 
   return (
     <div
@@ -289,7 +90,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
                     role={member.role}
                     disabled={updatingRole === member.id || (member.role === 'team_admin' && adminCount <= 1)}
                     loading={updatingRole === member.id}
-                    onChange={(newRole) => handleRoleChange(member.id, member.user_id, newRole)}
+                    onChange={(newRole) => handleRoleChange(member.id, newRole)}
                   />
                 </div>
               ))}
@@ -398,7 +199,7 @@ export default function TeamMembersModal({ teamId, teamName, onClose }: TeamMemb
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <button
-                  onClick={() => { setShowAdd(false); setSearchQuery(''); setSelectedUserIds(new Set()) }}
+                  onClick={resetAddMember}
                   className="flex-1 text-center rounded-lg border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                 >
                   Cancel

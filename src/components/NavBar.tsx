@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom";
-import { Bug, Presentation, Users, Settings, Sparkles, LogOut, Building2, UserCircle, BarChart3 } from "lucide-react";
+import { Bug, Presentation, Settings, Sparkles, LogOut, Building2, UserCircle, BarChart3, Columns3, ChevronDown } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import CrawlingBugs from "../CrawlingBugs";
 import Logo from "./Logo";
@@ -9,11 +9,25 @@ import { getFlySwatCursor } from "../lib/flySwatCursor";
 import { playToggleSound } from "../lib/audio";
 import { usePanelStore } from "../stores/panelStore";
 
-const NAV_ITEMS = [
-	{ to: "/", label: "Bugs", icon: Bug },
-	{ to: "/sessions", label: "Sessions", icon: Presentation },
-	{ to: "/testers", label: "Testers", icon: Users },
+type NavItem = {
+	to: string;
+	label: string;
+	icon: typeof Bug;
+	tourId?: string;
+	matchPaths?: string[];
+};
+
+const NAV_ITEMS: NavItem[] = [
+	{ to: "/", label: "Bugs", icon: Bug, tourId: "nav-bugs" },
+	{ to: "/backlog", label: "Backlog", icon: Columns3 },
+	{ to: "/sessions", label: "Sessions", icon: Presentation, matchPaths: ["/sessions", "/participants", "/testers"] },
+	{ to: "/analytics", label: "Insights", icon: BarChart3 },
 ];
+
+function matchesPath(item: NavItem, pathname: string): boolean {
+	const paths = item.matchPaths || [item.to];
+	return paths.some((path) => path === "/" ? pathname === "/" : pathname.startsWith(path));
+}
 
 function getInitials(value: string): string {
 	const words = value.trim().split(/\s+/).filter(Boolean);
@@ -22,13 +36,72 @@ function getInitials(value: string): string {
 	return `${words[0][0] || ""}${words[words.length - 1][0] || ""}`.toUpperCase();
 }
 
+function TeamSwitcherBadge({
+	activeTeamId,
+	activeTeamName,
+	teamOptions,
+	onTeamChange,
+}: {
+	activeTeamId?: string | null;
+	activeTeamName?: string;
+	teamOptions: TeamRecord[];
+	onTeamChange: (teamId: string) => void;
+}) {
+	const location = useLocation();
+	const [open, setOpen] = React.useState(false);
+
+	React.useEffect(() => {
+		setOpen(false);
+	}, [location.pathname]);
+
+	return (
+		<div className="relative hidden lg:block">
+			<button
+				type="button"
+				onClick={() => setOpen((currentOpen) => !currentOpen)}
+				className="badge badge-slate inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-800"
+				title="Switch active team"
+				aria-label="Switch active team"
+				aria-expanded={open}
+			>
+				<span>Team: {activeTeamName}</span>
+				<ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+			</button>
+			{open && (
+				<>
+					<div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+					<div className="absolute right-0 top-full z-50 mt-1.5 min-w-56 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1">
+						{teamOptions.map((team) => (
+							<button
+								key={team.id}
+								type="button"
+								onClick={() => {
+									setOpen(false);
+									onTeamChange(team.id);
+								}}
+								className={`w-full px-3.5 py-2 text-left text-xs font-semibold transition-colors cursor-pointer ${
+									team.id === activeTeamId
+										? "bg-blue-50 text-blue-700 dark:bg-mushi-primary/10 dark:text-mushi-primary"
+										: "text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800"
+								}`}
+							>
+								{team.name}
+							</button>
+						))}
+					</div>
+				</>
+			)}
+		</div>
+	);
+}
+
 export default function NavBar({
 	children,
 	showBugs,
 	onToggleBugs,
 	bugCount,
 	activeTeamName,
-	isGodMode,
+	canSwitchTeams,
 	teamOptions,
 	activeTeamId,
 	onTeamChange,
@@ -45,7 +118,7 @@ export default function NavBar({
 	onToggleBugs?: () => void;
 	bugCount?: number;
 	activeTeamName?: string;
-	isGodMode?: boolean;
+	canSwitchTeams?: boolean;
 	teamOptions?: TeamRecord[];
 	activeTeamId?: string | null;
 	onTeamChange?: (teamId: string) => void;
@@ -57,20 +130,17 @@ export default function NavBar({
 	onBugKill?: () => void;
 	onLogout?: () => void;
 }) {
-	const navItems = showTeamsNav
-		? [...NAV_ITEMS, { to: "/teams", label: "Teams", icon: Building2 }, { to: "/analytics", label: "Analytics", icon: BarChart3 }]
-		: [...NAV_ITEMS, { to: "/analytics", label: "Analytics", icon: BarChart3 }];
-
 	const location = useLocation();
-	const tabRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
+	const tabRefs = React.useRef<(HTMLElement | null)[]>([]);
 	const [indicatorStyle, setIndicatorStyle] = React.useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
 	const isDark = usePanelStore((s) => s.isDark);
 
 	const [profileOpen, setProfileOpen] = React.useState(false);
+	const showTeamSwitcher = Boolean(canSwitchTeams && teamOptions && teamOptions.length > 1 && onTeamChange);
 
-	const activeIndex = navItems.findIndex(({ to }) =>
-		to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
+	const activeIndex = NAV_ITEMS.findIndex((item) =>
+		matchesPath(item, location.pathname)
 	);
 
 	React.useEffect(() => {
@@ -98,14 +168,15 @@ export default function NavBar({
 					</div>
 					{/* Desktop Tabs — hidden on mobile */}
 					<div className="relative hidden md:flex items-center gap-1">
-						{navItems.map(({ to, label, icon: Icon }, i) => {
-							const active = i === activeIndex;
+						{NAV_ITEMS.map((item, index) => {
+							const active = index === activeIndex;
+							const Icon = item.icon;
 							return (
 								<Link
-									key={to}
-									to={to}
-									ref={(el) => { tabRefs.current[i] = el; }}
-									data-tour-id={to === '/' ? 'nav-bugs' : undefined}
+									key={item.to}
+									to={item.to}
+									ref={(el) => { tabRefs.current[index] = el; }}
+									data-tour-id={item.tourId}
 									className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold uppercase tracking-wide font-heading border-b-2 border-transparent transition-colors ${
 										active
 											? "text-blue-600 dark:text-blue-400"
@@ -113,7 +184,7 @@ export default function NavBar({
 									}`}
 								>
 									<Icon size={14} />
-									{label}
+									{item.label}
 								</Link>
 							);
 						})}
@@ -125,28 +196,21 @@ export default function NavBar({
 					</div>
 					{children && (
 						<div className="ml-auto flex items-center gap-1.5 sm:gap-2 cursor-default">
-							{activeTeamName && (
+							{showTeamSwitcher && teamOptions && onTeamChange ? (
+								<TeamSwitcherBadge
+									activeTeamId={activeTeamId}
+									activeTeamName={activeTeamName}
+									teamOptions={teamOptions}
+									onTeamChange={onTeamChange}
+								/>
+							) : activeTeamName ? (
 								<span
 									className="hidden lg:inline whitespace-nowrap badge badge-slate"
 									title={`Active team: ${activeTeamName}`}
 								>
 									Team: {activeTeamName}
 								</span>
-							)}
-							{isGodMode && teamOptions && teamOptions.length > 1 && onTeamChange && (
-								<select
-									value={activeTeamId ?? ""}
-									onChange={(event) => onTeamChange(event.target.value)}
-									className="max-w-[180px] rounded-lg border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-xs text-slate-700 dark:text-gray-200"
-									title="Switch active team"
-								>
-									{teamOptions.map((team) => (
-										<option key={team.id} value={team.id}>
-											{team.name}
-										</option>
-									))}
-								</select>
-							)}
+							) : null}
 							<button
 								onClick={() => usePanelStore.getState().toggleAiPanel()}
 								data-tour-id="ai-button"
@@ -200,6 +264,16 @@ export default function NavBar({
 													<UserCircle size={14} />
 													Edit profile
 												</Link>
+												{showTeamsNav && (
+													<Link
+														to="/teams"
+														onClick={() => setProfileOpen(false)}
+														className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+													>
+														<Building2 size={14} />
+														Team management
+													</Link>
+												)}
 												{onLogout && (
 													<button
 														onClick={() => { setProfileOpen(false); onLogout() }}
@@ -233,8 +307,8 @@ export default function NavBar({
 			{/* ─── Mobile Bottom Tab Bar ─── */}
 			<div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800">
 				<div className="flex items-center justify-around">
-					{navItems.map(({ to, label, icon: Icon }, i) => {
-						const active = i === activeIndex;
+					{NAV_ITEMS.map(({ to, label, icon: Icon, matchPaths }) => {
+						const active = matchesPath({ to, label, icon: Icon, matchPaths }, location.pathname);
 						return (
 							<Link
 								key={to}
@@ -284,6 +358,16 @@ export default function NavBar({
 						<UserCircle size={18} />
 						Edit profile
 					</Link>
+					{showTeamsNav && (
+						<Link
+							to="/teams"
+							onClick={() => setProfileOpen(false)}
+							className="w-full flex items-center gap-3 py-3.5 text-sm font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors cursor-pointer rounded-md"
+						>
+							<Building2 size={18} />
+							Team management
+						</Link>
+					)}
 					{onLogout && (
 						<button
 							onClick={() => { setProfileOpen(false); onLogout() }}

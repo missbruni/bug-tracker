@@ -4,7 +4,7 @@ import React from 'react'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { SessionWithStats } from '../../types'
+import type { SessionWithStats } from '../../domains/sessions/model'
 
 type Session = SessionWithStats
 
@@ -70,6 +70,11 @@ describe('SessionsListPage', () => {
     expect(screen.getByText('Sprint 12')).toBeInTheDocument()
     expect(screen.getByText('Sprint 11')).toBeInTheDocument()
     expect(screen.getByText('Exploratory')).toBeInTheDocument()
+  })
+
+  test('links to participants from the app bar', () => {
+    renderPage()
+    expect(screen.getByRole('link', { name: /participants/i })).toHaveAttribute('href', '/participants')
   })
 
   test('renders scenario and assignment counts', () => {

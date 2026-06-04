@@ -5,7 +5,9 @@ import { findTesterByName } from '../../lib/testerLookup'
 import { useTeamAccess } from '../../lib/teamAccess'
 import { shouldOpenPbiOnPublishSuccess } from '../../lib/azureSettings'
 import { buildAttachmentPath, parseAttachmentStoragePath, scopeToTeam, withTeamPayload } from '../../lib/teamScope'
+import { buildBugBacklogDescription, buildBugBacklogSnapshot, mapSeverityToBacklogPriority, normalizeBacklogKey } from '../backlog/helpers'
 import type { Bug, Attachment } from './model'
+import type { BacklogItem } from '../backlog/model'
 import type { Severity } from '../../constants'
 
 interface UseBugActionsParams {
@@ -37,7 +39,7 @@ const syncSeverityPrefixInTitle = (title: string, currentSeverity: Severity, nex
 
 export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onReviewed }: UseBugActionsParams) {
   const mountedRef = React.useRef(true)
-  const { activeTeamId } = useTeamAccess()
+  const { activeTeamId, activeTeam } = useTeamAccess()
 
   React.useEffect(() => {
     return () => { mountedRef.current = false }
@@ -47,7 +49,7 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     onPersistError?.(message)
   }
 
-  const persistBugUpdate = async (updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>>) => {
+  const persistBugUpdate = async (updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'azure_url' | 'backlog_item_id' | 'devin_url'>>) => {
     if (!supabase) return true
 
     const query = scopeToTeam(
@@ -75,8 +77,8 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
     return true
   }
 
-  const publishToBacklog = async (withDevin = false, setPublishingMode: (m: 'backlog' | 'devin' | null) => void, setPublishMenuOpen: (v: boolean) => void) => {
-    setPublishingMode(withDevin ? 'devin' : 'backlog')
+  const publishToAzure = async (withDevin = false, setPublishingMode: (m: 'azure' | 'devin' | 'mushi' | null) => void, setPublishMenuOpen: (v: boolean) => void) => {
+    setPublishingMode(withDevin ? 'devin' : 'azure')
     setPublishMenuOpen(false)
     try {
       const res = await fetch('/api/backlog/publish', {
@@ -106,11 +108,13 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
         const optimisticBug: Bug = {
           ...bug,
           backlog_url: url,
+          azure_url: url,
           devin_url: devinLink ?? bug.devin_url,
           reviewed: true,
         }
-        const updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'devin_url'>> = {
+        const updates: Partial<Pick<Bug, 'reviewed' | 'backlog_url' | 'azure_url' | 'devin_url'>> = {
           backlog_url: url,
+          azure_url: url,
           reviewed: true,
         }
         if (devinLink) updates.devin_url = devinLink
@@ -142,6 +146,109 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
       showUpdateError(err instanceof Error ? err.message : 'It was not possible to update the bug.')
     }
     if (mountedRef.current) setPublishingMode(null)
+  }
+
+  const getBacklogColumns = async (): Promise<Array<{ id: string; name: string; sort_order: number }>> => {
+    if (!supabase || !activeTeamId) return []
+    const { data, error } = await supabase.rpc('ensure_default_backlog_columns', { target_team_id: activeTeamId })
+    if (error) {
+      console.error('Failed to load backlog columns:', error)
+      return []
+    }
+    return ((data || []) as Array<{ id: string; name: string; sort_order: number }>).sort((firstColumn, secondColumn) => firstColumn.sort_order - secondColumn.sort_order)
+  }
+
+  const getNextBacklogSequence = async (): Promise<number> => {
+    if (!supabase || !activeTeamId) return 1
+    const { data } = await scopeToTeam(
+      supabase
+        .from('backlog_items')
+        .select('sequence_number')
+        .order('sequence_number', { ascending: false })
+        .limit(1),
+      activeTeamId,
+    )
+    return Number(data?.[0]?.sequence_number || 0) + 1
+  }
+
+  const createBacklogItemFromBug = async (): Promise<BacklogItem | null> => {
+    if (!supabase || !activeTeamId) return null
+    const columns = await getBacklogColumns()
+    const firstColumnId = columns[0]?.id
+    if (!firstColumnId) return null
+
+    const backlogKey = normalizeBacklogKey(activeTeam?.backlog_key || activeTeam?.slug)
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const sequenceNumber = await getNextBacklogSequence()
+      const displayId = `${backlogKey}-${sequenceNumber}`
+      const { data: created, error } = await supabase
+        .from('backlog_items')
+        .insert(withTeamPayload({
+          display_id: displayId,
+          sequence_number: sequenceNumber,
+          title: bug.title,
+          description: buildBugBacklogDescription(bug),
+          type: 'bug',
+          priority: mapSeverityToBacklogPriority(bug.severity),
+          column_id: firstColumnId,
+          source_snapshot: buildBugBacklogSnapshot(bug),
+        }, activeTeamId))
+        .select()
+        .single()
+
+      if (error) {
+        if (error.code === '23505' && attempt < 2) continue
+        console.error('Failed to create native backlog item:', error)
+        return null
+      }
+
+      const { error: linkError } = await supabase
+        .from('backlog_item_bug_links')
+        .insert(withTeamPayload({
+          backlog_item_id: created.id,
+          bug_id: bug.id,
+          is_primary: true,
+        }, activeTeamId))
+
+      if (linkError) {
+        console.error('Failed to link native backlog item:', linkError)
+        return null
+      }
+
+      return created as BacklogItem
+    }
+
+    return null
+  }
+
+  const moveToMushiBacklog = async (setPublishingMode: (m: 'azure' | 'devin' | 'mushi' | null) => void): Promise<BacklogItem | null> => {
+    if (bug.backlog_item_id) {
+      window.location.href = `/backlog?item=${encodeURIComponent(bug.backlog_item_id)}`
+      return null
+    }
+
+    setPublishingMode('mushi')
+    const previousBug = bug
+    try {
+      const created = await createBacklogItemFromBug()
+      if (!created) {
+        showUpdateError('Failed to move bug to Mushi Backlog.')
+        return null
+      }
+
+      const optimisticBug: Bug = { ...bug, backlog_item_id: created.id }
+      onUpdate(optimisticBug)
+      const persisted = await persistBugUpdate({ backlog_item_id: created.id })
+      if (!persisted) {
+        onUpdate(previousBug)
+        return null
+      }
+
+      window.location.href = `/backlog?item=${encodeURIComponent(created.display_id)}`
+      return created
+    } finally {
+      if (mountedRef.current) setPublishingMode(null)
+    }
   }
 
   const notifyMentionedUsers = async (commentId: number, mentionedUserIds: string[]) => {
@@ -341,7 +448,9 @@ export function useBugActions({ bug, onUpdate, onDelete, onPersistError, onRevie
   }
 
   return {
-    publishToBacklog,
+    publishToAzure,
+    publishToBacklog: publishToAzure,
+    moveToMushiBacklog,
     addComment,
     deleteComment,
     deleteAttachment,

@@ -34,6 +34,8 @@ export interface Bug {
   created_at?: string
   reviewed?: boolean
   backlog_url?: string | null
+  azure_url?: string | null
+  backlog_item_id?: string | null
   devin_url?: string | null
   session_id?: string | null
   comments: Comment[]
