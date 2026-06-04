@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import AuthGate from "./components/AuthGate";
@@ -22,6 +22,7 @@ import { useBugKillTracker } from "./domains/bugs/useBugKills";
 import "./index.css";
 
 const AppPage = lazy(() => import("./App"));
+const BacklogPage = lazy(() => import("./pages/BacklogPage"));
 const SessionsListPage = lazy(() => import("./pages/SessionsListPage"));
 const SessionSetupPage = lazy(() => import("./pages/SessionSetupPage"));
 const PresentationPage = lazy(() => import("./pages/PresentationPage"));
@@ -39,7 +40,7 @@ function RouteFallback() {
 
 function Layout() {
 	const { user, signOut } = useAuth();
-	const { activeTeam, activeTeamId, teams, isGodMode, setActiveTeamId } =
+	const { activeTeam, activeTeamId, teams, allowedTeamIds, setActiveTeamId } =
 		useTeamAccess();
 	const [showBugs, setShowBugs] = React.useState(
 		() => localStorage.getItem("showBugs") !== "false",
@@ -95,6 +96,7 @@ function Layout() {
 	const handleLogout = () => {
 		void signOut();
 	};
+	const switchableTeams = teams.filter((team) => allowedTeamIds.includes(team.id));
 
 	return (
 		<div className="min-h-screen bg-slate-50 dark:bg-gray-950 font-sans">
@@ -104,8 +106,8 @@ function Layout() {
 				onToggleBugs={toggleBugs}
 				bugCount={activeBugCount}
 				activeTeamName={activeTeam?.name}
-				isGodMode={isGodMode}
-				teamOptions={teams}
+				canSwitchTeams={switchableTeams.length > 1}
+				teamOptions={switchableTeams}
 				activeTeamId={activeTeamId}
 				onTeamChange={setActiveTeamId}
 				showTeamsNav
@@ -170,6 +172,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 								<Routes>
 									<Route element={<Layout />}>
 										<Route
+											path="/backlog"
+											element={
+												<Suspense fallback={<RouteFallback />}>
+													<BacklogPage />
+												</Suspense>
+											}
+										/>
+										<Route
 											path="/"
 											element={
 												<Suspense fallback={<RouteFallback />}>
@@ -194,13 +204,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 											}
 										/>
 										<Route
-											path="/testers"
+											path="/participants"
 											element={
 												<Suspense fallback={<RouteFallback />}>
 													<TesterManagementPage />
 												</Suspense>
 											}
 										/>
+										<Route path="/testers" element={<Navigate to="/participants" replace />} />
 										<Route
 											path="/teams"
 											element={

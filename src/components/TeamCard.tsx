@@ -2,30 +2,8 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Pencil, Trash2, Check, X, UserCog, Bug, CalendarDays, Package, Plus, ChevronDown, ChevronUp, Activity, Settings } from 'lucide-react'
 import type { TeamRecord } from '../lib/teamScope'
+import type { Product, ProductInput, ProductLink, TeamStats } from '../domains/teams/model'
 import InlineDeleteConfirm from './InlineDeleteConfirm'
-
-export interface TeamStats {
-  testers: number
-  activeTesters: number
-  sessions: number
-  activeBugs: number
-  members: number
-}
-
-export interface ProductLink {
-  label: string
-  url: string
-}
-
-export interface Product {
-  id: string
-  team_id: string
-  name: string
-  slug: string
-  description?: string | null
-  link?: string | null
-  links?: ProductLink[] | null
-}
 
 interface TeamCardProps {
   team: TeamRecord
@@ -40,8 +18,8 @@ interface TeamCardProps {
   onSelect: () => void
   onStartEdit: () => void
   onDelete: () => void
-  onAddProduct: (product: { name: string; description?: string; links?: ProductLink[] }) => Promise<void>
-  onUpdateProduct: (productId: string, product: { name: string; description?: string; links?: ProductLink[] }) => Promise<void>
+  onAddProduct: (product: ProductInput) => Promise<void>
+  onUpdateProduct: (productId: string, product: ProductInput) => Promise<void>
   onDeleteProduct: (productId: string) => void
   isEditing: boolean
   editName: string

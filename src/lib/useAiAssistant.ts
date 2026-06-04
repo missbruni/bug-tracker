@@ -28,6 +28,14 @@ export interface BugFiltersActionPayload {
   clear?: boolean
 }
 
+export interface BacklogFiltersActionPayload {
+  product?: string
+  type?: string
+  assignee?: string
+  search?: string
+  clear?: boolean
+}
+
 export interface Message {
   role: 'user' | 'assistant'
   content: string
@@ -38,7 +46,11 @@ export interface Message {
 const STORAGE_KEY = 'ai-assistant-chat'
 
 function isBugMainPage(path: string): boolean {
-  return !path.includes('/sessions') && !path.includes('/testers') && !path.includes('/analytics')
+  return !path.includes('/sessions') && !path.includes('/testers') && !path.includes('/participants') && !path.includes('/analytics')
+}
+
+function isBacklogPage(path: string): boolean {
+  return path.startsWith('/backlog')
 }
 
 function loadPersistedState(): { messages: Message[]; currentSessionId: string | null } {
@@ -145,6 +157,32 @@ export default function useAiAssistant(open: boolean) {
         }
       }
 
+      if (activeTeamId) {
+        const [columnsRes, backlogItemsRes] = await Promise.all([
+          supabase.rpc('ensure_default_backlog_columns', { target_team_id: activeTeamId }),
+          scopeToTeam(
+            supabase
+              .from('backlog_items')
+              .select('display_id, title, type, priority, column_id, assignee_user_id')
+              .is('archived_at', null)
+              .order('updated_at', { ascending: false })
+              .limit(25),
+            activeTeamId,
+          ),
+        ])
+        const columns = ((columnsRes.data || []) as Array<{ id: string; name: string }>)
+        if (columns.length) {
+          parts.push(`Backlog columns:\n${columns.map((column) => `- ${column.name}`).join('\n')}`)
+        }
+        if (backlogItemsRes.data?.length) {
+          const columnNames = new Map(columns.map((column) => [column.id, column.name]))
+          const backlogLines = backlogItemsRes.data.map((item: { display_id: string; title: string; type: string; priority: string; column_id?: string | null }) =>
+            `${item.display_id}: ${item.title} [${item.type}/${item.priority}] (${columnNames.get(item.column_id || '') || 'No column'})`
+          )
+          parts.push(`Recent backlog items (${backlogItemsRes.data.length}):\n${backlogLines.join('\n')}`)
+        }
+      }
+
       // Recent sessions with scenario counts
       const { data: sessions } = await scopeToTeam(
         supabase
@@ -183,7 +221,7 @@ export default function useAiAssistant(open: boolean) {
         const testerList = testers.map((t: { name: string; devices: string[] }) =>
           `${t.name} (${t.devices.join(', ')})`
         )
-        parts.push(`Active testers:\n${testerList.join('\n')}`)
+        parts.push(`Active participants:\n${testerList.join('\n')}`)
       }
 
       // Inactive testers (available to reactivate)
@@ -196,7 +234,7 @@ export default function useAiAssistant(open: boolean) {
         activeTeamId,
       )
       if (inactiveTesters?.length) {
-        parts.push(`Inactive testers (can be reactivated):\n${inactiveTesters.map((t: { name: string }) => t.name).join('\n')}`)
+        parts.push(`Inactive participants (can be reactivated):\n${inactiveTesters.map((t: { name: string }) => t.name).join('\n')}`)
       }
 
       if (currentSessionId) {
@@ -213,12 +251,14 @@ export default function useAiAssistant(open: boolean) {
         )
         const name = viewedSession?.name || sessionMatch[1]
         parts.push(`The user is currently viewing session "${name}" (ID: ${sessionMatch[1]}). If they say "this session" or "this" they mean "${name}".`)
+      } else if (path.includes('/backlog')) {
+        parts.push('The user is currently on the Backlog page.')
       } else if (path.includes('/sessions')) {
         parts.push('The user is currently on the sessions list page.')
-      } else if (path.includes('/testers')) {
-        parts.push('The user is currently on the tester management page.')
+      } else if (path.includes('/participants') || path.includes('/testers')) {
+        parts.push('The user is currently on the participant management page.')
       } else if (path.includes('/analytics')) {
-        parts.push('The user is currently on the Analytics page, viewing bug trends, tester performance, session stats, and the bug killer leaderboard.')
+        parts.push('The user is currently on the Analytics page, viewing bug trends, participant performance, session stats, and the bug killer leaderboard.')
       } else {
         parts.push('The user is currently on the Mushi main page.')
       }
@@ -301,6 +341,31 @@ export default function useAiAssistant(open: boolean) {
         success: true,
         level: 'success',
         message: 'Applied bug filters from your request.',
+      }
+    }
+
+    if (action.action === 'set_backlog_filters') {
+      if (!isBacklogPage(pathname)) {
+        return {
+          action: 'set_backlog_filters',
+          success: true,
+          level: 'warning',
+          message: 'I can apply backlog filters from the Backlog page. Open Backlog and ask again.',
+        }
+      }
+
+      useNotificationStore.getState().applyBacklogFilters({
+        product: action.product,
+        type: action.item_type || action.type,
+        assignee: action.assignee,
+        search: action.search,
+        clear: action.clear,
+      })
+      return {
+        action: 'set_backlog_filters',
+        success: true,
+        level: 'success',
+        message: 'Applied backlog filters from your request.',
       }
     }
 

@@ -19,6 +19,28 @@ async function fetchTesters(activeTeamId: string | null): Promise<Tester[]> {
   return (data || []) as Tester[]
 }
 
+function DevicePicker({ selectedDevices, onToggle }: { selectedDevices: string[]; onToggle: (deviceName: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {COMMON_TESTER_DEVICES.map(deviceName => (
+        <button
+          key={deviceName}
+          type="button"
+          onClick={() => onToggle(deviceName)}
+          aria-pressed={selectedDevices.includes(deviceName)}
+          className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
+            selectedDevices.includes(deviceName)
+              ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
+              : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
+          }`}
+        >
+          {deviceName}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function TesterManagementPage() {
   const queryClient = useQueryClient()
   const { activeTeamId, activeTeam, teams, isGodMode, setActiveTeamId } = useTeamAccess()
@@ -154,7 +176,7 @@ export default function TesterManagementPage() {
     )
     const { error } = await deleteQuery
     if (error) {
-      setToast({ message: `Failed to delete tester: ${error.message}`, tone: 'error' })
+      setToast({ message: `Failed to delete participant: ${error.message}`, tone: 'error' })
       setDeletingTesterId(null)
       setPendingDeleteTesterId(null)
       return
@@ -201,14 +223,14 @@ export default function TesterManagementPage() {
         stats={<><span className="text-blue-600 dark:text-yellow-400 font-semibold">{testers.filter(tester => tester.active).length} active</span> / {testers.length} total</>}
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search testers, devices..."
+        searchPlaceholder="Search participants, devices..."
         actionButton={
           <button
             onClick={() => setShowAdd(true)}
             className="h-full flex items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-500 px-3 text-xs font-bold text-white dark:text-mushi-bg hover:bg-blue-600 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap"
           >
             <Plus size={14} />
-            Add Tester
+            Add Participant
           </button>
         }
       />
@@ -216,8 +238,8 @@ export default function TesterManagementPage() {
       <div className="max-w-screen-lg mx-auto px-4 sm:px-7 py-6">
 
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Testers</h1>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Manage your QA squad roster and device assignments.</p>
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-gray-100 font-heading uppercase tracking-tight">Participants</h1>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Manage who can join QA sessions and their device coverage.</p>
       </div>
 
       {loading ? (
@@ -225,7 +247,7 @@ export default function TesterManagementPage() {
       ) : (<>
       {showAdd && (
         <div className="mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Tester</h2>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-gray-100 mb-3">New Participant</h2>
           <div className="mb-3">
             <label className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1 block">Team</label>
             {isGodMode && teams.length > 1 ? (
@@ -244,31 +266,19 @@ export default function TesterManagementPage() {
               </span>
             )}
             {!activeTeamId && (
-              <p className="text-xs text-red-500 mt-1">No active team — tester cannot be created without a team.</p>
+              <p className="text-xs text-red-500 mt-1">No active team — participant cannot be created without a team.</p>
             )}
           </div>
           <input
             value={newName}
             onChange={event => setNewName(event.target.value)}
-            placeholder="Tester name"
+            placeholder="Participant name"
             autoFocus
             className="w-full rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 mb-3"
           />
           <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">Devices:</p>
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {COMMON_TESTER_DEVICES.map(deviceName => (
-              <button
-                key={deviceName}
-                onClick={() => toggleDevice(deviceName, newDevices, setNewDevices)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
-                  newDevices.includes(deviceName)
-                    ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
-                    : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
-                }`}
-              >
-                {deviceName}
-              </button>
-            ))}
+          <div className="mb-4">
+            <DevicePicker selectedDevices={newDevices} onToggle={(deviceName) => toggleDevice(deviceName, newDevices, setNewDevices)} />
           </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => { if (addingTester) return; setShowAdd(false); setNewName(''); setNewDevices([]) }}
@@ -309,27 +319,19 @@ export default function TesterManagementPage() {
                   autoFocus
                 />
                 <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">Devices:</p>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {COMMON_TESTER_DEVICES.map(deviceName => (
-                    <button
-                      key={deviceName}
-                      onClick={() => toggleDevice(deviceName, editDevices, setEditDevices)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
-                        editDevices.includes(deviceName)
-                          ? 'bg-blue-500 text-white dark:text-mushi-bg border-blue-500'
-                          : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-600 hover:border-blue-400'
-                      }`}
-                    >
-                      {deviceName}
-                    </button>
-                  ))}
+                <div className="mb-3">
+                  <DevicePicker selectedDevices={editDevices} onToggle={(deviceName) => toggleDevice(deviceName, editDevices, setEditDevices)} />
                 </div>
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setEditingId(null)}
+                    aria-label="Cancel participant edit"
+                    title="Cancel"
                     className="rounded-md border border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-slate-600 dark:text-gray-400 cursor-pointer">
                     <X size={14} />
                   </button>
                   <button onClick={saveEdit}
+                    aria-label="Save participant edit"
+                    title="Save"
                     className="rounded-md bg-green-500 px-3 py-1.5 text-xs text-white font-semibold cursor-pointer hover:bg-green-600">
                     <Check size={14} />
                   </button>
@@ -339,6 +341,8 @@ export default function TesterManagementPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => toggleActive(tester)}
+                  aria-label={`${tester.active ? 'Deactivate' : 'Activate'} ${tester.name}`}
+                  title={`${tester.active ? 'Deactivate' : 'Activate'} participant`}
                   className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${
                     tester.active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
                   }`}
@@ -362,6 +366,8 @@ export default function TesterManagementPage() {
                   </div>
                 </div>
                 <button onClick={() => startEdit(tester)}
+                  aria-label={`Edit ${tester.name}`}
+                  title="Edit participant"
                   className="text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer p-1">
                   <Pencil size={14} />
                 </button>
@@ -371,6 +377,8 @@ export default function TesterManagementPage() {
                     setPendingDeleteTesterId(tester.id)
                   }}
                   disabled={deletingTesterId === tester.id}
+                  aria-label={`Delete ${tester.name}`}
+                  title="Delete participant"
                   className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer p-1 disabled:opacity-60 disabled:cursor-default"
                 >
                   <Trash2 size={14} />

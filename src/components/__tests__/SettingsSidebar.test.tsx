@@ -72,13 +72,13 @@ describe('SettingsSidebar', () => {
 
   test('renders Azure publish setting enabled by default', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
-    const azureToggle = screen.getByRole('checkbox', { name: /open pbi in new tab after publish succeeds/i })
+    const azureToggle = screen.getByRole('checkbox', { name: /open azure pbi in new tab after publish succeeds/i })
     expect(azureToggle).toBeChecked()
   })
 
   test('persists Azure publish setting when toggled off', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
-    const azureToggle = screen.getByRole('checkbox', { name: /open pbi in new tab after publish succeeds/i })
+    const azureToggle = screen.getByRole('checkbox', { name: /open azure pbi in new tab after publish succeeds/i })
     fireEvent.click(azureToggle)
     expect(localStorage.getItem('azure_open_pbi_on_success')).toBe('false')
   })

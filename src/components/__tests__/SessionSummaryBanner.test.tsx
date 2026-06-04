@@ -152,7 +152,7 @@ describe('parseDuration', () => {
 // ─── getBugRateLabel ───────────────────────────────────────
 
 function getBugRateLabel(bugCount: number, testerCount: number): { label: string; sublabel: string } {
-  if (testerCount === 0) return { label: '—', sublabel: 'No testers' }
+  if (testerCount === 0) return { label: '—', sublabel: 'No participants' }
   const ratio = bugCount / testerCount
   if (ratio >= 2) return { label: 'High', sublabel: 'Optimal Efficiency' }
   if (ratio >= 1) return { label: 'Medium', sublabel: 'Good Coverage' }
@@ -161,7 +161,7 @@ function getBugRateLabel(bugCount: number, testerCount: number): { label: string
 }
 
 describe('getBugRateLabel', () => {
-  test('returns dash when no testers', () => {
+  test('returns dash when no participants', () => {
     expect(getBugRateLabel(5, 0).label).toBe('—')
   })
 

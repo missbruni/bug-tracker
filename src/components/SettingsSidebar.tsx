@@ -197,10 +197,10 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
               />
               <div>
                 <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">
-                  Open PBI in new tab after publish succeeds
+                  Open Azure PBI in new tab after publish succeeds
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-gray-500 mt-0.5 leading-relaxed">
-                  Disable this if you want to stay in Mushi after publishing to backlog.
+                  Disable this if you want to stay in Mushi after publishing to Azure.
                 </p>
               </div>
             </label>

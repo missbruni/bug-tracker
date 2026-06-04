@@ -1,19 +1,36 @@
 import React from 'react'
-import { ChevronDown, ExternalLink, Rocket } from 'lucide-react'
+import { ChevronDown, Columns3, ExternalLink, Rocket } from 'lucide-react'
 import { hasDevinApiKey, openSettings } from '../lib/devin'
+import type { BacklogProvider } from '../domains/backlog/model'
 
 interface PublishMenuProps {
   publishing: boolean
-  publishingMode: 'backlog' | 'devin' | null
-  backlogUrl: string | null
-  onPublish: (withDevin: boolean) => void
+  publishingMode: 'azure' | 'devin' | 'mushi' | null
+  defaultProvider: BacklogProvider
+  azureUrl: string | null
+  nativeBacklogUrl: string | null
+  onPublishAzure: (withDevin: boolean) => void
+  onMoveToBacklog: () => void
 }
 
-export default function PublishMenu({ publishing, publishingMode, backlogUrl, onPublish }: PublishMenuProps) {
+export default function PublishMenu({
+  publishing,
+  publishingMode,
+  defaultProvider,
+  azureUrl,
+  nativeBacklogUrl,
+  onPublishAzure,
+  onMoveToBacklog,
+}: PublishMenuProps) {
   const [menuOpen, setMenuOpen] = React.useState(false)
   const [devinKeyMissing, setDevinKeyMissing] = React.useState(false)
   const menuRef = React.useRef<HTMLDivElement>(null)
   const splitRef = React.useRef<HTMLDivElement>(null)
+  const primaryIsMushi = defaultProvider === 'mushi'
+  const primaryLabel = primaryIsMushi
+    ? publishingMode === 'mushi' ? 'Moving...' : nativeBacklogUrl ? 'Open Backlog Item' : 'Move to Backlog'
+    : publishingMode === 'devin' ? 'Publishing + Devin...' : publishing ? 'Publishing...' : azureUrl ? 'Re-publish to Azure' : 'Publish to Azure'
+  const PrimaryIcon = primaryIsMushi ? Columns3 : ExternalLink
 
   React.useEffect(() => {
     if (!menuOpen) return
@@ -31,12 +48,12 @@ export default function PublishMenu({ publishing, publishingMode, backlogUrl, on
     <div className={`relative w-full sm:w-auto ${menuOpen ? 'z-50' : ''}`} ref={menuRef}>
       <div className="flex w-full" ref={splitRef}>
         <button
-          onClick={() => onPublish(false)}
+          onClick={() => primaryIsMushi ? onMoveToBacklog() : onPublishAzure(false)}
           disabled={publishing}
           className={`flex flex-1 items-center justify-center gap-1.5 border border-r-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50 ${menuOpen ? 'rounded-tl-md' : 'rounded-l-md'}`}
         >
-          <ExternalLink size={12} />
-          {publishingMode === 'devin' ? 'Publishing + Devin...' : publishing ? 'Publishing...' : backlogUrl ? 'Re-publish' : 'Publish to Backlog'}
+          <PrimaryIcon size={12} />
+          {primaryLabel}
         </button>
         <button
           onClick={() => setMenuOpen((prev) => !prev)}
@@ -54,6 +71,24 @@ export default function PublishMenu({ publishing, publishingMode, backlogUrl, on
           className="absolute left-0 top-full z-20"
           style={{ width: Math.max(splitRef.current?.offsetWidth || 0, devinKeyMissing ? 260 : 0) }}
         >
+          {!primaryIsMushi && (
+            <button
+              onClick={() => { setMenuOpen(false); onMoveToBacklog() }}
+              className="w-full flex items-center gap-1.5 border border-t-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
+            >
+              <Columns3 size={12} />
+              {nativeBacklogUrl ? 'Open Mushi Backlog Item' : 'Move to Mushi Backlog'}
+            </button>
+          )}
+          {primaryIsMushi && (
+            <button
+              onClick={() => { setMenuOpen(false); onPublishAzure(false) }}
+              className="w-full flex items-center gap-1.5 border border-t-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
+            >
+              <ExternalLink size={12} />
+              {azureUrl ? 'Re-publish to Azure' : 'Publish to Azure'}
+            </button>
+          )}
           <button
             onClick={() => {
               if (!hasDevinApiKey()) {
@@ -62,7 +97,7 @@ export default function PublishMenu({ publishing, publishingMode, backlogUrl, on
               }
               setDevinKeyMissing(false)
               setMenuOpen(false)
-              onPublish(true)
+              onPublishAzure(true)
             }}
             className="w-full flex items-center gap-1.5 border border-t-0 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
             style={{ borderRadius: devinKeyMissing ? 0 : '0 0 6px 6px' }}

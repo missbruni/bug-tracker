@@ -302,10 +302,10 @@ export default function AiAssistantPanel({ open, onClose, onOpenSettings }: AiAs
                           )}
                           {['remove_tester', 'reactivate_tester', 'add_tester', 'delete_tester'].includes(result.action) && (
                             <Link
-                              to="/testers"
+                              to="/participants"
                               className={`inline-flex items-center gap-1 text-[11px] font-semibold hover:underline shrink-0 ${linkClass}`}
                             >
-                              Testers <ExternalLink size={10} />
+                              Participants <ExternalLink size={10} />
                             </Link>
                           )}
                         </div>

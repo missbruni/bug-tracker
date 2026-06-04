@@ -52,7 +52,7 @@ function formatEditable(seconds: number): string {
 }
 
 function getBugRateLabel(bugCount: number, testerCount: number): { label: string; sublabel: string; color: string } {
-  if (testerCount === 0) return { label: '—', sublabel: 'No testers', color: 'text-slate-400 dark:text-gray-500' }
+  if (testerCount === 0) return { label: '—', sublabel: 'No participants', color: 'text-slate-400 dark:text-gray-500' }
   const ratio = bugCount / testerCount
   if (ratio >= 2) return { label: 'High', sublabel: 'Optimal Efficiency', color: 'text-blue-500' }
   if (ratio >= 1) return { label: 'Medium', sublabel: 'Good Coverage', color: 'text-amber-400 dark:text-yellow-400' }
@@ -108,7 +108,7 @@ export default function SessionSummaryBanner({
       <div className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
         <div className="flex items-center gap-1.5 mb-2">
           <Users size={12} className="text-slate-400 dark:text-gray-500" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-gray-500">Active Testers</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-gray-500">Participants</span>
         </div>
         <p className="text-2xl font-bold text-slate-900 dark:text-gray-100 font-heading">
           {assignedCount} <span className="text-slate-400 dark:text-gray-600">/ {totalTesters}</span>

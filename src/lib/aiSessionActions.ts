@@ -34,13 +34,22 @@ export type SessionActionType =
   | 'create_team'
   | 'create_product'
   | 'edit_product'
+  // Backlog actions
+  | 'create_backlog_item'
+  | 'convert_bug_to_backlog'
+  | 'move_backlog_item'
+  | 'assign_backlog_item'
+  | 'add_backlog_comment'
+  | 'set_backlog_filters'
 
 import { supabase } from '../supabaseClient'
 import { queryClient } from './queryClient'
 import { scopeToTeam, withTeamPayload, slugifyTeamName, ORGANIZATION_ID } from './teamScope'
 import { generateBugId, insertBugWithRetry } from '../domains/bugs/id'
+import { buildBugBacklogDescription, buildBugBacklogSnapshot, mapSeverityToBacklogPriority, normalizeBacklogKey } from '../domains/backlog/helpers'
 import { useNotificationStore } from '../stores/notificationStore'
 import type { Severity } from '../constants'
+import type { BacklogItemType, BacklogPriority } from '../domains/backlog/model'
 
 export interface SessionAction {
   action: SessionActionType
@@ -74,6 +83,14 @@ export interface SessionAction {
   team?: string
   link?: string
   mentions?: string[]
+  product?: string
+  item_type?: string
+  type?: string
+  priority?: string
+  column?: string
+  backlog_item?: string
+  assignee?: string
+  parent?: string
 }
 
 export interface SessionActionResult {
@@ -99,6 +116,7 @@ const TESTER_ACTIONS = new Set(['add_tester', 'remove_tester', 'reactivate_teste
 const BUG_ACTIONS = new Set(['create_bug', 'edit_bug', 'resolve_bug', 'reopen_bug', 'delete_bug', 'add_comment', 'bulk_resolve', 'bulk_delete'])
 const EXPORT_ACTIONS = new Set(['export_bugs'])
 const TEAM_ACTIONS = new Set(['create_team', 'create_product', 'edit_product'])
+const BACKLOG_ACTIONS = new Set(['create_backlog_item', 'convert_bug_to_backlog', 'move_backlog_item', 'assign_backlog_item', 'add_backlog_comment'])
 
 const SEVERITY_PREFIX: Record<Severity, string> = {
   critical: 'CRT',
@@ -110,6 +128,18 @@ const parseSeverity = (value?: string): Severity => {
   const normalized = value?.trim().toLowerCase()
   if (normalized === 'critical' || normalized === 'high' || normalized === 'low') return normalized
   return 'high'
+}
+
+const parseBacklogType = (value?: string): BacklogItemType => {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === 'bug' || normalized === 'feature' || normalized === 'task' || normalized === 'chore') return normalized
+  return 'task'
+}
+
+const parseBacklogPriority = (value?: string): BacklogPriority => {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === 'urgent' || normalized === 'high' || normalized === 'medium' || normalized === 'low') return normalized
+  return 'medium'
 }
 
 const syncSeverityPrefixInTitle = (title: string, currentSeverity: Severity, nextSeverity: Severity): string => {
@@ -158,6 +188,89 @@ async function findBugByQuery(query: string, activeTeamId: string | null): Promi
   if (idFallback?.length) return idFallback[0]
 
   return null
+}
+
+async function findBacklogItemByQuery(query: string, activeTeamId: string | null): Promise<{ id: string; display_id: string; title: string; column_id: string | null } | null> {
+  if (!supabase || !query.trim()) return null
+  const q = query.trim()
+
+  if (/^[0-9a-f-]{32,36}$/i.test(q)) {
+    const { data: idMatch } = await scopeToTeam(
+      supabase
+        .from('backlog_items')
+        .select('id, display_id, title, column_id')
+        .eq('id', q)
+        .is('archived_at', null)
+        .limit(1),
+      activeTeamId,
+    )
+    if (idMatch?.length) return idMatch[0]
+  }
+
+  const { data: displayMatch } = await scopeToTeam(
+    supabase
+      .from('backlog_items')
+      .select('id, display_id, title, column_id')
+      .ilike('display_id', q)
+      .is('archived_at', null)
+      .limit(1),
+    activeTeamId,
+  )
+  if (displayMatch?.length) return displayMatch[0]
+
+  const { data: titleMatch } = await scopeToTeam(
+    supabase
+      .from('backlog_items')
+      .select('id, display_id, title, column_id')
+      .ilike('title', `%${q}%`)
+      .is('archived_at', null)
+      .limit(1),
+    activeTeamId,
+  )
+  if (titleMatch?.length) return titleMatch[0]
+
+  return null
+}
+
+async function findBacklogColumnByQuery(query: string | undefined, activeTeamId: string | null): Promise<{ id: string; name: string; sort_order: number } | null> {
+  if (!supabase || !activeTeamId) return null
+  const { data: columns } = await supabase.rpc('ensure_default_backlog_columns', { target_team_id: activeTeamId })
+  const rows = ((columns || []) as Array<{ id: string; name: string; sort_order: number }>).sort((firstColumn, secondColumn) => firstColumn.sort_order - secondColumn.sort_order)
+  if (!query?.trim()) return rows[0] || null
+  const normalized = query.trim().toLowerCase()
+  return rows.find((column) => column.name.toLowerCase() === normalized || column.name.toLowerCase().includes(normalized)) || rows[0] || null
+}
+
+async function findBacklogAssignee(query: string | undefined, activeTeamId: string | null): Promise<string | null> {
+  if (!supabase || !activeTeamId || !query?.trim()) return null
+  const [membersRes, orgUsersRes] = await Promise.all([
+    supabase.from('team_members').select('user_id').eq('team_id', activeTeamId).eq('status', 'active'),
+    supabase.rpc('get_org_users'),
+  ])
+  if (membersRes.error || orgUsersRes.error) return null
+  const memberIds = new Set(((membersRes.data || []) as Array<{ user_id: string }>).map((member) => member.user_id))
+  const normalized = query.trim().toLowerCase()
+  const match = ((orgUsersRes.data || []) as Array<{ id: string; email: string; display_name: string }>).find((user) =>
+    memberIds.has(user.id) &&
+    (user.display_name.toLowerCase().includes(normalized) || user.email.toLowerCase().includes(normalized))
+  )
+  return match?.id || null
+}
+
+async function getNextBacklogIdentity(activeTeamId: string | null): Promise<{ displayId: string; sequenceNumber: number } | null> {
+  if (!supabase || !activeTeamId) return null
+  const { data: teams } = await supabase.from('teams').select('backlog_key, slug').eq('id', activeTeamId).limit(1)
+  const backlogKey = normalizeBacklogKey(teams?.[0]?.backlog_key || teams?.[0]?.slug)
+  const { data: latest } = await scopeToTeam(
+    supabase
+      .from('backlog_items')
+      .select('sequence_number')
+      .order('sequence_number', { ascending: false })
+      .limit(1),
+    activeTeamId,
+  )
+  const sequenceNumber = Number(latest?.[0]?.sequence_number || 0) + 1
+  return { displayId: `${backlogKey}-${sequenceNumber}`, sequenceNumber }
 }
 
 interface MentionableUser {
@@ -861,6 +974,156 @@ export async function executeSessionActionWithSession(
       return { action: 'add_comment', success: true, message: `Added comment to ${bug.id} "${bug.title}"${mentionText}` }
     }
 
+    case 'create_backlog_item': {
+      const title = action.title?.trim()
+      if (!title) return { action: 'create_backlog_item', success: false, message: 'Backlog item title is required' }
+      if (!activeTeamId) return { action: 'create_backlog_item', success: false, message: 'No active team selected' }
+
+      const column = await findBacklogColumnByQuery(action.column, activeTeamId)
+      if (!column) return { action: 'create_backlog_item', success: false, message: 'No backlog columns found for this team' }
+
+      const identity = await getNextBacklogIdentity(activeTeamId)
+      if (!identity) return { action: 'create_backlog_item', success: false, message: 'Could not generate a backlog ID' }
+
+      const parent = action.parent ? await findBacklogItemByQuery(action.parent, activeTeamId) : null
+      const assigneeUserId = await findBacklogAssignee(action.assignee, activeTeamId)
+      const { data: productRows } = action.product
+        ? await scopeToTeam(supabase.from('products').select('id').ilike('name', action.product).limit(1), activeTeamId)
+        : { data: [] as Array<{ id: string }> }
+
+      const { data: created, error } = await supabase
+        .from('backlog_items')
+        .insert(withTeamPayload({
+          display_id: identity.displayId,
+          sequence_number: identity.sequenceNumber,
+          title,
+          description: action.description?.trim() || null,
+          type: parseBacklogType(action.item_type || action.type),
+          priority: parseBacklogPriority(action.priority),
+          column_id: column.id,
+          product_id: productRows?.[0]?.id || null,
+          parent_item_id: parent?.id || null,
+          assignee_user_id: assigneeUserId,
+        }, activeTeamId))
+        .select('id, display_id')
+        .single()
+
+      if (error || !created) return { action: 'create_backlog_item', success: false, message: error?.message || 'Failed to create backlog item' }
+      return { action: 'create_backlog_item', success: true, message: `Created backlog item ${created.display_id}: "${title}"` }
+    }
+
+    case 'convert_bug_to_backlog': {
+      const bugQuery = action.bug?.trim()
+      if (!bugQuery) return { action: 'convert_bug_to_backlog', success: false, message: 'Bug reference required' }
+      if (!activeTeamId) return { action: 'convert_bug_to_backlog', success: false, message: 'No active team selected' }
+
+      const matchedBug = await findBugByQuery(bugQuery, activeTeamId)
+      if (!matchedBug) return { action: 'convert_bug_to_backlog', success: false, message: `Bug "${bugQuery}" not found` }
+
+      const { data: bugRows } = await scopeToTeam(
+        supabase.from('bugs').select('*').eq('id', matchedBug.id).limit(1),
+        activeTeamId,
+      )
+      const bug = bugRows?.[0]
+      if (!bug) return { action: 'convert_bug_to_backlog', success: false, message: `Bug "${matchedBug.id}" not found` }
+      if (bug.backlog_item_id) {
+        const existing = await findBacklogItemByQuery(String(bug.backlog_item_id), activeTeamId)
+        return { action: 'convert_bug_to_backlog', success: true, message: existing ? `${matchedBug.id} is already linked to ${existing.display_id}` : `${matchedBug.id} is already linked to a backlog item` }
+      }
+
+      const [commentsRes, attachmentsRes] = await Promise.all([
+        scopeToTeam(supabase.from('comments').select('*').eq('bug_id', matchedBug.id).order('created_at'), activeTeamId),
+        scopeToTeam(supabase.from('attachments').select('*').eq('bug_id', matchedBug.id).order('created_at'), activeTeamId),
+      ])
+      const fullBug = {
+        ...bug,
+        comments: commentsRes.data || [],
+        attachments: attachmentsRes.data || [],
+      }
+      const column = await findBacklogColumnByQuery(action.column, activeTeamId)
+      const identity = await getNextBacklogIdentity(activeTeamId)
+      if (!column || !identity) return { action: 'convert_bug_to_backlog', success: false, message: 'Could not prepare backlog item' }
+      const assigneeUserId = await findBacklogAssignee(action.assignee, activeTeamId)
+
+      const { data: created, error } = await supabase
+        .from('backlog_items')
+        .insert(withTeamPayload({
+          display_id: identity.displayId,
+          sequence_number: identity.sequenceNumber,
+          title: action.title?.trim() || fullBug.title,
+          description: action.description?.trim() || buildBugBacklogDescription(fullBug),
+          type: 'bug',
+          priority: action.priority ? parseBacklogPriority(action.priority) : mapSeverityToBacklogPriority(fullBug.severity),
+          column_id: column.id,
+          assignee_user_id: assigneeUserId,
+          source_snapshot: buildBugBacklogSnapshot(fullBug),
+        }, activeTeamId))
+        .select('id, display_id')
+        .single()
+
+      if (error || !created) return { action: 'convert_bug_to_backlog', success: false, message: error?.message || 'Failed to create backlog item' }
+      const { error: linkError } = await supabase
+        .from('backlog_item_bug_links')
+        .insert(withTeamPayload({ backlog_item_id: created.id, bug_id: matchedBug.id, is_primary: true }, activeTeamId))
+      if (linkError) return { action: 'convert_bug_to_backlog', success: false, message: linkError.message }
+      return { action: 'convert_bug_to_backlog', success: true, message: `Moved ${matchedBug.id} to Mushi Backlog as ${created.display_id}` }
+    }
+
+    case 'move_backlog_item': {
+      const itemQuery = action.backlog_item || action.name || action.title
+      if (!itemQuery?.trim()) return { action: 'move_backlog_item', success: false, message: 'Backlog item reference required' }
+      if (!activeTeamId) return { action: 'move_backlog_item', success: false, message: 'No active team selected' }
+      const item = await findBacklogItemByQuery(itemQuery, activeTeamId)
+      if (!item) return { action: 'move_backlog_item', success: false, message: `Backlog item "${itemQuery}" not found` }
+      const column = await findBacklogColumnByQuery(action.column || action.status, activeTeamId)
+      if (!column) return { action: 'move_backlog_item', success: false, message: 'Target column not found' }
+      const { data: latestInColumn } = await scopeToTeam(
+        supabase
+          .from('backlog_items')
+          .select('sort_order')
+          .eq('column_id', column.id)
+          .is('archived_at', null)
+          .order('sort_order', { ascending: false })
+          .limit(1),
+        activeTeamId,
+      )
+      const nextSortOrder = Number(latestInColumn?.[0]?.sort_order || 0) + 1000
+      const { error } = await scopeToTeam(supabase.from('backlog_items').update({ column_id: column.id, sort_order: nextSortOrder }).eq('id', item.id), activeTeamId)
+      if (error) return { action: 'move_backlog_item', success: false, message: error.message }
+      return { action: 'move_backlog_item', success: true, message: `Moved ${item.display_id} to ${column.name}` }
+    }
+
+    case 'assign_backlog_item': {
+      const itemQuery = action.backlog_item || action.name || action.title
+      if (!itemQuery?.trim()) return { action: 'assign_backlog_item', success: false, message: 'Backlog item reference required' }
+      if (!activeTeamId) return { action: 'assign_backlog_item', success: false, message: 'No active team selected' }
+      const item = await findBacklogItemByQuery(itemQuery, activeTeamId)
+      if (!item) return { action: 'assign_backlog_item', success: false, message: `Backlog item "${itemQuery}" not found` }
+      const assigneeUserId = await findBacklogAssignee(action.assignee || action.tester, activeTeamId)
+      if (!assigneeUserId) return { action: 'assign_backlog_item', success: false, message: `Assignee "${action.assignee || action.tester || ''}" not found in this team` }
+      const { error } = await scopeToTeam(supabase.from('backlog_items').update({ assignee_user_id: assigneeUserId }).eq('id', item.id), activeTeamId)
+      if (error) return { action: 'assign_backlog_item', success: false, message: error.message }
+      return { action: 'assign_backlog_item', success: true, message: `Assigned ${item.display_id}` }
+    }
+
+    case 'add_backlog_comment': {
+      const itemQuery = action.backlog_item || action.name || action.title
+      const comment = action.comment?.trim()
+      if (!itemQuery?.trim()) return { action: 'add_backlog_comment', success: false, message: 'Backlog item reference required' }
+      if (!comment) return { action: 'add_backlog_comment', success: false, message: 'Comment text required' }
+      if (!activeTeamId) return { action: 'add_backlog_comment', success: false, message: 'No active team selected' }
+      const item = await findBacklogItemByQuery(itemQuery, activeTeamId)
+      if (!item) return { action: 'add_backlog_comment', success: false, message: `Backlog item "${itemQuery}" not found` }
+      const mentionedUserIds = await resolveMentionedUserIds(comment, action.mentions, activeTeamId)
+      const { error } = await supabase.from('backlog_item_comments').insert(withTeamPayload({
+        backlog_item_id: item.id,
+        text: comment,
+        mentioned_user_ids: mentionedUserIds,
+      }, activeTeamId))
+      if (error) return { action: 'add_backlog_comment', success: false, message: error.message }
+      return { action: 'add_backlog_comment', success: true, message: `Added comment to ${item.display_id}` }
+    }
+
     // ─── Scenario Actions ─────────────────────────────────────
 
     case 'add_scenario': {
@@ -1102,6 +1365,10 @@ export async function executeSessionAction(
     if (SESSION_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['sessions'] })
     if (TESTER_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['testers'] })
     if (BUG_ACTIONS.has(action.action) || EXPORT_ACTIONS.has(action.action)) queryClient.invalidateQueries({ queryKey: ['bugs-data'] })
+    if (BACKLOG_ACTIONS.has(action.action)) {
+      queryClient.invalidateQueries({ queryKey: ['backlog-data'] })
+      if (action.action === 'convert_bug_to_backlog') queryClient.invalidateQueries({ queryKey: ['bugs-data'] })
+    }
     if (TEAM_ACTIONS.has(action.action)) {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
