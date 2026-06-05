@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { test, expect, describe, mock, afterEach, beforeEach } from 'bun:test'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import AddBugForm from '../AddBugForm'
 import type { Severity } from '../../constants'
@@ -59,6 +59,14 @@ describe('AddBugForm', () => {
     expect(screen.getByText('low')).toBeInTheDocument()
   })
 
+  test('renders agent and extension helper banner', () => {
+    renderForm()
+    expect(screen.getByText("Aren't you tired of typing?")).toBeInTheDocument()
+    expect(screen.getByText('Did you know you can do this via agent or extension?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /open agent/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /get extension/i })).toBeInTheDocument()
+  })
+
   test('Add Bug button is disabled when title is empty', () => {
     renderForm()
     expect(screen.getByText('Add Bug')).toBeInTheDocument()
@@ -110,9 +118,7 @@ describe('AddBugForm', () => {
     fireEvent.change(screen.getByPlaceholderText('Bug title *'), { target: { value: 'Test bug' } })
     fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 't1' } })
     fireEvent.click(screen.getByText('Add Bug'))
-    // Wait for async submit
-    await new Promise(r => setTimeout(r, 50))
-    expect(localStorage.getItem('lastTesterId')).toBe('t1')
+    await waitFor(() => expect(localStorage.getItem('lastTesterId')).toBe('t1'))
     expect(localStorage.getItem('lastTesterName')).toBe('Bruna Lima')
   })
 })

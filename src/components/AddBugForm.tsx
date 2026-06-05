@@ -1,8 +1,9 @@
 import React from 'react'
-import { Paperclip, AlertTriangle } from 'lucide-react'
+import { Paperclip, AlertTriangle, Bot, Puzzle } from 'lucide-react'
 import { SEVERITIES, SEVERITY_STYLES, PAGES } from '../constants'
 import { COMMON_TESTER_DEVICES } from '../lib/testerDevices'
 import AttachmentCard from './AttachmentCard'
+import AnnouncementBanner from './AnnouncementBanner'
 import { filesToAttachments, getImageFilesFromPaste } from '../domains/bugs/attachments'
 import { findPotentialDuplicates } from '../domains/bugs/duplicateDetection'
 import type { DuplicateCandidate } from '../domains/bugs/duplicateDetection'
@@ -10,6 +11,7 @@ import type { Severity } from '../constants'
 import type { Attachment, Bug } from '../domains/bugs/model'
 import type { SessionOption } from '../domains/sessions/model'
 import type { Tester } from '../lib/testerLookup'
+import { usePanelStore } from '../stores/panelStore'
 
 const ADD_NEW_TESTER_VALUE = '__add_new_tester__'
 const EMPTY_BUGS: Bug[] = []
@@ -57,6 +59,16 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
   const [duplicates, setDuplicates] = React.useState<DuplicateCandidate[]>([])
   const [duplicatesDismissed, setDuplicatesDismissed] = React.useState(false)
   const duplicateTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const openAgent = () => {
+    const panelStore = usePanelStore.getState()
+    if (!panelStore.aiPanelOpen) panelStore.toggleAiPanel()
+  }
+
+  const openExtensionSettings = () => {
+    window.location.hash = 'chrome-extension'
+    usePanelStore.getState().openSettings()
+  }
 
   React.useEffect(() => {
     if (duplicateTimer.current) clearTimeout(duplicateTimer.current)
@@ -146,6 +158,17 @@ export default function AddBugForm({ onAdd, onAddTester, onCancel, nextIds, test
   return (
     <div className={variant === 'card' ? 'mb-4 rounded-xl border-2 border-blue-500 bg-white dark:bg-gray-900 p-5' : ''} onPaste={handlePaste}>
       <h3 className="text-base font-bold text-slate-900 dark:text-gray-100 mb-3.5">Add New Bug</h3>
+      <AnnouncementBanner
+        title="Aren't you tired of typing?"
+        className="mb-3.5 rounded-lg border"
+        contentClassName="px-3 py-2.5 flex-wrap"
+        actions={[
+          { label: 'Open agent', onClick: openAgent, icon: <Bot size={12} /> },
+          { label: 'Get extension', onClick: openExtensionSettings, icon: <Puzzle size={12} />, variant: 'secondary' },
+        ]}
+      >
+        Did you know you can do this via agent or extension?
+      </AnnouncementBanner>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Bug title *"
           className="rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-500/30 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-all" />
