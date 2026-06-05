@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, Settings, Eye, EyeOff, ExternalLink, Check, Sparkles } from 'lucide-react'
+import { X, Settings, Eye, EyeOff, ExternalLink, Check, Sparkles, Download, Chrome, Puzzle } from 'lucide-react'
 import { getDevinApiKey, setDevinApiKey, removeDevinApiKey, isValidDevinKey } from '../lib/devin'
 import { getAiConfig, setAiConfig, removeAiConfig, type AiProviderType, type AiProviderConfig } from '../lib/aiProvider'
 import { setOpenPbiOnPublishSuccess, shouldOpenPbiOnPublishSuccess } from '../lib/azureSettings'
@@ -57,6 +57,13 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [open, onClose])
+
+  React.useEffect(() => {
+    if (!open || window.location.hash !== '#chrome-extension') return
+    window.setTimeout(() => {
+      document.getElementById('chrome-extension')?.scrollIntoView({ block: 'start' })
+    }, 0)
+  }, [open])
 
   const save = () => {
     if (!devinKey.trim()) return
@@ -149,7 +156,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 onClick={save}
                 disabled={!devinKey.trim()}
                 className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-semibold text-white transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-default ${
-                  saved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'
+                  saved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600 dark:text-mushi-bg'
                 }`}
               >
                 {saved ? (
@@ -204,6 +211,36 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 </p>
               </div>
             </label>
+          </div>
+
+          <div id="chrome-extension">
+            <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-gray-400 mb-3">
+              <Chrome size={12} />
+              Chrome Extension
+            </h3>
+            <div className="rounded-md border border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-gray-800/60 px-3 py-3">
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-100 text-blue-600 dark:bg-mushi-primary/10 dark:text-mushi-primary">
+                  <Puzzle size={15} />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">
+                    Capture bugs directly from the page you&apos;re testing.
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-gray-500 leading-relaxed">
+                    Download the extension, unzip it, then load the unzipped folder in Chrome extensions with Developer mode enabled. Use <strong>Alt + Shift + B</strong> on a configured product domain to report a bug with page context and screenshots.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/mushi-chrome-extension.zip"
+                download
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white dark:text-mushi-bg hover:bg-blue-600 transition-colors"
+              >
+                <Download size={13} />
+                Download Chrome extension
+              </a>
+            </div>
           </div>
 
           {/* AI Assistant Section */}
@@ -337,7 +374,7 @@ export default function SettingsSidebar({ open, onClose }: SettingsSidebarProps)
                 }}
                 disabled={!aiKey.trim()}
                 className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-semibold text-white transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-default ${
-                  aiSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'
+                  aiSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600 dark:text-mushi-bg'
                 }`}
               >
                 {aiSaved ? (

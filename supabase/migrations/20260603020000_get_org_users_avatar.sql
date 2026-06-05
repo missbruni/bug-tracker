@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS public.get_org_users();
+
 CREATE OR REPLACE FUNCTION public.get_org_users()
 RETURNS TABLE(id uuid, email text, display_name text, avatar_url text)
 LANGUAGE sql
@@ -18,3 +20,7 @@ AS $$
   WHERE au.email ILIKE '%@theaccessgroup.com'
   ORDER BY au.email;
 $$;
+
+GRANT ALL ON FUNCTION public.get_org_users() TO anon;
+GRANT ALL ON FUNCTION public.get_org_users() TO authenticated;
+GRANT ALL ON FUNCTION public.get_org_users() TO service_role;

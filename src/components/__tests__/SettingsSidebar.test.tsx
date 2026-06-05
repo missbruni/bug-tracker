@@ -76,6 +76,15 @@ describe('SettingsSidebar', () => {
     expect(azureToggle).toBeChecked()
   })
 
+  test('renders Chrome extension download section', () => {
+    render(<SettingsSidebar open={true} onClose={() => {}} />)
+    expect(screen.getByText('Chrome Extension')).toBeInTheDocument()
+    expect(screen.getByText(/Capture bugs directly from the page/)).toBeInTheDocument()
+    const downloadLink = screen.getByRole('link', { name: /download chrome extension/i })
+    expect(downloadLink).toHaveAttribute('href', '/mushi-chrome-extension.zip')
+    expect(downloadLink).toHaveAttribute('download')
+  })
+
   test('persists Azure publish setting when toggled off', () => {
     render(<SettingsSidebar open={true} onClose={() => {}} />)
     const azureToggle = screen.getByRole('checkbox', { name: /open azure pbi in new tab after publish succeeds/i })
